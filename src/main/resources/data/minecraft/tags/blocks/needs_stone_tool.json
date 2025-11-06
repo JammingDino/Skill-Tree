@@ -1,0 +1,7 @@
+{
+  "replace": false,
+  "values": [
+    "jd_skill_tree:skill_altar",
+    "jd_skill_tree:iron_skill_altar"
+  ]
+}
