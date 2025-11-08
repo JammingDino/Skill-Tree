@@ -9,6 +9,12 @@ import net.minecraft.client.render.entity.model.EntityModelLayer;
 import net.minecraft.util.Identifier;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import com.jd_skill_tree.skills.ClientSkillData;
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
+import java.util.HashSet;
+import java.util.Set;
+
+import static com.jd_skill_tree.Jd_skill_tree.SKILL_SYNC_PACKET_ID;
 
 public class Jd_skill_tree_client implements ClientModInitializer {
 
@@ -23,19 +29,29 @@ public class Jd_skill_tree_client implements ClientModInitializer {
     public void onInitializeClient() {
         LOGGER.info("Initializing client for JD Skill Tree Mod");
 
+        Jd_skill_tree.CLIENT_SKILL_DATA_HANDLER = ClientSkillData::isSkillUnlocked;
+        registerS2CPackets();
 
-        // Register block entity renderers
         BlockEntityRendererFactories.register(ModBlockEntities.SKILL_ALTAR_ENTITY, SkillAltarBlockEntityRenderer::new);
 
-        // Register screen handlers (we'll add this in the next step)
-        // registerScreenHandlers();
         ClientBlockInteractionHandler.register();
 
         LOGGER.info("Client initialization complete for JD Skill Tree Mod");
     }
 
-    // We'll implement this method when we create the GUI
-    // private void registerScreenHandlers() {
-    //     HandledScreens.register(ModScreenHandlers.SKILL_TREE_SCREEN_HANDLER, SkillTreeScreen::new);
-    // }
+    private void registerS2CPackets() {
+        ClientPlayNetworking.registerGlobalReceiver(SKILL_SYNC_PACKET_ID, (client, handler, buf, responseSender) -> {
+            int size = buf.readInt();
+            Set<String> unlockedSkills = new HashSet<>();
+            for (int i = 0; i < size; i++) {
+                unlockedSkills.add(buf.readString());
+            }
+
+            // This must be run on the client's main thread
+            client.execute(() -> {
+                ClientSkillData.setUnlockedSkills(unlockedSkills);
+            });
+        });
+    }
+
 }

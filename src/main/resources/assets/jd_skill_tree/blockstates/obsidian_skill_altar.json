@@ -1,0 +1,7 @@
+{
+  "variants": {
+    "": {
+      "model": "jd_skill_tree:block/obsidian_skill_altar"
+    }
+  }
+}

@@ -1,10 +1,10 @@
 {
   "parent": "minecraft:block/block",
   "textures": {
-    "particle": "jd_skill_tree:block/skill_altar_top",
-    "bottom": "jd_skill_tree:block/skill_altar_bottom",
-    "top": "jd_skill_tree:block/skill_altar_top",
-    "side": "jd_skill_tree:block/skill_altar_side"
+    "particle": "jd_skill_tree:block/obsidian_skill_altar_top",
+    "bottom": "jd_skill_tree:block/obsidian_skill_altar_bottom",
+    "top": "jd_skill_tree:block/obsidian_skill_altar_top",
+    "side": "jd_skill_tree:block/obsidian_skill_altar_side"
   },
   "elements": [
     {

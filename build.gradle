@@ -42,9 +42,6 @@ dependencies {
 
 	// Fabric API. This is technically optional, but you probably want it anyway.
 	modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
-
-    // LibGUI implementation, required for the GUIs
-    modImplementation include("io.github.cottonmc:LibGui:${project.libgui_version}")
 	
 }
 

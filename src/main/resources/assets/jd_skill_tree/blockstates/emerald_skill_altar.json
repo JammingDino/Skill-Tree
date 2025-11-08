@@ -1,0 +1,7 @@
+{
+  "variants": {
+    "": {
+      "model": "jd_skill_tree:block/emerald_skill_altar"
+    }
+  }
+}
