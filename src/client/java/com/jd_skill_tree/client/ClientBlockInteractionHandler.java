@@ -2,7 +2,6 @@ package com.jd_skill_tree.client;
 
 import com.jd_skill_tree.blocks.SkillAltar;
 import com.jd_skill_tree.screens.AltarScreen;
-import io.github.cottonmc.cotton.gui.client.CottonClientScreen;
 import net.fabricmc.fabric.api.event.player.UseBlockCallback;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.text.Text;

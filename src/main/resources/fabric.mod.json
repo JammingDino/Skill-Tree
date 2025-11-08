@@ -22,6 +22,9 @@
 			"com.jd_skill_tree.Jd_skill_tree_client"
 		]
 	},
+  "mixins": [
+    "jd_skill_tree.mixins.json"
+  ],
 	"depends": {
 		"fabricloader": ">=0.17.3",
 		"minecraft": "~1.20",

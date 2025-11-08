@@ -1,5 +1,6 @@
 package com.jd_skill_tree.screens.widgets;
 
+import com.jd_skill_tree.skills.ClientSkillData;
 import com.jd_skill_tree.skills.Skill;
 import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.client.MinecraftClient;
@@ -9,69 +10,110 @@ import net.minecraft.text.OrderedText;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 import java.util.List;
+import java.util.Optional;
 
 public class SkillWidget {
 
+    // An enum to make the different states clear and manageable
+    public enum SkillState {
+        LOCKED,       // Cannot be unlocked
+        CAN_UNLOCK,   // Requirements met
+        UNLOCKED      // Already unlocked
+    }
+
     private static final Identifier WIDGETS_TEXTURE = new Identifier("jd_skill_tree", "textures/gui/widgets.png");
     private final Skill skill;
-    private final int x;
-    private final int y;
-    private final Screen parentScreen;
+    private final int worldX;
+    private final int worldY;
     private final MinecraftClient client;
     private final OrderedText title;
     private final List<OrderedText> description;
 
 
-    public SkillWidget(Skill skill, int x, int y, Screen parentScreen) {
+    public SkillWidget(Skill skill, int worldX, int worldY, Screen parentScreen) {
         this.skill = skill;
-        this.x = x;
-        this.y = y;
-        this.parentScreen = parentScreen;
+        this.worldX = worldX;
+        this.worldY = worldY;
         this.client = MinecraftClient.getInstance();
-
-        // Prepare the text for rendering
         this.title = Text.of(skill.getTitle()).asOrderedText();
-        // Split the description into multiple lines if it's too long
-        this.description = this.client.textRenderer.wrapLines(Text.of(skill.getDescription()), 150); // 150 is the max width
+        this.description = this.client.textRenderer.wrapLines(Text.of(skill.getDescription()), 150);
     }
 
-    public void render(DrawContext context, int mouseX, int mouseY, float delta) {
+    public void render(DrawContext context, int panX, int panY, int mouseX, int mouseY, float delta) {
+        int screenX = this.worldX + panX;
+        int screenY = this.worldY + panY;
+
         RenderSystem.enableBlend();
 
-        assert client.player != null;
-        boolean playerUnlocked = client.player.experienceLevel > skill.getCost();
+        // Determine the skill's state
+        SkillState state = this.getState();
 
-        // Determine the texture based on whether the skill is unlocked
-        int v = 0;
-        if (isMouseOver(mouseX, mouseY)) {
-            v = 52;
-        } else if (playerUnlocked) {
-            v = 0;
-        } else  {
-            v = 26;
+        // Determine the texture v-offset based on state and hover
+        int v;
+        if (isMouseOver(panX, panY, mouseX, mouseY)) {
+            v = 52; // Hover texture
+        } else {
+            switch (state) {
+                case UNLOCKED:
+                    v = 78; // Unlocked texture
+                    break;
+                case CAN_UNLOCK:
+                    v = 0;  // Can-unlock texture
+                    break;
+                case LOCKED:
+                default:
+                    v = 26; // Locked texture
+                    break;
+            }
         }
 
-        // Draw the background frame for the skill
-        // We're borrowing the advancement widget texture here. You could create your own.
-        context.drawTexture(WIDGETS_TEXTURE, this.x, this.y, 0, v, 26, 26, 78, 104);
+        context.drawTexture(WIDGETS_TEXTURE, screenX, screenY, 0, v, 26, 26, 78, 104);
+        context.drawItem(skill.getIcon(), screenX + 5, screenY + 5);
 
-        // Draw the skill's icon
-        context.drawItem(skill.getIcon(), this.x + 5, this.y + 5);
-
-        // If the mouse is hovering over the widget, draw the tooltip
-        if (isMouseOver(mouseX, mouseY)) {
+        if (isMouseOver(panX, panY, mouseX, mouseY)) {
             drawTooltip(context, mouseX, mouseY);
         }
     }
 
+    /**
+     * Determines the current state of the skill for the player.
+     * This is the core logic for deciding how the skill is displayed.
+     * @return The current SkillState.
+     */
+    public SkillState getState() {
+        assert this.client.player != null;
+
+        // State 1: Already unlocked
+        if (ClientSkillData.isSkillUnlocked(this.skill)) {
+            return SkillState.UNLOCKED;
+        }
+
+        // State 2: Check if requirements are met to unlock
+        boolean hasEnoughLevels = this.client.player.experienceLevel >= this.skill.getCost();
+
+        // Check for prerequisite skill
+        Optional<Skill> requiredSkillOpt = this.skill.getRequiredSkill();
+        boolean hasRequiredSkill = true; // Default to true if there is no prerequisite
+        if (requiredSkillOpt.isPresent()) {
+            hasRequiredSkill = ClientSkillData.isSkillUnlocked(requiredSkillOpt.get());
+        }
+
+        if (hasEnoughLevels && hasRequiredSkill) {
+            return SkillState.CAN_UNLOCK;
+        }
+
+        // State 3: If none of the above, it's locked
+        return SkillState.LOCKED;
+    }
+
+    // Pass the state to the tooltip to color the cost text
     private void drawTooltip(DrawContext context, int mouseX, int mouseY) {
-        // Calculate tooltip position
+        // ... (Tooltip background code is the same)
         int tooltipX = mouseX + 12;
         int tooltipY = mouseY - 28;
-        int tooltipWidth = 160; // Max width
-        int tooltipHeight = 8 + (description.size() * 10) + 12; // Adjusted for title and cost
+        int tooltipWidth = 160;
+        int tooltipHeight = 8 + (description.size() * 10) + 12;
 
-        // Render the tooltip background
         context.fillGradient(tooltipX - 3, tooltipY - 4, tooltipX + tooltipWidth + 3, tooltipY - 3, -267386864, -267386864);
         context.fillGradient(tooltipX - 3, tooltipY + tooltipHeight + 3, tooltipX + tooltipWidth + 3, tooltipY + tooltipHeight + 4, -267386864, -267386864);
         context.fillGradient(tooltipX - 3, tooltipY - 3, tooltipX + tooltipWidth + 3, tooltipY + tooltipHeight + 3, -267386864, -267386864);
@@ -82,39 +124,39 @@ public class SkillWidget {
         context.fillGradient(tooltipX - 3, tooltipY - 3, tooltipX + tooltipWidth + 3, tooltipY - 3 + 1, 1347420415, 1347420415);
         context.fillGradient(tooltipX - 3, tooltipY + tooltipHeight + 2, tooltipX + tooltipWidth + 3, tooltipY + tooltipHeight + 3, 1344798847, 1344798847);
 
-        // Draw skill title
         context.drawText(this.client.textRenderer, this.title, tooltipX, tooltipY, -1, true);
 
-        // Draw skill description
         int descY = tooltipY + 12;
         for (OrderedText line : this.description) {
             context.drawText(this.client.textRenderer, line, tooltipX, descY, -1, true);
             descY += 10;
         }
 
-        // Draw skill cost
         Text costText = Text.of("Cost: " + skill.getCost());
         assert client.player != null;
-        boolean playerUnlocked = client.player.experienceLevel > skill.getCost();
-        if (playerUnlocked) { // Green if unlocked, red if not
-            context.drawText(this.client.textRenderer, costText, tooltipX, descY, 0x66FF55, true);
-        } else {
-            context.drawText(this.client.textRenderer, costText, tooltipX, descY, 0xFF5555, true);
-        };
-    }
 
-    public boolean isMouseOver(int mouseX, int mouseY) {
-        return mouseX >= this.x && mouseX <= this.x + 26 &&
-                mouseY >= this.y && mouseY <= this.y + 26;
-    }
-
-    // You can add a click handler here if you want to make the widgets clickable
-    public boolean mouseClicked(double mouseX, double mouseY, int button) {
-        if (isMouseOver((int)mouseX, (int)mouseY)) {
-            // Handle the click event (e.g., attempt to unlock the skill)
-            System.out.println("Clicked on skill: " + skill.getTitle());
-            return true;
+        // Use the skill's state to determine text color
+        SkillState state = getState();
+        int color = 0xFF5555; // Default to red (locked)
+        if (state == SkillState.UNLOCKED) {
+            color = 0x66FF55; // Green
+        } else if (client.player.experienceLevel >= skill.getCost()) {
+            color = 0xFFFF55; // Yellow if they have enough levels, but not prereq
         }
-        return false;
+
+        context.drawText(this.client.textRenderer, costText, tooltipX, descY, color, true);
+    }
+
+    // Unchanged methods
+    public Skill getSkill() { return this.skill; }
+    public int getWorldX() { return this.worldX; }
+    public int getWorldY() { return this.worldY; }
+    public boolean isMouseOver(int panX, int panY, int mouseX, int mouseY) {
+        int screenX = this.worldX + panX;
+        int screenY = this.worldY + panY;
+        return mouseX >= screenX && mouseX <= screenX + 26 && mouseY >= screenY && mouseY <= screenY + 26;
+    }
+    public boolean mouseClicked(double mouseX, double mouseY, int button, int panX, int panY) {
+        return isMouseOver(panX, panY, (int)mouseX, (int)mouseY);
     }
 }
