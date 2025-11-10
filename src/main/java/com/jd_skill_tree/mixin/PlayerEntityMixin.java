@@ -7,6 +7,9 @@ import com.jd_skill_tree.skills.Skill;
 import net.minecraft.block.BlockState;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.LivingEntity;
+import net.minecraft.entity.attribute.EntityAttributeInstance;
+import net.minecraft.entity.attribute.EntityAttributeModifier;
+import net.minecraft.entity.attribute.EntityAttributes;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtList;
@@ -21,9 +24,94 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 
 @Mixin(PlayerEntity.class)
 public abstract class PlayerEntityMixin extends LivingEntity implements IUnlockedSkillsData {
+
+    private static final UUID MOVEMENT_SPEED_MODIFIER_ID = UUID.fromString("a8a0d5e8-5a3d-4b3e-8a9a-3e9e1c0c1c0c");
+
+    @Inject(method = "tick", at = @At("HEAD"))
+    private void onTick(CallbackInfo ci) {
+
+        /// /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        /// Movement Modify Script
+        /// /////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+        PlayerEntity player = (PlayerEntity) (Object) this;
+        EntityAttributeInstance movementSpeedAttribute = player.getAttributeInstance(EntityAttributes.GENERIC_MOVEMENT_SPEED);
+        if (movementSpeedAttribute == null) {
+            return;
+        }
+
+        // Remove the old modifier before recalculating
+        movementSpeedAttribute.removeModifier(MOVEMENT_SPEED_MODIFIER_ID);
+
+        float movementSpeedBonus = 0.0f;
+        float sneakSpeedBonus = 0.0f;
+
+        for (Map.Entry<String, Float> entry : ModSkills.getMovementSpeedBonuses().entrySet()) {
+            String skillId = entry.getKey();
+            float bonus = entry.getValue();
+            boolean hasSkill;
+
+            if (player.getWorld().isClient()) {
+                if (Jd_skill_tree.CLIENT_SKILL_DATA_HANDLER != null) {
+                    Skill skill = ModSkills.getSkill(skillId);
+                    hasSkill = Jd_skill_tree.CLIENT_SKILL_DATA_HANDLER.isSkillUnlocked(skill);
+                } else {
+                    hasSkill = false;
+                }
+            } else {
+                IUnlockedSkillsData skillData = (IUnlockedSkillsData) this;
+                hasSkill = skillData.hasSkill(skillId);
+            }
+
+            if (hasSkill) {
+                movementSpeedBonus += bonus;
+            }
+        }
+
+        for (Map.Entry<String, Float> entry : ModSkills.getSneakSpeedBonuses().entrySet()) {
+            String skillId = entry.getKey();
+            float bonus = entry.getValue();
+            boolean hasSkill;
+
+            if (player.getWorld().isClient()) {
+                if (Jd_skill_tree.CLIENT_SKILL_DATA_HANDLER != null) {
+                    Skill skill = ModSkills.getSkill(skillId);
+                    hasSkill = Jd_skill_tree.CLIENT_SKILL_DATA_HANDLER.isSkillUnlocked(skill);
+                } else {
+                    hasSkill = false;
+                }
+            } else {
+                IUnlockedSkillsData skillData = (IUnlockedSkillsData) this;
+                hasSkill = skillData.hasSkill(skillId);
+            }
+
+            if (hasSkill) {
+                sneakSpeedBonus += bonus;
+            }
+        }
+
+        float totalMovementBonus = movementSpeedBonus;
+        if (player.isSneaking()) {
+            totalMovementBonus += sneakSpeedBonus;
+        }
+
+        if (totalMovementBonus > 0) {
+            EntityAttributeModifier movementSpeedModifier = new EntityAttributeModifier(
+                    MOVEMENT_SPEED_MODIFIER_ID,
+                    "Skill Tree Movement Speed Bonus",
+                    totalMovementBonus,
+                    EntityAttributeModifier.Operation.MULTIPLY_TOTAL
+            );
+            movementSpeedAttribute.addPersistentModifier(movementSpeedModifier);
+        }
+
+
+    }
+
 
     @Inject(method = "getBlockBreakingSpeed", at = @At("RETURN"), cancellable = true)
     private void onGetBlockBreakingSpeed(BlockState block, CallbackInfoReturnable<Float> cir) {
@@ -64,7 +152,7 @@ public abstract class PlayerEntityMixin extends LivingEntity implements IUnlocke
         super(entityType, world);
     }
 
-    // --- Implement the interface methods (No changes here) ---
+    // --- Implement the interface methods  ---
 
     @Override
     public Set<String> getUnlockedSkills() {
@@ -87,22 +175,19 @@ public abstract class PlayerEntityMixin extends LivingEntity implements IUnlocke
         this.unlockedSkills.addAll(skills);
     }
 
-    // --- NBT Persistence Hooks (THESE ARE THE CHANGED PARTS) ---
-
-    @Inject(method = "writeCustomDataToNbt", at = @At("HEAD")) // <- CORRECTED METHOD NAME
-    public void onWriteCustomDataToNbt(NbtCompound nbt, CallbackInfo ci) { // <- I've renamed the method to match, for clarity
+    @Inject(method = "writeCustomDataToNbt", at = @At("HEAD"))
+    public void onWriteCustomDataToNbt(NbtCompound nbt, CallbackInfo ci) {
         NbtList skillList = new NbtList();
         for (String skillId : this.unlockedSkills) {
             skillList.add(NbtString.of(skillId));
         }
-        // It's good practice to put your mod's data inside its own compound tag to avoid conflicts
         NbtCompound skillsData = new NbtCompound();
         skillsData.put("unlockedSkills", skillList);
         nbt.put("jd_skill_tree_data", skillsData);
     }
 
-    @Inject(method = "readCustomDataFromNbt", at = @At("HEAD")) // <- CORRECTED METHOD NAME
-    public void onReadCustomDataFromNbt(NbtCompound nbt, CallbackInfo ci) { // <- I've renamed the method to match, for clarity
+    @Inject(method = "readCustomDataFromNbt", at = @At("HEAD"))
+    public void onReadCustomDataFromNbt(NbtCompound nbt, CallbackInfo ci) {
         this.unlockedSkills.clear();
         if (nbt.contains("jd_skill_tree_data")) {
             NbtCompound skillsData = nbt.getCompound("jd_skill_tree_data");

@@ -91,14 +91,18 @@ public class SkillWidget {
         // State 2: Check if requirements are met to unlock
         boolean hasEnoughLevels = this.client.player.experienceLevel >= this.skill.getCost();
 
-        // Check for prerequisite skill
-        Optional<Skill> requiredSkillOpt = this.skill.getRequiredSkill();
-        boolean hasRequiredSkill = true; // Default to true if there is no prerequisite
-        if (requiredSkillOpt.isPresent()) {
-            hasRequiredSkill = ClientSkillData.isSkillUnlocked(requiredSkillOpt.get());
+        // Check for ALL prerequisite skills
+        boolean hasAllRequiredSkills = true;
+        List<Skill> requiredSkills = this.skill.getRequiredSkills();
+
+        for (Skill requiredSkill : requiredSkills) {
+            if (!ClientSkillData.isSkillUnlocked(requiredSkill)) {
+                hasAllRequiredSkills = false;
+                break;
+            }
         }
 
-        if (hasEnoughLevels && hasRequiredSkill) {
+        if (hasEnoughLevels && hasAllRequiredSkills) {
             return SkillState.CAN_UNLOCK;
         }
 

@@ -1,0 +1,21 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "ooo",
+    "oao",
+    "ooo"
+  ],
+  "key": {
+    "a": {
+      "item": "jd_skill_tree:emerald_skill_altar"
+    },
+    "o": {
+      "item": "minecraft:obsidian"
+    }
+  },
+  "result": {
+    "item": "jd_skill_tree:obsidian_skill_altar",
+    "count": 1
+  }
+}
