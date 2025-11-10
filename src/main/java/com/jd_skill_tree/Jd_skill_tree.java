@@ -17,6 +17,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.HashSet;
+import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 
@@ -52,11 +53,10 @@ public class Jd_skill_tree implements ModInitializer {
         ServerPlayNetworking.registerGlobalReceiver(UNLOCK_SKILL_PACKET_ID, (server, player, handler, buf, responseSender) -> {
             String skillId = buf.readString();
 
-            // Log that the request was received
             LOGGER.info("[SERVER DEBUG] Received unlock request for skill '{}' from player '{}'", skillId, player.getName().getString());
 
             server.execute(() -> {
-                IUnlockedSkillsData skillData = (IUnlockedSkillsData) player; // Cast player to our interface
+                IUnlockedSkillsData skillData = (IUnlockedSkillsData) player;
                 Optional<Skill> skillOpt = ModSkills.getSkillById(skillId);
 
                 // --- SERVER-SIDE VALIDATION CHECKS ---
@@ -75,12 +75,14 @@ public class Jd_skill_tree implements ModInitializer {
                     return;
                 }
 
-                // 3. Check for prerequisite
-                Optional<Skill> requiredSkillOpt = skillToUnlock.getRequiredSkill();
-                if (requiredSkillOpt.isPresent() && !skillData.hasSkill(requiredSkillOpt.get().getId())) {
-                    LOGGER.warn("[SERVER DEBUG] Check failed: Player '{}' is missing prerequisite '{}' for skill '{}'.",
-                            player.getName().getString(), requiredSkillOpt.get().getId(), skillId);
-                    return;
+                // 3. Check for ALL prerequisites
+                List<Skill> requiredSkills = skillToUnlock.getRequiredSkills();
+                for (Skill requiredSkill : requiredSkills) {
+                    if (!skillData.hasSkill(requiredSkill.getId())) {
+                        LOGGER.warn("[SERVER DEBUG] Check failed: Player '{}' is missing prerequisite '{}' for skill '{}'.",
+                                player.getName().getString(), requiredSkill.getId(), skillId);
+                        return;
+                    }
                 }
 
                 // 4. Check for sufficient experience

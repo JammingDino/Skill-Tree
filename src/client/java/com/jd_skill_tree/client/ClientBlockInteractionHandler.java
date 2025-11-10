@@ -18,11 +18,13 @@ public class ClientBlockInteractionHandler {
             if (world.isClient) {
                 var blockState = world.getBlockState(hitResult.getBlockPos());
 
-                // Check if it's a SkillAltar block
-                if (blockState.getBlock() instanceof SkillAltar altar) {
-                    // Open the GUI using our helper method
-                    openSkillTreeGui(altar.getTier());
-                    return ActionResult.SUCCESS;
+                if (!player.isSneaking()) {
+                    // Check if it's a SkillAltar block
+                    if (blockState.getBlock() instanceof SkillAltar altar) {
+                        // Open the GUI using our helper method
+                        openSkillTreeGui(altar.getTier());
+                        return ActionResult.SUCCESS;
+                    }
                 }
             }
             return ActionResult.PASS;

@@ -1,0 +1,21 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "ddd",
+    "dad",
+    "ddd"
+  ],
+  "key": {
+    "a": {
+      "item": "jd_skill_tree:iron_skill_altar"
+    },
+    "d": {
+      "item": "minecraft:diamond"
+    }
+  },
+  "result": {
+    "item": "jd_skill_tree:diamond_skill_altar",
+    "count": 1
+  }
+}

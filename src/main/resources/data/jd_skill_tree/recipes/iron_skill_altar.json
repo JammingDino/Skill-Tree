@@ -1,0 +1,21 @@
+{
+  "type": "minecraft:crafting_shaped",
+  "category": "misc",
+  "pattern": [
+    "iii",
+    "iai",
+    "iii"
+  ],
+  "key": {
+    "a": {
+      "item": "jd_skill_tree:skill_altar"
+    },
+    "i": {
+      "item": "minecraft:iron_ingot"
+    }
+  },
+  "result": {
+    "item": "jd_skill_tree:iron_skill_altar",
+    "count": 1
+  }
+}
