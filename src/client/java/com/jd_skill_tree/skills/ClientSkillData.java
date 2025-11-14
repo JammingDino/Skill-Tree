@@ -27,7 +27,8 @@ public class ClientSkillData {
      * @return True if the skill is in the set of unlocked skills.
      */
     public static boolean isSkillUnlocked(Skill skill) {
-        if (skill == null) return false;
-        return unlockedSkills.contains(skill.getId());
+        if (skill == null || skill.getId() == null) return false;
+        // CORRECTED LINE: Convert the skill's Identifier to a string before checking.
+        return unlockedSkills.contains(skill.getId().toString());
     }
 }

@@ -1,0 +1,8 @@
+{
+  "name": "Reset Skills",
+  "description": "Revokes all unlocked skills and refunds all spent experience levels.",
+  "icon": "minecraft:barrier",
+  "tier": 1,
+  "cost": 0,
+  "prerequisites": []
+}

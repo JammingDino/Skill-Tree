@@ -26,4 +26,10 @@ public interface IUnlockedSkillsData {
      * @param skills The complete set of skills to assign to the player.
      */
     void setUnlockedSkills(Set<String> skills);
+
+    /**
+     * Revokes a specific skill from the player.
+     * @param skillId The ID of the skill to revoke.
+     */
+    void revokeSkill(String skillId);
 }

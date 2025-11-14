@@ -1,6 +1,6 @@
 package com.jd_skill_tree.screens;
 
-import com.jd_skill_tree.Jd_skill_tree;
+import com.jd_skill_tree.networking.SkillNetworking;
 import com.jd_skill_tree.screens.widgets.SkillWidget;
 import com.jd_skill_tree.skills.ModSkills;
 import com.jd_skill_tree.skills.Skill;
@@ -29,7 +29,7 @@ public class AltarScreen extends Screen {
     public static int y = 0;
 
     private final List<SkillWidget> skillWidgets = new ArrayList<>();
-    private final Map<String, SkillWidget> skillWidgetMap = new HashMap<>();
+    private final Map<Identifier, SkillWidget> skillWidgetMap = new HashMap<>();
 
     // Layout configuration
     private static final int CENTER_X = 0; // Center point in world space
@@ -55,7 +55,7 @@ public class AltarScreen extends Screen {
         List<Skill> skillsToDisplay = ModSkills.getSkillsForTier(tier);
 
         // Organize skills by their tree structure
-        Map<String, SkillNode> skillNodes = buildSkillTree(skillsToDisplay);
+        Map<Identifier, SkillNode> skillNodes = buildSkillTree(skillsToDisplay);
 
         // Calculate positions for all skills
         calculateCircularPositions(skillNodes);
@@ -93,8 +93,8 @@ public class AltarScreen extends Screen {
     /**
      * Build a tree structure from the flat skill list
      */
-    private Map<String, SkillNode> buildSkillTree(List<Skill> skills) {
-        Map<String, SkillNode> nodes = new HashMap<>();
+    private Map<Identifier, SkillNode> buildSkillTree(List<Skill> skills) {
+        Map<Identifier, SkillNode> nodes = new HashMap<>();
         List<SkillNode> rootNodes = new ArrayList<>();
 
         // Create nodes for all skills
@@ -149,7 +149,7 @@ public class AltarScreen extends Screen {
     /**
      * Calculate circular positions for all skills
      */
-    private void calculateCircularPositions(Map<String, SkillNode> nodes) {
+    private void calculateCircularPositions(Map<Identifier, SkillNode> nodes) {
         // Find root nodes
         List<SkillNode> rootNodes = new ArrayList<>();
         for (SkillNode node : nodes.values()) {
@@ -416,7 +416,8 @@ public class AltarScreen extends Screen {
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
         for (SkillWidget widget : this.skillWidgets) {
             if (widget.mouseClicked(mouseX, mouseY, button, (int)this.panX, (int)this.panY)) {
-                if (widget.getSkill().getId().equals("reset_skills")) {
+                // CHANGED: Compare the skill's ID to our "reset_skills" identifier.
+                if (widget.getSkill().getId().toString().equals("jd_skill_tree:reset_skills")) {
                     if (widget.getState() == SkillWidget.SkillState.CAN_UNLOCK) {
                         sendResetRequest();
                         assert this.client != null;
@@ -437,14 +438,16 @@ public class AltarScreen extends Screen {
     private void sendUnlockRequest(Skill skill) {
         System.out.println("CLIENT: Sending unlock request for skill: " + skill.getId());
         PacketByteBuf buf = PacketByteBufs.create();
-        buf.writeString(skill.getId());
-        ClientPlayNetworking.send(Jd_skill_tree.UNLOCK_SKILL_PACKET_ID, buf);
+        buf.writeIdentifier(skill.getId());
+        // CORRECTED: Reference the ID from the SkillNetworking class
+        ClientPlayNetworking.send(SkillNetworking.UNLOCK_SKILL_PACKET_ID, buf);
     }
 
     private void sendResetRequest() {
         System.out.println("CLIENT: Sending skill reset request.");
         PacketByteBuf buf = PacketByteBufs.create();
-        ClientPlayNetworking.send(Jd_skill_tree.RESET_SKILLS_PACKET_ID, buf);
+        // CORRECTED: Reference the ID from the SkillNetworking class
+        ClientPlayNetworking.send(SkillNetworking.RESET_SKILLS_PACKET_ID, buf);
     }
 
     private void clampPan() {
