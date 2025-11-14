@@ -3,6 +3,7 @@ package com.jd_skill_tree;
 import com.jd_skill_tree.blocks.entity.ModBlockEntities;
 import com.jd_skill_tree.blocks.entity.renderer.SkillAltarBlockEntityRenderer;
 import com.jd_skill_tree.client.ClientBlockInteractionHandler;
+import com.jd_skill_tree.networking.SkillNetworking;
 import net.fabricmc.api.ClientModInitializer;
 import net.minecraft.client.render.block.entity.BlockEntityRendererFactories;
 import net.minecraft.client.render.entity.model.EntityModelLayer;
@@ -13,8 +14,6 @@ import com.jd_skill_tree.skills.ClientSkillData;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import java.util.HashSet;
 import java.util.Set;
-
-import static com.jd_skill_tree.Jd_skill_tree.SKILL_SYNC_PACKET_ID;
 
 public class Jd_skill_tree_client implements ClientModInitializer {
 
@@ -40,7 +39,8 @@ public class Jd_skill_tree_client implements ClientModInitializer {
     }
 
     private void registerS2CPackets() {
-        ClientPlayNetworking.registerGlobalReceiver(SKILL_SYNC_PACKET_ID, (client, handler, buf, responseSender) -> {
+        // CORRECTED: Reference the ID from the SkillNetworking class
+        ClientPlayNetworking.registerGlobalReceiver(SkillNetworking.SKILL_SYNC_PACKET_ID, (client, handler, buf, responseSender) -> {
             int size = buf.readInt();
             Set<String> unlockedSkills = new HashSet<>();
             for (int i = 0; i < size; i++) {

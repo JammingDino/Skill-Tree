@@ -35,7 +35,7 @@ public class SkillWidget {
         this.worldX = worldX;
         this.worldY = worldY;
         this.client = MinecraftClient.getInstance();
-        this.title = Text.of(skill.getTitle()).asOrderedText();
+        this.title = Text.of(skill.getName()).asOrderedText();
         this.description = this.client.textRenderer.wrapLines(Text.of(skill.getDescription()), 150);
     }
 
