@@ -487,17 +487,41 @@ public class AltarScreen extends Screen {
         this.renderBackground(context);
         this.drawWindow(context, x, y);
 
+        // 1. Enable Scissor (Clips content to the window)
         context.enableScissor(x + 10, y + 2, x + WINDOW_WIDTH - 10, y + WINDOW_HEIGHT - 10);
 
+        // 2. Draw Lines (Behind widgets)
         drawSkillLines(context);
 
+        // 3. Draw Widgets (Frames and Icons only)
         for (SkillWidget widget : this.skillWidgets) {
             widget.render(context, (int)this.panX, (int)this.panY, mouseX, mouseY, delta);
         }
 
+        // 4. Disable Scissor (Allow drawing outside the window bounds)
         context.disableScissor();
 
+        // 5. Draw Tooltips (Top layer, outside clip)
+        // We assume only one widget can be hovered at a time.
+        for (SkillWidget widget : this.skillWidgets) {
+            if (widget.isMouseOver((int)this.panX, (int)this.panY, mouseX, mouseY)) {
+                // Determine if the mouse is actually within the window bounds
+                // This prevents tooltips from appearing if the widget is hidden by the scissor logic
+                // but the mouse is technically over its coordinates.
+                if (isMouseInWindow(mouseX, mouseY)) {
+                    widget.renderTooltip(context, mouseX, mouseY);
+                }
+                break; // Stop after finding the hovered widget
+            }
+        }
+
         super.render(context, mouseX, mouseY, delta);
+    }
+
+    // Helper to ensure we don't show tooltips if the mouse is outside the main window area
+    private boolean isMouseInWindow(int mouseX, int mouseY) {
+        return mouseX >= x + 10 && mouseX <= x + WINDOW_WIDTH - 10 &&
+                mouseY >= y + 2 && mouseY <= y + WINDOW_HEIGHT - 10;
     }
 
     private void drawSkillLines(DrawContext context) {

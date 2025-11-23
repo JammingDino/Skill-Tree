@@ -28,8 +28,9 @@
 	"depends": {
 		"fabricloader": ">=0.17.3",
 		"minecraft": "~1.20",
-		"java": ">=21",
-		"fabric-api": "*"
+		"java": ">=17",
+		"fabric-api": "*",
+        "owo-lib": "*"
 	},
 	"suggests": {
 		"another-mod": "*"

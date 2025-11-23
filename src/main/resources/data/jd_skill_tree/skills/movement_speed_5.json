@@ -1,9 +1,9 @@
 {
-  "name": "Movement Speed I",
+  "name": "Movement Speed V",
   "description": "Increases movement speed by 3%.",
-  "icon": "minecraft:leather_boots",
-  "tier": 1,
-  "cost": 5,
+  "icon": "minecraft:diamond_boots",
+  "tier": 5,
+  "cost": 15,
   "effects": [
     {
       "type": "jd_skill_tree:attribute",
@@ -12,5 +12,7 @@
       "value": 0.03
     }
   ],
-  "prerequisites": []
+  "prerequisites": [
+    "jd_skill_tree:movement_speed_4"
+  ]
 }

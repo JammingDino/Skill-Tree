@@ -20,7 +20,8 @@ public class ModBlockEntities {
                             ModBlocks.IRON_SKILL_ALTAR,
                             ModBlocks.DIAMOND_SKILL_ALTAR,
                             ModBlocks.EMERALD_SKILL_ALTAR,
-                            ModBlocks.OBSIDIAN_SKILL_ALTAR
+                            ModBlocks.OBSIDIAN_SKILL_ALTAR,
+                            ModBlocks.DEVELOPER_SKILL_ALTAR
                     ).build()
             );
 

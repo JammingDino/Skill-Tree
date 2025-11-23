@@ -10,8 +10,14 @@ import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.network.PacketByteBuf;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
+import net.minecraft.util.Formatting;
 import net.minecraft.util.Identifier;
+import net.minecraft.util.WorldSavePath;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
@@ -24,10 +30,10 @@ import java.util.Set;
 public class SkillNetworking {
 
     // --- Packet IDs ---
-    // It's good practice to keep the IDs in the class that uses them.
     public static final Identifier UNLOCK_SKILL_PACKET_ID = new Identifier(Jd_skill_tree.MOD_ID, "unlock_skill");
     public static final Identifier SKILL_SYNC_PACKET_ID = new Identifier(Jd_skill_tree.MOD_ID, "skill_sync");
     public static final Identifier RESET_SKILLS_PACKET_ID = new Identifier(Jd_skill_tree.MOD_ID, "reset_skills");
+    public static final Identifier SAVE_SKILL_PACKET_ID = new Identifier(Jd_skill_tree.MOD_ID, "save_skill");
 
 
     /**
@@ -45,37 +51,21 @@ public class SkillNetworking {
             Identifier skillId = buf.readIdentifier();
             String skillIdString = skillId.toString();
 
-            Jd_skill_tree.LOGGER.info("[SERVER DEBUG] Received unlock request for skill '{}' from player '{}'", skillIdString, player.getName().getString());
-
             server.execute(() -> {
                 IUnlockedSkillsData skillData = (IUnlockedSkillsData) player;
                 Optional<Skill> skillOpt = SkillManager.getSkill(skillId);
 
-                if (skillOpt.isEmpty()) {
-                    Jd_skill_tree.LOGGER.warn("[SERVER DEBUG] Check failed: Skill '{}' does not exist.", skillIdString);
-                    return;
-                }
+                if (skillOpt.isEmpty()) return;
                 Skill skillToUnlock = skillOpt.get();
 
-                if (skillData.hasSkill(skillIdString)) {
-                    Jd_skill_tree.LOGGER.warn("[SERVER DEBUG] Check failed: Player '{}' already has skill '{}'.", player.getName().getString(), skillIdString);
-                    return;
-                }
+                if (skillData.hasSkill(skillIdString)) return;
 
                 List<Skill> requiredSkills = skillToUnlock.getRequiredSkills();
                 for (Skill requiredSkill : requiredSkills) {
-                    if (!skillData.hasSkill(requiredSkill.getId().toString())) {
-                        Jd_skill_tree.LOGGER.warn("[SERVER DEBUG] Check failed: Player '{}' is missing prerequisite '{}' for skill '{}'.",
-                                player.getName().getString(), requiredSkill.getId().toString(), skillIdString);
-                        return;
-                    }
+                    if (!skillData.hasSkill(requiredSkill.getId().toString())) return;
                 }
 
-                if (player.experienceLevel < skillToUnlock.getCost()) {
-                    Jd_skill_tree.LOGGER.warn("[SERVER DEBUG] Check failed: Player '{}' needs {} levels for skill '{}' but only has {}.",
-                            player.getName().getString(), skillToUnlock.getCost(), skillIdString, player.experienceLevel);
-                    return;
-                }
+                if (player.experienceLevel < skillToUnlock.getCost()) return;
 
                 player.addExperienceLevels(-skillToUnlock.getCost());
                 skillData.unlockSkill(skillIdString);
@@ -86,14 +76,10 @@ public class SkillNetworking {
 
         // --- RESET SKILLS PACKET HANDLER ---
         ServerPlayNetworking.registerGlobalReceiver(RESET_SKILLS_PACKET_ID, (server, player, handler, buf, responseSender) -> {
-            Jd_skill_tree.LOGGER.info("[SERVER DEBUG] Received skill reset request from player '{}'", player.getName().getString());
-
             server.execute(() -> {
                 IUnlockedSkillsData skillData = (IUnlockedSkillsData) player;
                 Set<String> unlockedSkills = skillData.getUnlockedSkills();
-                if (unlockedSkills.isEmpty()) {
-                    return;
-                }
+                if (unlockedSkills.isEmpty()) return;
 
                 int totalRefundAmount = 0;
                 for (String skillIdString : unlockedSkills) {
@@ -109,19 +95,71 @@ public class SkillNetworking {
                 player.sendMessage(Text.of("§eSkills have been reset. " + totalRefundAmount + " levels refunded."), false);
             });
         });
+
+        // --- SAVE SKILL / EXPORT DATAPACK PACKET HANDLER ---
+        ServerPlayNetworking.registerGlobalReceiver(SAVE_SKILL_PACKET_ID, (server, player, handler, buf, responseSender) -> {
+            String namespace = buf.readString();
+            String fileName = buf.readString();
+            String jsonContent = buf.readString();
+
+            server.execute(() -> {
+                // Security Check: Only OPs should be able to write files to the server
+                if (!player.hasPermissionLevel(2)) {
+                    player.sendMessage(Text.literal("You need OP permissions to export skills.").formatted(Formatting.RED), false);
+                    return;
+                }
+
+                try {
+                    Path datapackDir = server.getSavePath(WorldSavePath.DATAPACKS);
+
+                    // Create datapack folder structure
+                    String datapackName = namespace + "_skills_datapack";
+                    Path datapackPath = datapackDir.resolve(datapackName);
+                    Path dataPath = datapackPath.resolve("data").resolve(namespace);
+                    Path skillsPath = dataPath.resolve("skills");
+
+                    // Create directories
+                    Files.createDirectories(skillsPath);
+
+                    // Create pack.mcmeta if it doesn't exist
+                    Path packMetaPath = datapackPath.resolve("pack.mcmeta");
+                    if (!Files.exists(packMetaPath)) {
+                        String packMcmeta = "{\n" +
+                                "  \"pack\": {\n" +
+                                "    \"pack_format\": 15,\n" +
+                                "    \"description\": \"Skills datapack generated by Developer Console\"\n" +
+                                "  }\n" +
+                                "}";
+                        Files.writeString(packMetaPath, packMcmeta, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
+                    }
+
+                    // Clean filename
+                    String cleanFileName = fileName.replaceAll("[^a-zA-Z0-9_\\-.]", "");
+                    if (!cleanFileName.endsWith(".json")) cleanFileName += ".json";
+
+                    Path skillFilePath = skillsPath.resolve(cleanFileName);
+                    Files.writeString(skillFilePath, jsonContent, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
+
+                    player.sendMessage(Text.literal("Exported to: " + datapackName + "/" + cleanFileName).formatted(Formatting.GREEN), false);
+                    Jd_skill_tree.LOGGER.info("Exported skill JSON to {}", skillFilePath);
+
+                    // Reload Datapacks
+                    server.getCommandManager().executeWithPrefix(server.getCommandSource(), "reload");
+
+                } catch (IOException e) {
+                    player.sendMessage(Text.literal("Export failed: " + e.getMessage()).formatted(Formatting.RED), false);
+                    Jd_skill_tree.LOGGER.error("Failed to export skill datapack", e);
+                }
+            });
+        });
     }
 
     private static void registerServerEvents() {
-        // --- PLAYER JOIN EVENT ---
         ServerPlayConnectionEvents.JOIN.register((handler, sender, server) -> {
-            Jd_skill_tree.LOGGER.info("[SERVER DEBUG] Player '{}' has joined. Syncing skill data.", handler.player.getName().getString());
             syncSkillsToClient(handler.player);
         });
     }
 
-    /**
-     * Sends the complete skill data set to a specific client.
-     */
     public static void syncSkillsToClient(ServerPlayerEntity player) {
         Set<String> skills = ((IUnlockedSkillsData) player).getUnlockedSkills();
         PacketByteBuf buf = PacketByteBufs.create();
@@ -129,8 +167,6 @@ public class SkillNetworking {
         for (String skillId : skills) {
             buf.writeString(skillId);
         }
-
-        Jd_skill_tree.LOGGER.info("[SERVER DEBUG] Syncing {} skills to client '{}'.", skills.size(), player.getName().getString());
         ServerPlayNetworking.send(player, SKILL_SYNC_PACKET_ID, buf);
     }
 }
