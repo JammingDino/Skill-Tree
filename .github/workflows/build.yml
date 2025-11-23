@@ -1,30 +1,101 @@
-# Automatically build the project and run any configured tests for every push
-# and submitted pull request. This can help catch issues that only occur on
-# certain platforms or Java versions, and provides a first line of defence
-# against bad commits.
+name: Auto Release and Bump Version
 
-name: build
-on: [pull_request, push]
+on:
+  push:
+    branches:
+      - main
+      - master
+    paths-ignore:
+      - '*.md'
+      - 'LICENSE'
+      - '.gitignore'
+
+permissions:
+  contents: write
 
 jobs:
-  build:
-    runs-on: ubuntu-24.04
+  build-and-release:
+    runs-on: ubuntu-latest
+    if: "!contains(github.event.head_commit.message, '[skip ci]')"
+
     steps:
-      - name: checkout repository
+      - name: Checkout Repository
         uses: actions/checkout@v4
-      - name: validate gradle wrapper
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Validate Gradle Wrapper
         uses: gradle/actions/wrapper-validation@v4
-      - name: setup jdk
+
+      - name: Setup JDK 17
         uses: actions/setup-java@v4
         with:
-          java-version: '21'
+          java-version: '17'
           distribution: 'microsoft'
-      - name: make gradle wrapper executable
+
+      - name: Increment Version in gradle.properties
+        id: bump_version
+        run: |
+          python3 -c "
+          import os
+          
+          file_path = 'gradle.properties'
+          new_version = ''
+          
+          with open(file_path, 'r') as f:
+              lines = f.readlines()
+          
+          with open(file_path, 'w') as f:
+              for line in lines:
+                  if line.strip().startswith('mod_version='):
+                      key, value = line.strip().split('=')
+                      parts = value.split('.')
+                      # Increment the patch number (last digit)
+                      if len(parts) == 3:
+                          parts[2] = str(int(parts[2]) + 1)
+                          new_version = '.'.join(parts)
+                          f.write(f'{key}={new_version}\n')
+                      else:
+                          # Fallback if version format is weird
+                          f.write(line)
+                  else:
+                      f.write(line)
+          
+          # Output to GitHub Environment
+          if new_version:
+              with open(os.environ['GITHUB_ENV'], 'a') as env_file:
+                  env_file.write(f'NEW_VERSION={new_version}\n')
+              print(f'Bumped version to {new_version}')
+          else:
+              print('Could not find or bump mod_version')
+              exit(1)
+          "
+
+      - name: Make Gradle Wrapper Executable
         run: chmod +x ./gradlew
-      - name: build
+
+      - name: Build with Gradle
         run: ./gradlew build
-      - name: capture build artifacts
-        uses: actions/upload-artifact@v4
+
+      - name: Commit and Push Version Bump
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "github-actions[bot]@users.noreply.github.com"
+          git add gradle.properties
+          # [skip ci] prevents this commit from triggering the workflow again (infinite loop protection)
+          git commit -m "chore: bump version to ${{ env.NEW_VERSION }} [skip ci]"
+          git push
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
         with:
-          name: Artifacts
-          path: build/libs/
+          tag_name: v${{ env.NEW_VERSION }}
+          name: Release v${{ env.NEW_VERSION }}
+          body: |
+            Automated release for version ${{ env.NEW_VERSION }}.
+            
+            **Changelog:**
+            ${{ github.event.head_commit.message }}
+          files: build/libs/*.jar
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

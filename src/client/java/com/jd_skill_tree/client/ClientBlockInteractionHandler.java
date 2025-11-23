@@ -21,7 +21,13 @@ public class ClientBlockInteractionHandler {
                 if (!player.isSneaking()) {
                     // Check if it's a SkillAltar block
                     if (blockState.getBlock() instanceof SkillAltar altar) {
-                        // Open the GUI using our helper method
+
+                        // Check for our special Developer Tier
+                        if (altar.getTier() == 99) {
+                            MinecraftClient.getInstance().setScreen(new com.jd_skill_tree.screens.DeveloperEditorScreen());
+                            return ActionResult.SUCCESS;
+                        }
+
                         openSkillTreeGui(altar.getTier());
                         return ActionResult.SUCCESS;
                     }

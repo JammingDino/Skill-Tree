@@ -66,6 +66,16 @@ public class ModBlocks {
             )
     );
 
+    public static final Block DEVELOPER_SKILL_ALTAR = registerBlock("developer_skill_altar",
+            new SkillAltar(FabricBlockSettings.create()
+                    .strength(-1.0f, 3600000.0f) // Unbreakable (like bedrock) or just very hard
+                    .sounds(BlockSoundGroup.AMETHYST_BLOCK)
+                    .requiresTool()
+                    .luminance(state -> 15), // Glowing bright
+                    99 // Special Tier ID for logic check
+            )
+    );
+
     // Helper method to register a block
     private static Block registerBlock(String name, Block block) {
         registerBlockItem(name, block);
@@ -89,6 +99,7 @@ public class ModBlocks {
             entries.add(DIAMOND_SKILL_ALTAR);
             entries.add(EMERALD_SKILL_ALTAR);
             entries.add(OBSIDIAN_SKILL_ALTAR);
+            entries.add(DEVELOPER_SKILL_ALTAR);
         });
     }
 }

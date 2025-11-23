@@ -1,0 +1,15 @@
+{
+  "name": "Vitality I",
+  "description": "Increases maximum life by a heart.",
+  "icon": "minecraft:carrot",
+  "tier": 1,
+  "cost": 5,
+  "effects": [
+    {
+      "type": "jd_skill_tree:attribute",
+      "attribute": "minecraft:generic.max_health",
+      "operation": "ADDITION",
+      "value": 2.0
+    }
+  ]
+}
