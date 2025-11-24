@@ -40,6 +40,11 @@ public class AltarScreen extends Screen {
     private double panY = 0;
     private int treeMinX, treeMinY, treeMaxX, treeMaxY;
 
+    private double scale = 1.0;
+    private static final double MIN_SCALE = 0.5;
+    private static final double MAX_SCALE = 2.0;
+    private static final double ZOOM_SENSITIVITY = 0.1;
+
     public AltarScreen(Text title, int Tier) {
         super(title);
         tier = Tier;
@@ -62,14 +67,22 @@ public class AltarScreen extends Screen {
         calculateTreeBounds();
 
         // --- CENTER THE INITIAL VIEW ---
-        int treeWidth = this.treeMaxX - this.treeMinX;
-        int treeHeight = this.treeMaxY - this.treeMinY;
-        x = (this.width - WINDOW_WIDTH) / 2;
-        y = (this.height - WINDOW_HEIGHT) / 2;
-        this.panX = (x + WINDOW_WIDTH / 2.0) - (this.treeMinX + treeWidth / 2.0);
-        this.panY = (y + WINDOW_HEIGHT / 2.0) - (this.treeMinY + treeHeight / 2.0);
+        // Calculate the absolute center of the UI window
+        double screenCenterX = x + WINDOW_WIDTH / 2.0;
+        double screenCenterY = y + WINDOW_HEIGHT / 2.0;
 
-        clampPan();
+        // We want the logic coordinate (0,0) to be at screenCenterX, screenCenterY.
+        // Since widgets are drawn from their top-left corner, and appear to be roughly 26x26,
+        // we offset by half the widget size (13) to make the visual center of the node
+        // land exactly on the center of the screen.
+        this.panX = screenCenterX - 13;
+        this.panY = screenCenterY - 9;
+
+        // IMPORTANT: Do NOT call clampPan() here.
+        // If the tree is unbalanced (e.g., only grows to the right), clampPan()
+        // would immediately detect that (0,0) is at the edge of the bounds
+        // and shove the camera over to fit the nodes, undoing your centering work.
+        // clampPan();
     }
 
     /**
@@ -412,8 +425,13 @@ public class AltarScreen extends Screen {
 
     @Override
     public boolean mouseClicked(double mouseX, double mouseY, int button) {
+        if (!isMouseInWindow((int)mouseX, (int)mouseY)) return false;
+
+        double worldMouseX = (mouseX - this.panX) / this.scale;
+        double worldMouseY = (mouseY - this.panY) / this.scale;
+
         for (SkillWidget widget : this.skillWidgets) {
-            if (widget.mouseClicked(mouseX, mouseY, button, (int)this.panX, (int)this.panY)) {
+            if (widget.mouseClicked(worldMouseX, worldMouseY, button, 0, 0)) {
                 // CHANGED: Compare the skill's ID to our "reset_skills" identifier.
                 if (widget.getSkill().getId().toString().equals("jd_skill_tree:reset_skills")) {
                     if (widget.getState() == SkillWidget.SkillState.CAN_UNLOCK) {
@@ -431,6 +449,32 @@ public class AltarScreen extends Screen {
             }
         }
         return super.mouseClicked(mouseX, mouseY, button);
+    }
+
+    @Override
+    public boolean mouseScrolled(double mouseX, double mouseY, double amount) { // In 1.20.2+ use double verticalAmount
+        // Calculate the new scale
+        double newScale = this.scale + (amount * ZOOM_SENSITIVITY);
+        newScale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, newScale));
+
+        if (newScale != this.scale) {
+            // 1. Calculate where the mouse is in the "World" (relative to tree origin) before zooming
+            double worldMouseX = (mouseX - this.panX) / this.scale;
+            double worldMouseY = (mouseY - this.panY) / this.scale;
+
+            // 2. Apply the new scale
+            this.scale = newScale;
+
+            // 3. Recalculate panX/Y so the mouse remains over the same "World" point
+            this.panX = mouseX - (worldMouseX * this.scale);
+            this.panY = mouseY - (worldMouseY * this.scale);
+
+            // Optional: Re-clamp if you want to prevent zooming the tree off-screen
+            // clampPan();
+
+            return true;
+        }
+        return super.mouseScrolled(mouseX, mouseY, amount); // or verticalAmount
     }
 
     private void sendUnlockRequest(Skill skill) {
@@ -484,37 +528,63 @@ public class AltarScreen extends Screen {
 
         this.drawWindow(context, x, y);
 
-        // 1. Enable Scissor (Clips content to the window)
+        // 1. Enable Scissor (Keep the drawing inside the window)
         context.enableScissor(x + 9, y + 17, x + WINDOW_WIDTH - 9, y + WINDOW_HEIGHT - 9);
 
         this.renderBackground(context);
 
-        // 2. Draw Lines (Behind widgets)
-        drawSkillLines(context);
+        // --- START MATRIX TRANSFORMATION ---
+        context.getMatrices().push();
 
-        // 3. Draw Widgets (Frames and Icons only)
+        // A. Translate to the Pan location (The camera position)
+        context.getMatrices().translate(this.panX, this.panY, 0);
+
+        // B. Scale the view
+        context.getMatrices().scale((float)this.scale, (float)this.scale, 1.0f);
+
+        // 2. Draw Lines
+        // Note: pass '0' for offset because the Matrix handles panX/panY now
+        drawSkillLines(context, 0, 0);
+
+        // 3. Draw Widgets
         for (SkillWidget widget : this.skillWidgets) {
-            widget.render(context, (int)this.panX, (int)this.panY, mouseX, mouseY, delta);
+            // Transform mouse BACK to world space for hover effects inside the widget render
+            // (Only if your widget uses mouseX/Y for visual hover states during render)
+            int worldMouseX = (int)((mouseX - this.panX) / this.scale);
+            int worldMouseY = (int)((mouseY - this.panY) / this.scale);
+
+            // Pass 0,0 as x/y offset, let the Matrix translate it
+            widget.render(context, 0, 0, worldMouseX, worldMouseY, delta);
         }
 
-        // 4. Disable Scissor (Allow drawing outside the window bounds)
+        // --- END MATRIX TRANSFORMATION ---
+        context.getMatrices().pop();
+
+        // 4. Disable Scissor
         context.disableScissor();
 
-        // 5. Draw Tooltips (Top layer, outside clip)
-        // We assume only one widget can be hovered at a time.
+        // 5. Draw Tooltips (Unscaled, top layer)
+        drawTooltips(context, mouseX, mouseY);
+
+        // super.render removed to prevent double rendering if you handled everything above
+        // super.render(context, mouseX, mouseY, delta);
+    }
+
+    private void drawTooltips(DrawContext context, int mouseX, int mouseY) {
+        if (!isMouseInWindow(mouseX, mouseY)) return;
+
+        // Convert Screen Mouse -> World Mouse
+        double worldMouseX = (mouseX - this.panX) / this.scale;
+        double worldMouseY = (mouseY - this.panY) / this.scale;
+
         for (SkillWidget widget : this.skillWidgets) {
-            if (widget.isMouseOver((int)this.panX, (int)this.panY, mouseX, mouseY)) {
-                // Determine if the mouse is actually within the window bounds
-                // This prevents tooltips from appearing if the widget is hidden by the scissor logic
-                // but the mouse is technically over its coordinates.
-                if (isMouseInWindow(mouseX, mouseY)) {
-                    widget.renderTooltip(context, mouseX, mouseY);
-                }
-                break; // Stop after finding the hovered widget
+            // Use the Converted World Mouse positions to check for hover
+            if (widget.isMouseOver(0, 0, (int) worldMouseX, (int) worldMouseY)) {
+                // Draw the tooltip at the REAL screen mouseX/Y
+                widget.renderTooltip(context, mouseX, mouseY);
+                break;
             }
         }
-
-        super.render(context, mouseX, mouseY, delta);
     }
 
     // Helper to ensure we don't show tooltips if the mouse is outside the main window area
@@ -523,18 +593,20 @@ public class AltarScreen extends Screen {
                 mouseY >= y + 2 && mouseY <= y + WINDOW_HEIGHT - 10;
     }
 
-    private void drawSkillLines(DrawContext context) {
+    // Change signature to accept offsets
+    private void drawSkillLines(DrawContext context, int offsetX, int offsetY) {
         int lineColor = 0xFF808080;
         for (SkillWidget widget : this.skillWidgets) {
-            // Draw lines to ALL required skills
             List<Skill> requiredSkills = widget.getSkill().getRequiredSkills();
             for (Skill requiredSkill : requiredSkills) {
                 SkillWidget requiredWidget = skillWidgetMap.get(requiredSkill.getId());
                 if (requiredWidget != null) {
-                    int startX = widget.getWorldX() + 13 + (int)this.panX;
-                    int startY = widget.getWorldY() + 13 + (int)this.panY;
-                    int endX = requiredWidget.getWorldX() + 13 + (int)this.panX;
-                    int endY = requiredWidget.getWorldY() + 13 + (int)this.panY;
+                    // Do NOT add this.panX here.
+                    // We rely on the passed offsetX (which is 0) and the MatrixStack.
+                    int startX = widget.getWorldX() + 13 + offsetX;
+                    int startY = widget.getWorldY() + 13 + offsetY;
+                    int endX = requiredWidget.getWorldX() + 13 + offsetX;
+                    int endY = requiredWidget.getWorldY() + 13 + offsetY;
 
                     AltarScreen.drawLine(context, startX, startY, endX, endY, lineColor);
                 }
