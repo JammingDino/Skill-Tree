@@ -159,9 +159,7 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
         buttonsRow.margins(Insets.bottom(5));
 
         // 1. Export Button
-        ButtonComponent exportBtn = Components.button(Text.of("Export to Server"), btn -> {
-            sendExportPacket(btn);
-        });
+        ButtonComponent exportBtn = Components.button(Text.of("Export to Server"), this::sendExportPacket);
         exportBtn.sizing(Sizing.fill(50), Sizing.fixed(20));
         buttonsRow.child(exportBtn);
 
@@ -211,7 +209,7 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
         overlayLayer.positioning(Positioning.absolute(0, 0));
         overlayLayer.zIndex(500);
         overlayLayer.mouseDown().subscribe((mouseX, mouseY, button) -> {
-            if (overlayLayer.children().size() > 0) {
+            if (!overlayLayer.children().isEmpty()) {
                 boolean clickedDropdown = overlayLayer.children().stream()
                         .anyMatch(c -> mouseX >= c.x() && mouseX <= c.x() + c.width() && mouseY >= c.y() && mouseY <= c.y() + c.height());
 
@@ -227,7 +225,7 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
         updatePreview();
     }
 
-    // --- WIDGET GENERATORS (Unchanged) ---
+    // --- WIDGET GENERATORS ---
     private FlowLayout field(String label, String value, Consumer<String> onChange, int weight) {
         var layout = Containers.verticalFlow(Sizing.fill(weight), Sizing.content());
         layout.margins(Insets.bottom(5));
@@ -237,7 +235,10 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
         box.verticalSizing(Sizing.fixed(20));
         box.setText(value);
         box.setCursorToStart();
-        box.setMaxLength(1000);
+
+        // CHANGE: Set to Integer.MAX_VALUE to effectively remove the limit
+        box.setMaxLength(Integer.MAX_VALUE);
+
         box.onChanged().subscribe(onChange::accept);
 
         layout.child(box);
@@ -254,12 +255,16 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
         box.setText(value);
         box.setCursorToStart();
 
+        // CHANGE: This was previously using the default (32 chars). Set it to MAX_VALUE.
+        box.setMaxLength(Integer.MAX_VALUE);
+
         Consumer<String> selectItem = (match) -> {
             box.setText(match);
             onChange.accept(match);
             closeOverlay();
         };
 
+        // ... rest of the method stays exactly the same ...
         box.onChanged().subscribe(text -> {
             onChange.accept(text);
             closeOverlay();
@@ -303,9 +308,9 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
 
         box.keyPress().subscribe((code, scan, mod) -> {
             if (code == GLFW.GLFW_KEY_TAB) {
-                if (overlayLayer.children().size() > 0) {
+                if (!overlayLayer.children().isEmpty()) {
                     Component child = overlayLayer.children().get(0);
-                    if (child instanceof FlowLayout list && list.children().size() > 0) {
+                    if (child instanceof FlowLayout list && !list.children().isEmpty()) {
                         Component firstBtn = list.children().get(0);
                         if(firstBtn instanceof ButtonComponent btn) {
                             String suggestion = btn.getMessage().getString();
@@ -507,7 +512,7 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
                         parents.add(parentId);
                     }
                 }
-                if (parents.size() > 0) {
+                if (!parents.isEmpty()) {
                     root.add("prerequisites", parents);
                 }
             }
@@ -526,7 +531,7 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
                 }
                 effectsJson.add(eff);
             }
-            if (effectsJson.size() > 0) root.add("effects", effectsJson);
+            if (!effectsJson.isEmpty()) root.add("effects", effectsJson);
 
             return GSON.toJson(root);
         } catch (Exception e) {
