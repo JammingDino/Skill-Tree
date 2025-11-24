@@ -21,7 +21,7 @@ public class SkillLoader extends JsonDataLoader implements IdentifiableResourceR
 
     private static final Type SKILL_EFFECT_LIST_TYPE = new TypeToken<List<SkillEffect>>() {}.getType();
 
-    private static final Gson GSON = new GsonBuilder()
+    public static final Gson GSON = new GsonBuilder()
             .setPrettyPrinting()
             .disableHtmlEscaping()
             .registerTypeAdapter(Identifier.class, new IdentifierAdapter())
