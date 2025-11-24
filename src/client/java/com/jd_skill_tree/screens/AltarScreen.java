@@ -32,8 +32,6 @@ public class AltarScreen extends Screen {
     private final Map<Identifier, SkillWidget> skillWidgetMap = new HashMap<>();
 
     // Layout configuration
-    private static final int CENTER_X = 0; // Center point in world space
-    private static final int CENTER_Y = 0;
     private static final int RADIAL_SPACING = 50; // Distance between skill tiers
     private static final double CHILD_ANGLE_SPREAD = Math.PI / 6; // 30 degrees spread per child
     private static final int MIN_NODE_DISTANCE = 40; // Minimum distance between any two nodes
@@ -484,11 +482,12 @@ public class AltarScreen extends Screen {
         x = (this.width - WINDOW_WIDTH) / 2;
         y = (this.height - WINDOW_HEIGHT) / 2;
 
-        this.renderBackground(context);
         this.drawWindow(context, x, y);
 
         // 1. Enable Scissor (Clips content to the window)
-        context.enableScissor(x + 10, y + 2, x + WINDOW_WIDTH - 10, y + WINDOW_HEIGHT - 10);
+        context.enableScissor(x + 9, y + 17, x + WINDOW_WIDTH - 9, y + WINDOW_HEIGHT - 9);
+
+        this.renderBackground(context);
 
         // 2. Draw Lines (Behind widgets)
         drawSkillLines(context);

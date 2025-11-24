@@ -26,4 +26,8 @@ public class MiningSpeedSkillEffect implements SkillEffect {
         float value = JsonHelper.getFloat(json, "value");
         return new MiningSpeedSkillEffect(value);
     }
+
+    public float getMultiplier() {
+        return this.multiplier;
+    }
 }
