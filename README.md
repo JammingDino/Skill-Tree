@@ -13,6 +13,8 @@ What sets this mod apart is its focus on **customization**. Server owners and mo
 - [For Developers](#for-developers)
 - [License](#license)
 
+### ***You can also [Look through the wiki for more information](https://github.com/JammingDino/Skill-Tree/wiki)***
+
 ## Features
 
 *   **Tiered Progression:** Unlock skills through 5 distinct tiers of Altars (Wood, Iron, Diamond, Emerald, and Obsidian).
