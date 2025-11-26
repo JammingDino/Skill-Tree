@@ -1,10 +1,10 @@
 package com.jd_skill_tree.mixin;
 
 import com.jd_skill_tree.api.IUnlockedSkillsData;
-import com.jd_skill_tree.skills.Skill;
 import com.jd_skill_tree.skills.SkillManager;
 import com.jd_skill_tree.skills.effects.AttributeSkillEffect;
 import com.jd_skill_tree.skills.effects.SkillEffect;
+import com.jd_skill_tree.skills.effects.EnchantmentSkillEffect;
 import net.minecraft.block.BlockState;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.LivingEntity;
@@ -46,7 +46,9 @@ public abstract class PlayerEntityMixin extends LivingEntity implements IUnlocke
         PlayerEntity player = (PlayerEntity) (Object) this;
         if (player.getWorld().isClient()) return;
 
-        // --- ATTRIBUTE MODIFIER HANDLING (FINAL CORRECTED STRATEGY) ---
+        EnchantmentSkillEffect.updateEnchantments(player);
+
+        // --- ATTRIBUTE MODIFIER HANDLING ---
 
         // 1. Clean Slate: Find and remove all modifiers that were added by our mod in previous ticks.
         for (EntityAttribute attribute : SkillManager.getAffectedAttributes()) {
