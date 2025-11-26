@@ -1,0 +1,16 @@
+{
+  "name": "Mining Speed IV",
+  "description": "Increases mining speed by 5%",
+  "icon": "minecraft:diamond_pickaxe",
+  "tier": 4,
+  "cost": 3200,
+  "prerequisites": [
+    "jd_skill_tree:mining_speed_3"
+  ],
+  "effects": [
+    {
+      "type": "jd_skill_tree:mining_speed",
+      "value": 0.05
+    }
+  ]
+}
