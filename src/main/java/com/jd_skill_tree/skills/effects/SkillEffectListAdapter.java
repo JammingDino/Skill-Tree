@@ -52,6 +52,22 @@ public class SkillEffectListAdapter implements JsonDeserializer<List<SkillEffect
                 obj.addProperty("amplifier", potionEffect.getAmplifier());
                 obj.addProperty("hide_particles", potionEffect.shouldHideParticles());
             }
+            else if (effect instanceof EnchantmentSkillEffect enchEffect) {
+                obj.addProperty("type", "jd_skill_tree:enchantment");
+                obj.addProperty("enchantment", enchEffect.getEnchantmentId().toString());
+                obj.addProperty("level_added", enchEffect.getLevelAdded());
+                obj.addProperty("over_enchant", enchEffect.isAllowOverEnchanting());
+
+                String slotName = switch (enchEffect.getTargetSlot()) {
+                    case OFFHAND -> "offhand";
+                    case FEET -> "boots";
+                    case LEGS -> "legs";
+                    case CHEST -> "chest";
+                    case HEAD -> "helmet";
+                    default -> "mainhand";
+                };
+                obj.addProperty("slot", slotName);
+            }
             // Add other effect types here as you create them
 
             jsonArray.add(obj);

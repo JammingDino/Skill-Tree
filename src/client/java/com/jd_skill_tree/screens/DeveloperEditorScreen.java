@@ -9,6 +9,7 @@ import com.jd_skill_tree.screens.widgets.SkillWidget;
 import com.jd_skill_tree.skills.Skill;
 import com.jd_skill_tree.skills.SkillManager;
 import com.jd_skill_tree.skills.effects.SkillEffectListAdapter;
+import com.jd_skill_tree.skills.effects.EnchantmentSkillEffect;
 import io.wispforest.owo.ui.base.BaseComponent;
 import io.wispforest.owo.ui.base.BaseOwoScreen;
 import io.wispforest.owo.ui.component.*;
@@ -52,6 +53,11 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
         String effectId = "minecraft:speed";
         String amplifier = "0";
         boolean hideParticles = false;
+
+        String enchId = "minecraft:sharpness";
+        String enchLevel = "1";
+        String enchSlot = "mainhand";
+        boolean overEnchant = false;
     }
     private final List<EffectData> effects = new ArrayList<>();
 
@@ -333,8 +339,7 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
         var content = Containers.verticalFlow(Sizing.fill(100), Sizing.content());
         content.padding(Insets.of(5));
 
-        // Add "Potion" to this list
-        content.child(dropdown("Type", List.of("Attribute", "Mining Speed", "Potion"), data.type, s -> {
+        content.child(dropdown("Type", List.of("Attribute", "Mining Speed", "Potion", "Enchantment"), data.type, s -> { // Added "Enchantment"
             data.type = s;
             rebuildEffectRow(collapsible, content, data);
             updatePreview();
@@ -375,6 +380,27 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
             // FIX: Pass the consumer directly to onChanged
             checkbox.onChanged(checked -> { data.hideParticles = checked; updatePreview(); });
 
+            checkbox.margins(Insets.top(5));
+            content.child(checkbox);
+        }
+        else if (data.type.equals("Enchantment")) {
+            // Enchantment ID Autocomplete
+            List<String> enchIds = Registries.ENCHANTMENT.getIds().stream().map(Identifier::toString).sorted().toList();
+            content.child(autocompleteField("Enchantment ID", data.enchId, enchIds, s -> { data.enchId = s; updatePreview(); }, 100));
+
+            // Level Field
+            content.child(field("Level Added", data.enchLevel, s -> { data.enchLevel = s; updatePreview(); }, 100).margins(Insets.top(5)));
+
+            // Slot Dropdown
+            content.child(dropdown("Slot", List.of("mainhand", "offhand", "helmet", "chest", "legs", "boots"), data.enchSlot, s -> {
+                data.enchSlot = s;
+                updatePreview();
+            }, 100).margins(Insets.top(5)));
+
+            // Over-enchant Checkbox
+            var checkbox = Components.checkbox(Text.of("Allow Over-Enchanting"));
+            checkbox.checked(data.overEnchant);
+            checkbox.onChanged(checked -> { data.overEnchant = checked; updatePreview(); });
             checkbox.margins(Insets.top(5));
             content.child(checkbox);
         }
@@ -426,6 +452,13 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
                     eff.addProperty("amplifier", tryParse(e.amplifier));
                     eff.addProperty("hide_particles", e.hideParticles);
                 }
+                else if (e.type.equals("Enchantment")) {
+                    eff.addProperty("type", "jd_skill_tree:enchantment");
+                    eff.addProperty("enchantment", e.enchId);
+                    eff.addProperty("level_added", tryParse(e.enchLevel));
+                    eff.addProperty("slot", e.enchSlot);
+                    eff.addProperty("over_enchant", e.overEnchant);
+                }
                 // -----------------------
                 effectsJson.add(eff);
             }
@@ -434,6 +467,8 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
             return GSON.toJson(root);
         } catch (Exception e) { return ""; }
     }
+
+
     private void updatePreview() { String json = generateJson(); if (json.isEmpty()) { exportTextDisplay.text(Text.of("Invalid JSON")); return; } exportTextDisplay.text(Text.of(json)); try { this.previewSkill = GSON.fromJson(json, Skill.class); this.previewSkill.setId(new Identifier("preview", "live")); } catch (Exception ignored) {} }
     private int tryParse(String s) { try { return Integer.parseInt(s); } catch (Exception e) { return 0; } }
     private void loadAvailableSkills() { try { availableSkills = SkillManager.getAllSkills().stream().map(skill -> skill.getId().toString()).sorted().collect(Collectors.toList()); } catch (Exception e) { availableSkills = new ArrayList<>(); } }
