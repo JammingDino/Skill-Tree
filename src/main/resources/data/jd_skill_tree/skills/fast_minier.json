@@ -3,7 +3,7 @@
   "description": "Increases movement speed by 3% and mining speed by 10%.",
   "icon": "minecraft:golden_pickaxe",
   "tier": 3,
-  "cost": 15,
+  "cost": 1500,
   "effects": [
     {
       "type": "jd_skill_tree:attribute",
@@ -17,6 +17,7 @@
     }
   ],
   "prerequisites": [
-    "jd_skill_tree:movement_speed_2"
+    "jd_skill_tree:movement_speed_2",
+    "jd_skill_tree:mining_speed_2"
   ]
 }

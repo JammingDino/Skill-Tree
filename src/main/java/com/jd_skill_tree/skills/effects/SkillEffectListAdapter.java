@@ -46,6 +46,12 @@ public class SkillEffectListAdapter implements JsonDeserializer<List<SkillEffect
                 // We need to access the multiplier. You might need to add a getter to MiningSpeedSkillEffect if it's private.
                 obj.addProperty("value", miningEffect.getMultiplier());
             }
+            else if (effect instanceof PotionSkillEffect potionEffect) {
+                obj.addProperty("type", "jd_skill_tree:potion");
+                obj.addProperty("effect", potionEffect.getEffectId().toString());
+                obj.addProperty("amplifier", potionEffect.getAmplifier());
+                obj.addProperty("hide_particles", potionEffect.shouldHideParticles());
+            }
             // Add other effect types here as you create them
 
             jsonArray.add(obj);

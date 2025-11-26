@@ -4,6 +4,7 @@ import com.jd_skill_tree.networking.SkillNetworking;
 import com.jd_skill_tree.screens.widgets.SkillWidget;
 import com.jd_skill_tree.skills.ModSkills;
 import com.jd_skill_tree.skills.Skill;
+import com.jd_skill_tree.utils.ExperienceUtils;
 import com.mojang.blaze3d.systems.RenderSystem;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.networking.v1.PacketByteBufs;
@@ -632,7 +633,23 @@ public class AltarScreen extends Screen {
     public void drawWindow(DrawContext context, int x, int y) {
         RenderSystem.enableBlend();
         context.drawTexture(WINDOW_TEXTURE, x, y, 0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
+
+        // Draw Title
         context.drawText(this.textRenderer, ALTAR_TEXT + tier, x + 8, y + 6, 4210752, false);
+
+        // --- NEW: Draw Current XP Points ---
+        if (this.client != null && this.client.player != null) {
+            int currentXp = ExperienceUtils.getPlayerTotalXp(this.client.player);
+            String xpText = "XP: " + currentXp;
+
+            int textWidth = this.textRenderer.getWidth(xpText);
+            // Position: Top right of the window, inside the border
+            int xpX = x + WINDOW_WIDTH - textWidth - 10;
+            int xpY = y + 6;
+
+            // Draw in a nice Experience Green color
+            context.drawText(this.textRenderer, xpText, xpX, xpY, 0x80FF20, true);
+        }
     }
 
     @Override

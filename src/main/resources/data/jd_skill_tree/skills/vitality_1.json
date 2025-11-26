@@ -3,7 +3,7 @@
   "description": "Increases maximum life by a heart.",
   "icon": "minecraft:carrot",
   "tier": 1,
-  "cost": 5,
+  "cost": 100,
   "effects": [
     {
       "type": "jd_skill_tree:attribute",

@@ -3,7 +3,7 @@
   "description": "Increases movement speed by 3%.",
   "icon": "minecraft:diamond_boots",
   "tier": 5,
-  "cost": 15,
+  "cost": 6000,
   "effects": [
     {
       "type": "jd_skill_tree:attribute",

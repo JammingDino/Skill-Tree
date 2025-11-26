@@ -4,15 +4,15 @@ import com.google.gson.Gson;
 import com.jd_skill_tree.Jd_skill_tree;
 import com.jd_skill_tree.api.IUnlockedSkillsData;
 import com.jd_skill_tree.skills.Skill;
-import com.jd_skill_tree.skills.SkillLoader; // Import SkillLoader to access GSON
+import com.jd_skill_tree.skills.SkillLoader;
 import com.jd_skill_tree.skills.SkillManager;
+import com.jd_skill_tree.utils.ExperienceUtils;
 import net.fabricmc.fabric.api.networking.v1.PacketByteBufs;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.network.PacketByteBuf;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
-import net.minecraft.util.Formatting;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.WorldSavePath;
 
@@ -49,7 +49,6 @@ public class SkillNetworking {
 
         // --- PASTE YOUR EXISTING C2S CODE HERE ---
         ServerPlayNetworking.registerGlobalReceiver(UNLOCK_SKILL_PACKET_ID, (server, player, handler, buf, responseSender) -> {
-            // ... existing logic
             Identifier skillId = buf.readIdentifier();
             String skillIdString = skillId.toString();
 
@@ -60,16 +59,29 @@ public class SkillNetworking {
                 if (skillOpt.isEmpty()) return;
                 Skill skillToUnlock = skillOpt.get();
 
+                // 1. Check if already unlocked
                 if (skillData.hasSkill(skillIdString)) return;
 
+                // 2. Check Prerequisites
                 List<Skill> requiredSkills = skillToUnlock.getRequiredSkills();
                 for (Skill requiredSkill : requiredSkills) {
                     if (!skillData.hasSkill(requiredSkill.getId().toString())) return;
                 }
 
-                if (player.experienceLevel < skillToUnlock.getCost()) return;
+                // 3. XP CHECK (UPDATED TO POINTS)
+                int currentTotalXp = ExperienceUtils.getPlayerTotalXp(player);
+                int cost = skillToUnlock.getCost();
 
-                player.addExperienceLevels(-skillToUnlock.getCost());
+                if (currentTotalXp < cost) {
+                    player.sendMessage(Text.of("§cNot enough XP! Need: " + cost + " Points."), true);
+                    return;
+                }
+
+                // 4. DEDUCT XP (UPDATED TO POINTS)
+                // Passing a negative number to addExperience removes raw points and handles level-down logic automatically
+                player.addExperience(-cost);
+
+                // 5. Unlock
                 skillData.unlockSkill(skillIdString);
                 syncSkillsToClient(player);
                 player.sendMessage(Text.of("§aSkill Unlocked: " + skillToUnlock.getName()), false);
@@ -91,9 +103,9 @@ public class SkillNetworking {
                 }
 
                 skillData.setUnlockedSkills(new HashSet<>());
-                player.addExperienceLevels(totalRefundAmount);
+                player.addExperience(totalRefundAmount);
                 syncSkillsToClient(player);
-                player.sendMessage(Text.of("§eSkills have been reset. " + totalRefundAmount + " levels refunded."), false);
+                player.sendMessage(Text.of("§eSkills have been reset. " + totalRefundAmount + " xp points refunded."), false);
             });
         });
 

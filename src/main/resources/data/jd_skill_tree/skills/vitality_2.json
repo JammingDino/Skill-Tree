@@ -3,7 +3,7 @@
   "description": "Increases maximum life by a heart.",
   "icon": "minecraft:apple",
   "tier": 2,
-  "cost": 10,
+  "cost": 200,
   "prerequisites": [
     "jd_skill_tree:vitality_1"
   ],

@@ -3,7 +3,7 @@
   "description": "Increases movement speed by 3%.",
   "icon": "minecraft:leather_boots",
   "tier": 1,
-  "cost": 5,
+  "cost": 200,
   "effects": [
     {
       "type": "jd_skill_tree:attribute",

@@ -36,7 +36,7 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
 
     // --- State ---
     private String name = "New Skill";
-    private String cost = "5";
+    private String cost = "100";
     private String icon = "minecraft:apple";
     private String description = "Description...";
     private final List<String> parentIds = new ArrayList<>();
@@ -48,6 +48,10 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
         String attr = "minecraft:generic.max_health";
         String op = "ADDITION";
         String val = "1.0";
+
+        String effectId = "minecraft:speed";
+        String amplifier = "0";
+        boolean hideParticles = false;
     }
     private final List<EffectData> effects = new ArrayList<>();
 
@@ -323,13 +327,113 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
 
     private FlowLayout row(Component... children) { var layout = Containers.horizontalFlow(Sizing.fill(100), Sizing.content()); layout.gap(5); for (Component c : children) layout.child(c); return layout; }
     private void addParentRow(String parentId) { parentIds.add(parentId); var row = Containers.horizontalFlow(Sizing.fill(100), Sizing.content()); row.gap(5); row.margins(Insets.bottom(5)); var parentField = autocompleteField("", parentId, availableSkills, s -> { int index = parentsContainer.children().indexOf(row); if (index >= 0 && index < parentIds.size()) { parentIds.set(index, s); updatePreview(); } }, 85); var removeBtn = Components.button(Text.of("X"), btn -> { int index = parentsContainer.children().indexOf(row); if (index >= 0 && index < parentIds.size()) { parentIds.remove(index); parentsContainer.removeChild(row); updatePreview(); } }); removeBtn.sizing(Sizing.fill(15), Sizing.fixed(20)); row.child(parentField); row.child(removeBtn); parentsContainer.child(row); }
-    private void addEffectRow(EffectData data) { effects.add(data); var collapsible = Containers.collapsible(Sizing.fill(100), Sizing.content(), Text.of("Effect"), true); var content = Containers.verticalFlow(Sizing.fill(100), Sizing.content()); content.padding(Insets.of(5)); content.child(dropdown("Type", List.of("Attribute", "Mining Speed"), data.type, s -> { data.type = s; rebuildEffectRow(collapsible, content, data); updatePreview(); }, 100).margins(Insets.bottom(5))); buildEffectFields(content, data, collapsible); collapsible.child(content); collapsible.margins(Insets.bottom(10)); effectsContainer.child(collapsible); }
-    private void buildEffectFields(FlowLayout content, EffectData data, Component collapsible) { if (data.type.equals("Attribute")) { List<String> attrIds = Registries.ATTRIBUTE.getIds().stream().map(Identifier::toString).sorted().toList(); content.child(autocompleteField("Attribute ID", data.attr, attrIds, s -> { data.attr = s; updatePreview(); }, 100)); content.child(dropdown("Operation", List.of("ADDITION", "MULTIPLY_BASE", "MULTIPLY_TOTAL"), data.op, s -> { data.op = s; updatePreview(); }, 100).margins(Insets.top(5))); content.child(field("Value", data.val, s -> { data.val = s; updatePreview(); }, 100).margins(Insets.top(5))); } else if (data.type.equals("Mining Speed")) { content.child(field("Value", data.val, s -> { data.val = s; updatePreview(); }, 100)); } content.child(Components.button(Text.of("Remove"), btn -> { effects.remove(data); effectsContainer.removeChild(collapsible); updatePreview(); }).sizing(Sizing.fill(100), Sizing.fixed(20)).margins(Insets.top(10))); }
+    private void addEffectRow(EffectData data) {
+        effects.add(data);
+        var collapsible = Containers.collapsible(Sizing.fill(100), Sizing.content(), Text.of("Effect"), true);
+        var content = Containers.verticalFlow(Sizing.fill(100), Sizing.content());
+        content.padding(Insets.of(5));
+
+        // Add "Potion" to this list
+        content.child(dropdown("Type", List.of("Attribute", "Mining Speed", "Potion"), data.type, s -> {
+            data.type = s;
+            rebuildEffectRow(collapsible, content, data);
+            updatePreview();
+        }, 100).margins(Insets.bottom(5)));
+
+        buildEffectFields(content, data, collapsible);
+        collapsible.child(content);
+        collapsible.margins(Insets.bottom(10));
+        effectsContainer.child(collapsible);
+    }
+
+    private void buildEffectFields(FlowLayout content, EffectData data, Component collapsible) {
+        if (data.type.equals("Attribute")) {
+            // ... existing attribute code ...
+            List<String> attrIds = Registries.ATTRIBUTE.getIds().stream().map(Identifier::toString).sorted().toList();
+            content.child(autocompleteField("Attribute ID", data.attr, attrIds, s -> { data.attr = s; updatePreview(); }, 100));
+            content.child(dropdown("Operation", List.of("ADDITION", "MULTIPLY_BASE", "MULTIPLY_TOTAL"), data.op, s -> { data.op = s; updatePreview(); }, 100).margins(Insets.top(5)));
+            content.child(field("Value", data.val, s -> { data.val = s; updatePreview(); }, 100).margins(Insets.top(5)));
+        }
+        else if (data.type.equals("Mining Speed")) {
+            content.child(field("Value (0.2 = +20%)", data.val, s -> { data.val = s; updatePreview(); }, 100));
+        }
+        // --- NEW POTION BLOCK ---
+        else if (data.type.equals("Potion")) {
+            // Get all effect IDs (vanilla + modded)
+            List<String> effectIds = Registries.STATUS_EFFECT.getIds().stream().map(Identifier::toString).sorted().toList();
+
+            // Effect ID Autocomplete
+            content.child(autocompleteField("Effect ID", data.effectId, effectIds, s -> { data.effectId = s; updatePreview(); }, 100));
+
+            // Amplifier Field
+            content.child(field("Amplifier (0 = Level 1)", data.amplifier, s -> { data.amplifier = s; updatePreview(); }, 100).margins(Insets.top(5)));
+
+            // Hide Particles Checkbox
+            var checkbox = Components.checkbox(Text.of("Hide Particles"));
+            checkbox.checked(data.hideParticles);
+
+            // FIX: Pass the consumer directly to onChanged
+            checkbox.onChanged(checked -> { data.hideParticles = checked; updatePreview(); });
+
+            checkbox.margins(Insets.top(5));
+            content.child(checkbox);
+        }
+        // ------------------------
+
+        content.child(Components.button(Text.of("Remove"), btn -> {
+            effects.remove(data);
+            effectsContainer.removeChild(collapsible);
+            updatePreview();
+        }).sizing(Sizing.fill(100), Sizing.fixed(20)).margins(Insets.top(10)));
+    }
+
     private void rebuildEffectRow(Component collapsible, FlowLayout content, EffectData data) { var children = new ArrayList<>(content.children()); for (int i = 1; i < children.size(); i++) { content.removeChild(children.get(i)); } buildEffectFields(content, data, collapsible); }
     @Override public boolean mouseClicked(double mouseX, double mouseY, int button) { if (overlayLayer.children().size() > 0) { Component child = overlayLayer.children().get(0); boolean clickedDropdown = mouseX >= child.x() && mouseX <= child.x() + child.width() && mouseY >= child.y() && mouseY <= child.y() + child.height(); if (!clickedDropdown) { closeOverlay(); return true; } } return super.mouseClicked(mouseX, mouseY, button); }
     private void openOverlay(Component child) { overlayLayer.clearChildren(); overlayLayer.sizing(Sizing.fill(100), Sizing.fill(100)); overlayLayer.child(child); }
     private void closeOverlay() { overlayLayer.clearChildren(); overlayLayer.sizing(Sizing.fixed(0), Sizing.fixed(0)); }
-    private String generateJson() { try { JsonObject root = new JsonObject(); root.addProperty("name", name); root.addProperty("description", description); root.addProperty("icon", icon); root.addProperty("tier", tier); root.addProperty("cost", tryParse(cost)); if (!parentIds.isEmpty()) { JsonArray parents = new JsonArray(); for (String parentId : parentIds) { if (!parentId.trim().isEmpty()) { parents.add(parentId); } } if (parents.size() > 0) { root.add("prerequisites", parents); } } JsonArray effectsJson = new JsonArray(); for (EffectData e : effects) { JsonObject eff = new JsonObject(); if (e.type.equals("Attribute")) { eff.addProperty("type", "jd_skill_tree:attribute"); eff.addProperty("attribute", e.attr); eff.addProperty("operation", e.op); eff.addProperty("value", Double.parseDouble(e.val)); } else { eff.addProperty("type", "jd_skill_tree:mining_speed"); eff.addProperty("value", Double.parseDouble(e.val)); } effectsJson.add(eff); } if (effectsJson.size() > 0) root.add("effects", effectsJson); return GSON.toJson(root); } catch (Exception e) { return ""; } }
+    private String generateJson() {
+        try {
+            JsonObject root = new JsonObject();
+            // ... existing header fields (name, description, etc) ...
+            root.addProperty("name", name);
+            root.addProperty("description", description);
+            root.addProperty("icon", icon);
+            root.addProperty("tier", tier);
+            root.addProperty("cost", tryParse(cost));
+
+            if (!parentIds.isEmpty()) {
+                JsonArray parents = new JsonArray();
+                for (String parentId : parentIds) { if (!parentId.trim().isEmpty()) { parents.add(parentId); } }
+                if (parents.size() > 0) { root.add("prerequisites", parents); }
+            }
+
+            JsonArray effectsJson = new JsonArray();
+            for (EffectData e : effects) {
+                JsonObject eff = new JsonObject();
+                if (e.type.equals("Attribute")) {
+                    eff.addProperty("type", "jd_skill_tree:attribute");
+                    eff.addProperty("attribute", e.attr);
+                    eff.addProperty("operation", e.op);
+                    eff.addProperty("value", Double.parseDouble(e.val));
+                } else if (e.type.equals("Mining Speed")) {
+                    eff.addProperty("type", "jd_skill_tree:mining_speed");
+                    eff.addProperty("value", Double.parseDouble(e.val));
+                }
+                // --- NEW POTION JSON ---
+                else if (e.type.equals("Potion")) {
+                    eff.addProperty("type", "jd_skill_tree:potion");
+                    eff.addProperty("effect", e.effectId);
+                    eff.addProperty("amplifier", tryParse(e.amplifier));
+                    eff.addProperty("hide_particles", e.hideParticles);
+                }
+                // -----------------------
+                effectsJson.add(eff);
+            }
+
+            if (effectsJson.size() > 0) root.add("effects", effectsJson);
+            return GSON.toJson(root);
+        } catch (Exception e) { return ""; }
+    }
     private void updatePreview() { String json = generateJson(); if (json.isEmpty()) { exportTextDisplay.text(Text.of("Invalid JSON")); return; } exportTextDisplay.text(Text.of(json)); try { this.previewSkill = GSON.fromJson(json, Skill.class); this.previewSkill.setId(new Identifier("preview", "live")); } catch (Exception ignored) {} }
     private int tryParse(String s) { try { return Integer.parseInt(s); } catch (Exception e) { return 0; } }
     private void loadAvailableSkills() { try { availableSkills = SkillManager.getAllSkills().stream().map(skill -> skill.getId().toString()).sorted().collect(Collectors.toList()); } catch (Exception e) { availableSkills = new ArrayList<>(); } }
