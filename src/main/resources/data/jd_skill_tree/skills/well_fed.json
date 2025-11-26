@@ -1,0 +1,18 @@
+{
+  "name": "Well Fed",
+  "description": "Gives you permenent saturation 1 effect",
+  "icon": "minecraft:cake",
+  "tier": 5,
+  "cost": 4000,
+  "prerequisites": [
+    "jd_skill_tree:vitality_5"
+  ],
+  "effects": [
+    {
+      "type": "jd_skill_tree:potion",
+      "effect": "minecraft:saturation",
+      "amplifier": 0,
+      "hide_particles": true
+    }
+  ]
+}

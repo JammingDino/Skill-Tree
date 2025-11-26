@@ -3,7 +3,7 @@
   "description": "Increases maximum life by a heart.",
   "icon": "minecraft:golden_carrot",
   "tier": 3,
-  "cost": 15,
+  "cost": 300,
   "prerequisites": [
     "jd_skill_tree:vitality_2"
   ],

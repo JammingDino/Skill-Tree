@@ -3,7 +3,7 @@
   "description": "Increases maximum life by a heart.",
   "icon": "minecraft:golden_apple",
   "tier": 4,
-  "cost": 20,
+  "cost": 500,
   "prerequisites": [
     "jd_skill_tree:vitality_3"
   ],

@@ -3,7 +3,7 @@
   "description": "Increases movement speed by 3%.",
   "icon": "minecraft:golden_boots",
   "tier": 4,
-  "cost": 15,
+  "cost": 4000,
   "effects": [
     {
       "type": "jd_skill_tree:attribute",

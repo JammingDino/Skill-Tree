@@ -3,6 +3,7 @@ package com.jd_skill_tree.screens.widgets;
 import com.jd_skill_tree.skills.ClientSkillData;
 import com.jd_skill_tree.skills.Skill;
 import com.mojang.blaze3d.systems.RenderSystem;
+import com.jd_skill_tree.utils.ExperienceUtils;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
@@ -170,13 +171,18 @@ public class SkillWidget {
             descY += 10;
         }
 
-        Text costText = Text.of("Cost: " + skill.getCost());
+        Text costText = Text.of("Cost: " + skill.getCost() + " XP");
         SkillState state = getState();
-        int costColor = 0xFF5555;
+        int costColor = 0xFF5555; // Red
+
         if (state == SkillState.UNLOCKED) {
-            costColor = 0x66FF55;
-        } else if (client.player.experienceLevel >= skill.getCost()) {
-            costColor = 0xFFFF55;
+            costColor = 0x66FF55; // Green
+        } else {
+            // Check points instead of levels
+            int currentXp = ExperienceUtils.getPlayerTotalXp(this.client.player);
+            if (currentXp >= skill.getCost()) {
+                costColor = 0xFFFF55; // Yellow
+            }
         }
 
         context.drawText(this.client.textRenderer, costText, tooltipX, descY, costColor, true);
@@ -188,7 +194,10 @@ public class SkillWidget {
         assert this.client.player != null;
         if (ClientSkillData.isSkillUnlocked(this.skill)) return SkillState.UNLOCKED;
 
-        boolean hasEnoughLevels = this.client.player.experienceLevel >= this.skill.getCost();
+        // UPDATED CHECK: Compare Total XP Points vs Cost
+        int currentXp = ExperienceUtils.getPlayerTotalXp(this.client.player);
+        boolean hasEnoughXp = currentXp >= this.skill.getCost();
+
         List<Skill> requiredSkills = this.skill.getRequiredSkills();
         boolean hasAllRequiredSkills = true;
         for (Skill requiredSkill : requiredSkills) {
@@ -198,7 +207,7 @@ public class SkillWidget {
             }
         }
 
-        if (hasEnoughLevels && hasAllRequiredSkills) return SkillState.CAN_UNLOCK;
+        if (hasEnoughXp && hasAllRequiredSkills) return SkillState.CAN_UNLOCK;
         return SkillState.LOCKED;
     }
 

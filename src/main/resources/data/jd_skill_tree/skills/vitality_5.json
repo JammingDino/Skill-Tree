@@ -3,7 +3,7 @@
   "description": "Increases maximum life by a heart.",
   "icon": "minecraft:enchanted_golden_apple",
   "tier": 5,
-  "cost": 25,
+  "cost": 2000,
   "prerequisites": [
     "jd_skill_tree:vitality_4"
   ],

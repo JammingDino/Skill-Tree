@@ -1,0 +1,16 @@
+{
+  "name": "Mining Speed II",
+  "description": "Increases mining speed by 5%",
+  "icon": "minecraft:stone_pickaxe",
+  "tier": 2,
+  "cost": 800,
+  "prerequisites": [
+    "jd_skill_tree:mining_speed_1"
+  ],
+  "effects": [
+    {
+      "type": "jd_skill_tree:mining_speed",
+      "value": 0.05
+    }
+  ]
+}

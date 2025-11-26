@@ -3,7 +3,7 @@
   "description": "Increases movement speed by 3%.",
   "icon": "minecraft:chainmail_boots",
   "tier": 2,
-  "cost": 15,
+  "cost": 800,
   "effects": [
     {
       "type": "jd_skill_tree:attribute",

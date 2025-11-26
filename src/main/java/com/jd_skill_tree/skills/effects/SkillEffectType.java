@@ -58,5 +58,6 @@ public record SkillEffectType<T extends SkillEffect>(Function<JsonObject, T> fac
         // We will add our effects here in the next phase
         register(new Identifier(Jd_skill_tree.MOD_ID, "attribute"), AttributeSkillEffect::fromJson);
         register(new Identifier(Jd_skill_tree.MOD_ID, "mining_speed"), MiningSpeedSkillEffect::fromJson);
+        register(new Identifier(Jd_skill_tree.MOD_ID, "potion"), PotionSkillEffect::fromJson);
     }
 }

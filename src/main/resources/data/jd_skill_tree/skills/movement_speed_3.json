@@ -3,7 +3,7 @@
   "description": "Increases movement speed by 3%.",
   "icon": "minecraft:iron_boots",
   "tier": 3,
-  "cost": 15,
+  "cost": 2000,
   "effects": [
     {
       "type": "jd_skill_tree:attribute",
