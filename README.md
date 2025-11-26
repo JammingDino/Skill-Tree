@@ -1,6 +1,6 @@
 # JD Skill Tree
 
-Welcome to **JD Skill Tree**, a fully data-driven progression mod for Minecraft 1.20! This mod introduces a tiered skill altar system that allows players to trade experience levels for permanent passive buffs, attribute increases, and mining speed bonuses.
+Welcome to **JD Skill Tree**, a fully data-driven progression mod for Minecraft 1.20! This mod introduces a tiered skill altar system that allows players to trade experience levels for permanent buffs.
 
 What sets this mod apart is its focus on **customization**. Server owners and modpack creators can build entirely new skill trees directly inside the game without writing a single line of code.
 
