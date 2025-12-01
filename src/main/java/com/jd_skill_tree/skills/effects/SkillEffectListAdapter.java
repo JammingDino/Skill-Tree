@@ -68,6 +68,14 @@ public class SkillEffectListAdapter implements JsonDeserializer<List<SkillEffect
                 };
                 obj.addProperty("slot", slotName);
             }
+            else if (effect instanceof AttackKnockbackSkillEffect kbEffect) {
+                obj.addProperty("type", "jd_skill_tree:attack_knockback");
+                obj.addProperty("value", kbEffect.getAmount());
+            }
+            else if (effect instanceof ExperienceSkillEffect xpEffect) {
+                obj.addProperty("type", "jd_skill_tree:experience");
+                obj.addProperty("value", xpEffect.getMultiplier());
+            }
             // Add other effect types here as you create them
 
             jsonArray.add(obj);

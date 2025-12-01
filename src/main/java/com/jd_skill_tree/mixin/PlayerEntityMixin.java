@@ -6,6 +6,7 @@ import com.jd_skill_tree.skills.effects.AttributeSkillEffect;
 import com.jd_skill_tree.skills.effects.SkillEffect;
 import com.jd_skill_tree.skills.effects.EnchantmentSkillEffect;
 import net.minecraft.block.BlockState;
+import net.minecraft.entity.Entity;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.attribute.EntityAttribute;
@@ -17,10 +18,12 @@ import net.minecraft.nbt.NbtList;
 import net.minecraft.nbt.NbtString;
 import net.minecraft.registry.Registries;
 import net.minecraft.util.Identifier;
+import net.minecraft.util.math.MathHelper;
 import net.minecraft.world.World;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.ModifyVariable;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
@@ -113,6 +116,71 @@ public abstract class PlayerEntityMixin extends LivingEntity implements IUnlocke
         }
 
         cir.setReturnValue(speed);
+    }
+
+    /**
+     * This intercepts the local variable 'float n' (or 'f' in some mappings) which represents knockback strength.
+     * It is usually stored just before the "if (n > 0)" check.
+     */
+    @ModifyVariable(method = "attack", at = @At("STORE"), ordinal = 0)
+    private int modifyAttackKnockback(int knockbackLevel, Entity target) {
+        // Convert to float for calculations
+        float newKnockback = (float) knockbackLevel;
+
+        // Loop through all skills and apply modifiers
+        for (SkillEffect effect : jd_skill_tree$getActiveEffects()) {
+            newKnockback = effect.modifyAttackKnockback((PlayerEntity)(Object)this, newKnockback);
+        }
+
+        // Handle "Pull" (Negative Knockback)
+        if (newKnockback < 0) {
+            float strength = -newKnockback; // Make strength positive for the physics method
+
+            // Standard Vanilla vectors based on player rotation
+            float yaw = this.getYaw() * 0.017453292F;
+            float sin = MathHelper.sin(yaw);
+            float cos = MathHelper.cos(yaw);
+
+            if (target instanceof LivingEntity livingTarget) {
+                // Vanilla 'takeKnockback' ignores values <= 0.
+                // FIX: Pass POSITIVE strength, but INVERT the direction vectors (-sin, -(-cos)) -> (-sin, +cos)
+                // Standard Push: (strength, sin, -cos)
+                // Pull:          (strength, -sin, cos)
+                livingTarget.takeKnockback(strength * 0.5F, -sin, cos);
+            } else {
+                // For non-living entities, we can just do raw velocity math.
+                // Logic: -(-sin) becomes +sin, etc. forcing it backwards relative to look direction.
+                target.addVelocity(
+                        sin * strength * 0.5F,
+                        0.1D,
+                        -cos * strength * 0.5F
+                );
+            }
+
+            // Apply self-slowdown (Vanilla mechanic)
+            this.setVelocity(this.getVelocity().multiply(0.6D, 1.0D, 0.6D));
+            this.setSprinting(false);
+
+            // Return 0 so vanilla logic skips the standard push behavior
+            return 0;
+        }
+
+        return (int) newKnockback;
+    }
+
+    @ModifyVariable(method = "addExperience", at = @At("HEAD"), argsOnly = true)
+    private int modifyAddedExperience(int experience) {
+        // We only modify POSITIVE experience gain.
+        // We don't want to multiply XP costs (negative values) used for repairing mending gear or commands.
+        if (experience <= 0) return experience;
+
+        int newXp = experience;
+
+        for (SkillEffect effect : jd_skill_tree$getActiveEffects()) {
+            newXp = effect.modifyExperience((PlayerEntity)(Object)this, newXp);
+        }
+
+        return newXp;
     }
 
 
