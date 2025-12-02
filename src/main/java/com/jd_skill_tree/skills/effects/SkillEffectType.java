@@ -55,10 +55,14 @@ public record SkillEffectType<T extends SkillEffect>(Function<JsonObject, T> fac
      */
     public static void registerAll() {
         Jd_skill_tree.LOGGER.info("Registering skill effect types...");
-        // We will add our effects here in the next phase
+
         register(new Identifier(Jd_skill_tree.MOD_ID, "attribute"), AttributeSkillEffect::fromJson);
         register(new Identifier(Jd_skill_tree.MOD_ID, "mining_speed"), MiningSpeedSkillEffect::fromJson);
         register(new Identifier(Jd_skill_tree.MOD_ID, "potion"), PotionSkillEffect::fromJson);
         register(new Identifier(Jd_skill_tree.MOD_ID, "enchantment"), EnchantmentSkillEffect::fromJson);
+        register(new Identifier(Jd_skill_tree.MOD_ID, "attack_knockback"), AttackKnockbackSkillEffect::fromJson);
+        register(new Identifier(Jd_skill_tree.MOD_ID, "experience"), ExperienceSkillEffect::fromJson);
+        register(new Identifier(Jd_skill_tree.MOD_ID, "swim_speed"), SwimSpeedSkillEffect::fromJson);
+        register(new Identifier(Jd_skill_tree.MOD_ID, "lava_speed"), LavaSpeedSkillEffect::fromJson);
     }
 }

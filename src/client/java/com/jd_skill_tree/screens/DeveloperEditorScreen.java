@@ -58,6 +58,11 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
         String enchLevel = "1";
         String enchSlot = "mainhand";
         boolean overEnchant = false;
+
+        String knockbackValue = "0.5";
+        String xpValue = "0.5";
+        String swimValue = "0.5";
+        String lavaValue = "0.5";
     }
     private final List<EffectData> effects = new ArrayList<>();
 
@@ -339,7 +344,16 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
         var content = Containers.verticalFlow(Sizing.fill(100), Sizing.content());
         content.padding(Insets.of(5));
 
-        content.child(dropdown("Type", List.of("Attribute", "Mining Speed", "Potion", "Enchantment"), data.type, s -> { // Added "Enchantment"
+        content.child(dropdown("Type", List.of(
+                "Attribute",
+                "Mining Speed",
+                "Potion",
+                "Enchantment",
+                "Attack Knockback",
+                "Experience",
+                "Swim Speed",
+                "Lava Speed"
+        ), data.type, s -> { // Added "Enchantment"
             data.type = s;
             rebuildEffectRow(collapsible, content, data);
             updatePreview();
@@ -404,6 +418,18 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
             checkbox.margins(Insets.top(5));
             content.child(checkbox);
         }
+        else if (data.type.equals("Attack Knockback")) {
+            content.child(field("Value (0.5 = Push, -1.0 = Pull)", data.knockbackValue, s -> { data.knockbackValue = s; updatePreview(); }, 100));
+        }
+        else if (data.type.equals("Experience")) {
+            content.child(field("Multiplier (0.5 = +50% XP)", data.xpValue, s -> { data.xpValue = s; updatePreview(); }, 100));
+        }
+        else if (data.type.equals("Swim Speed")) {
+            content.child(field("Multiplier (0.5 = +50% Speed)", data.swimValue, s -> { data.swimValue = s; updatePreview(); }, 100));
+        }
+        else if (data.type.equals("Lava Speed")) {
+            content.child(field("Multiplier (0.5 = +50% Speed)", data.lavaValue, s -> { data.lavaValue = s; updatePreview(); }, 100));
+        }
         // ------------------------
 
         content.child(Components.button(Text.of("Remove"), btn -> {
@@ -458,6 +484,38 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
                     eff.addProperty("level_added", tryParse(e.enchLevel));
                     eff.addProperty("slot", e.enchSlot);
                     eff.addProperty("over_enchant", e.overEnchant);
+                }
+                else if (e.type.equals("Attack Knockback")) {
+                    eff.addProperty("type", "jd_skill_tree:attack_knockback");
+                    try {
+                        eff.addProperty("value", Double.parseDouble(e.knockbackValue));
+                    } catch (NumberFormatException ex) {
+                        eff.addProperty("value", 0.0);
+                    }
+                }
+                else if (e.type.equals("Experience")) {
+                    eff.addProperty("type", "jd_skill_tree:experience");
+                    try {
+                        eff.addProperty("value", Double.parseDouble(e.xpValue));
+                    } catch (NumberFormatException ex) {
+                        eff.addProperty("value", 0.0);
+                    }
+                }
+                else if (e.type.equals("Swim Speed")) {
+                    eff.addProperty("type", "jd_skill_tree:swim_speed");
+                    try {
+                        eff.addProperty("value", Double.parseDouble(e.swimValue));
+                    } catch (NumberFormatException ex) {
+                        eff.addProperty("value", 0.0);
+                    }
+                }
+                else if (e.type.equals("Lava Speed")) {
+                    eff.addProperty("type", "jd_skill_tree:lava_speed");
+                    try {
+                        eff.addProperty("value", Double.parseDouble(e.lavaValue));
+                    } catch (NumberFormatException ex) {
+                        eff.addProperty("value", 0.0);
+                    }
                 }
                 // -----------------------
                 effectsJson.add(eff);
