@@ -51,6 +51,26 @@ public interface SkillEffect {
         return experience;
     }
 
+    /**
+     * Called when calculating water movement speed.
+     * @param player The player moving in water.
+     * @param currentSpeed The vanilla calculated speed (including Depth Strider).
+     * @return The new speed.
+     */
+    default float modifySwimSpeed(PlayerEntity player, float currentSpeed) {
+        return currentSpeed;
+    }
+
+    /**
+     * Called when calculating lava movement speed.
+     * @param player The player moving in lava.
+     * @param currentSpeed The vanilla calculated speed.
+     * @return The new speed.
+     */
+    default float modifyLavaSpeed(PlayerEntity player, float currentSpeed) {
+        return currentSpeed;
+    }
+
     // In the future, we can add more methods here, e.g.:
     // default void onDamage(PlayerEntity player, DamageSource source, float amount) {}
     // default void onJump(PlayerEntity player) {}

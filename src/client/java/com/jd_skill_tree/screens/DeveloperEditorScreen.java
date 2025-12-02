@@ -61,6 +61,8 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
 
         String knockbackValue = "0.5";
         String xpValue = "0.5";
+        String swimValue = "0.5";
+        String lavaValue = "0.5";
     }
     private final List<EffectData> effects = new ArrayList<>();
 
@@ -348,7 +350,9 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
                 "Potion",
                 "Enchantment",
                 "Attack Knockback",
-                "Experience"
+                "Experience",
+                "Swim Speed",
+                "Lava Speed"
         ), data.type, s -> { // Added "Enchantment"
             data.type = s;
             rebuildEffectRow(collapsible, content, data);
@@ -420,6 +424,12 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
         else if (data.type.equals("Experience")) {
             content.child(field("Multiplier (0.5 = +50% XP)", data.xpValue, s -> { data.xpValue = s; updatePreview(); }, 100));
         }
+        else if (data.type.equals("Swim Speed")) {
+            content.child(field("Multiplier (0.5 = +50% Speed)", data.swimValue, s -> { data.swimValue = s; updatePreview(); }, 100));
+        }
+        else if (data.type.equals("Lava Speed")) {
+            content.child(field("Multiplier (0.5 = +50% Speed)", data.lavaValue, s -> { data.lavaValue = s; updatePreview(); }, 100));
+        }
         // ------------------------
 
         content.child(Components.button(Text.of("Remove"), btn -> {
@@ -487,6 +497,22 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
                     eff.addProperty("type", "jd_skill_tree:experience");
                     try {
                         eff.addProperty("value", Double.parseDouble(e.xpValue));
+                    } catch (NumberFormatException ex) {
+                        eff.addProperty("value", 0.0);
+                    }
+                }
+                else if (e.type.equals("Swim Speed")) {
+                    eff.addProperty("type", "jd_skill_tree:swim_speed");
+                    try {
+                        eff.addProperty("value", Double.parseDouble(e.swimValue));
+                    } catch (NumberFormatException ex) {
+                        eff.addProperty("value", 0.0);
+                    }
+                }
+                else if (e.type.equals("Lava Speed")) {
+                    eff.addProperty("type", "jd_skill_tree:lava_speed");
+                    try {
+                        eff.addProperty("value", Double.parseDouble(e.lavaValue));
                     } catch (NumberFormatException ex) {
                         eff.addProperty("value", 0.0);
                     }

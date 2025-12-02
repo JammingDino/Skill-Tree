@@ -62,5 +62,7 @@ public record SkillEffectType<T extends SkillEffect>(Function<JsonObject, T> fac
         register(new Identifier(Jd_skill_tree.MOD_ID, "enchantment"), EnchantmentSkillEffect::fromJson);
         register(new Identifier(Jd_skill_tree.MOD_ID, "attack_knockback"), AttackKnockbackSkillEffect::fromJson);
         register(new Identifier(Jd_skill_tree.MOD_ID, "experience"), ExperienceSkillEffect::fromJson);
+        register(new Identifier(Jd_skill_tree.MOD_ID, "swim_speed"), SwimSpeedSkillEffect::fromJson);
+        register(new Identifier(Jd_skill_tree.MOD_ID, "lava_speed"), LavaSpeedSkillEffect::fromJson);
     }
 }
