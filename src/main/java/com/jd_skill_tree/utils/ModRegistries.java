@@ -5,6 +5,7 @@ import com.jd_skill_tree.blocks.entity.ModBlockEntities;
 import com.jd_skill_tree.skills.SkillLoader;
 import com.jd_skill_tree.skills.actions.SkillActionHandler;
 import com.jd_skill_tree.skills.actions.SkillActionType;
+import com.jd_skill_tree.skills.conditions.SkillConditionType;
 import com.jd_skill_tree.skills.effects.SkillEffectType;
 import net.fabricmc.fabric.api.resource.ResourceManagerHelper;
 import net.minecraft.resource.ResourceType;
@@ -20,6 +21,7 @@ public class ModRegistries {
 
         SkillEffectType.registerAll();
         SkillActionType.registerAll();
+        SkillConditionType.registerAll();
 
         ModBlocks.registerModBlocks();
         ModBlockEntities.registerBlockEntities();

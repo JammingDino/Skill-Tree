@@ -36,9 +36,13 @@ public abstract class PlayerEntityMixin extends LivingEntity implements IUnlocke
     private Set<SkillEffect> jd_skill_tree$getActiveEffects() {
         Set<SkillEffect> effects = new HashSet<>();
         IUnlockedSkillsData skillData = (IUnlockedSkillsData) this;
+        PlayerEntity player = (PlayerEntity) (Object) this;
+
         for (String skillIdString : skillData.getUnlockedSkills()) {
             SkillManager.getSkill(new Identifier(skillIdString)).ifPresent(skill -> {
-                effects.addAll(skill.getEffects());
+                if (skill.areConditionsMet(player)) {
+                    effects.addAll(skill.getEffects());
+                }
             });
         }
         return effects;
