@@ -8,6 +8,10 @@ import com.jd_skill_tree.networking.SkillNetworking;
 import com.jd_skill_tree.screens.widgets.SkillWidget;
 import com.jd_skill_tree.skills.Skill;
 import com.jd_skill_tree.skills.SkillManager;
+import com.jd_skill_tree.skills.actions.CommandSkillAction;
+import com.jd_skill_tree.skills.actions.SkillAction;
+import com.jd_skill_tree.skills.conditions.HandItemCondition;
+import com.jd_skill_tree.skills.conditions.SkillCondition;
 import com.jd_skill_tree.skills.effects.*;
 import io.wispforest.owo.ui.base.BaseComponent;
 import io.wispforest.owo.ui.base.BaseOwoScreen;
@@ -59,22 +63,19 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
     private TextBoxComponent namespaceField;
     private TextBoxComponent fileNameField;
 
+    // --- Data Classes ---
     private static class EffectData {
         String type = "Attribute";
-
         String attr = "minecraft:generic.max_health";
         String op = "ADDITION";
         String val = "1.0";
-
         String effectId = "minecraft:speed";
         String amplifier = "0";
         boolean hideParticles = false;
-
         String enchId = "minecraft:sharpness";
         String enchLevel = "1";
         String enchSlot = "mainhand";
         boolean overEnchant = false;
-
         String knockbackValue = "0.5";
         String xpValue = "0.5";
         String swimValue = "0.5";
@@ -82,13 +83,21 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
     }
     private final List<EffectData> effects = new ArrayList<>();
 
-    // --- Action Data Class ---
     private static class ActionData {
         String type = "Command";
         String trigger = "BLOCK_BREAK";
         String command = "/say Hello";
     }
     private final List<ActionData> actions = new ArrayList<>();
+
+    // --- NEW: Condition Data ---
+    private static class ConditionData {
+        String type = "Hand Item";
+        String item = "minecraft:stick";
+        String count = "1";
+        String slot = "MAINHAND";
+    }
+    private final List<ConditionData> conditions = new ArrayList<>();
 
     private SkillWidget previewWidget;
     private Skill previewSkill;
@@ -101,12 +110,12 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
     // --- UI Variables ---
     private FlowLayout effectsContainer;
     private FlowLayout actionsContainer;
+    private FlowLayout conditionsContainer; // NEW
     private FlowLayout parentsContainer;
     private FlowLayout overlayLayer;
     private LabelComponent exportTextDisplay;
     private List<String> availableSkills = new ArrayList<>();
 
-    // Export settings
     private String exportNamespace = "my_skills";
     private String exportFileName = "new_skill";
     private String loadSkillId = "";
@@ -131,6 +140,9 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
 
         List<ActionData> loadedActions = new ArrayList<>(this.actions);
         this.actions.clear();
+
+        List<ConditionData> loadedConditions = new ArrayList<>(this.conditions);
+        this.conditions.clear();
 
         root.surface(Surface.VANILLA_TRANSLUCENT);
 
@@ -210,12 +222,23 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
         applyStandardButtonRenderer(addActionBtn);
         editorContent.child(addActionBtn);
 
-        editorContent.child(Containers.verticalFlow(Sizing.fill(100), Sizing.fixed(50)));
+        // Conditions Section
+        editorContent.child(Components.box(Sizing.fill(100), Sizing.fixed(1)).color(Color.ofArgb(0xFF555555)).margins(Insets.vertical(10)));
+        editorContent.child(Components.label(Text.of("Conditions (Requirements)")).color(Color.ofRgb(0x55FFFF)).margins(Insets.bottom(5)));
+
+        conditionsContainer = Containers.verticalFlow(Sizing.fill(100), Sizing.content());
+        editorContent.child(conditionsContainer);
+
+        var addConditionBtn = Components.button(Text.of("+ Add Condition"), btn -> { addConditionRow(new ConditionData()); updatePreview(); });
+        addConditionBtn.sizing(Sizing.fill(100), Sizing.fixed(20));
+        applyStandardButtonRenderer(addConditionBtn);
+        editorContent.child(addConditionBtn);
 
         // Restore Rows
         for (String p : loadedParents) addParentRow(p);
         for (EffectData e : loadedEffects) addEffectRow(e);
         for (ActionData a : loadedActions) addActionRow(a);
+        for (ConditionData c : loadedConditions) addConditionRow(c);
 
         // Clear/Reset Button
         editorContent.child(Components.box(Sizing.fill(100), Sizing.fixed(1)).color(Color.ofArgb(0xFF555555)).margins(Insets.vertical(15)));
@@ -230,7 +253,6 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
         // ==========================================================================================
         // RIGHT COLUMN: SIDEBAR (SCROLLABLE)
         // ==========================================================================================
-        // 1. Create the content container for the sidebar
         FlowLayout sidebarContent = Containers.verticalFlow(Sizing.fill(100), Sizing.content());
         sidebarContent.surface(Surface.DARK_PANEL).padding(Insets.of(10));
         sidebarContent.alignment(HorizontalAlignment.LEFT, VerticalAlignment.TOP);
@@ -239,6 +261,7 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
         sidebarContent.child(Components.label(Text.of("Load Existing Skill")).shadow(true).margins(Insets.bottom(5)));
         var loadContainer = Containers.horizontalFlow(Sizing.fill(100), Sizing.content());
         loadContainer.gap(5);
+        // CHANGED: VerticalAlignment.TOP
         loadContainer.verticalAlignment(VerticalAlignment.TOP);
 
         var loadInputLayout = autocompleteField("", "", availableSkills, s -> loadSkillId = s, 70);
@@ -310,7 +333,6 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
         // JSON Output
         sidebarContent.child(Components.label(Text.of("JSON Output")).color(Color.ofRgb(0xAAAAAA)).margins(Insets.bottom(2)));
 
-        // FIX: Give fixed height to the JSON container so it doesn't cause scrolling issues
         FlowLayout jsonDisplayContainer = Containers.verticalFlow(Sizing.fill(100), Sizing.content());
         jsonDisplayContainer.surface((context, component) -> {
             context.fill(component.x(), component.y(), component.x() + component.width(), component.y() + component.height(), 0xFF000000);
@@ -321,11 +343,9 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
         exportTextDisplay.maxWidth(Integer.MAX_VALUE);
         exportTextDisplay.color(Color.ofRgb(0x00FF00));
 
-        // Add label directly without internal ScrollContainer
         jsonDisplayContainer.child(exportTextDisplay);
         sidebarContent.child(jsonDisplayContainer);
 
-        // 2. Wrap sidebar content in a Scroll Container
         var sidebarScroll = Containers.verticalScroll(Sizing.fill(35), Sizing.fill(100), sidebarContent);
 
         mainContent.child(sidebarScroll);
@@ -349,17 +369,11 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
 
     // --- HELPER: Visual Styles ---
 
-    /**
-     * Applies a renderer to a button that makes it look like a standard text box.
-     * Used for action buttons (Load, X, Remove, Export).
-     */
     private void applyStandardButtonRenderer(ButtonComponent btn) {
         btn.renderer((context, button, delta) -> {
             context.fill(button.x(), button.y(), button.x() + button.width(), button.y() + button.height(), 0xFF000000);
             int borderColor = button.isHovered() ? 0xFFFFFFFF : 0xFFA0A0A0;
             context.drawBorder(button.x(), button.y(), button.width(), button.height(), borderColor);
-
-            // Center text
             context.drawText(MinecraftClient.getInstance().textRenderer, button.getMessage(),
                     button.x() + (button.width() - MinecraftClient.getInstance().textRenderer.getWidth(button.getMessage())) / 2,
                     button.y() + (button.height() - 8) / 2,
@@ -388,6 +402,7 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
             state.parents = this.parentIds;
             state.effects = this.effects;
             state.actions = this.actions;
+            state.conditions = this.conditions;
 
             String json = GSON.toJson(state);
             Files.createDirectories(AUTOSAVE_PATH.getParent());
@@ -413,6 +428,7 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
                 if (state.parents != null) this.parentIds.addAll(state.parents);
                 if (state.effects != null) this.effects.addAll(state.effects);
                 if (state.actions != null) this.actions.addAll(state.actions);
+                if (state.conditions != null) this.conditions.addAll(state.conditions);
             }
         } catch (Exception e) {
             System.err.println("Failed to load editor autosave");
@@ -420,7 +436,6 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
     }
 
     private void clearEditorState() {
-        // Reset Variables
         this.name = "New Skill";
         this.cost = "100";
         this.tier = 1;
@@ -431,8 +446,8 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
         this.parentIds.clear();
         this.effects.clear();
         this.actions.clear();
+        this.conditions.clear();
 
-        // Update UI
         if (nameField != null) nameField.setText(name);
         if (costField != null) costField.setText(cost);
         if (tierButton != null) tierButton.setMessage(Text.of("1"));
@@ -444,6 +459,7 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
         if (parentsContainer != null) parentsContainer.clearChildren();
         if (effectsContainer != null) effectsContainer.clearChildren();
         if (actionsContainer != null) actionsContainer.clearChildren();
+        if (conditionsContainer != null) conditionsContainer.clearChildren();
 
         updatePreview();
         saveEditorState();
@@ -455,6 +471,7 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
         List<String> parents;
         List<EffectData> effects;
         List<ActionData> actions;
+        List<ConditionData> conditions;
     }
 
     // --- LOGIC: Load Skill ---
@@ -486,7 +503,6 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
 
         this.effects.clear();
         this.effectsContainer.clearChildren();
-
         for (SkillEffect effect : skill.getEffects()) {
             EffectData data = new EffectData();
             if (effect instanceof AttributeSkillEffect attr) {
@@ -540,14 +556,28 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
 
         this.actions.clear();
         this.actionsContainer.clearChildren();
-        for (com.jd_skill_tree.skills.actions.SkillAction action : skill.getActions()) {
+        for (SkillAction action : skill.getActions()) {
             ActionData data = new ActionData();
-            if (action instanceof com.jd_skill_tree.skills.actions.CommandSkillAction cmd) {
+            if (action instanceof CommandSkillAction cmd) {
                 data.type = "Command";
                 data.trigger = cmd.getTrigger().name();
                 data.command = cmd.getCommand();
             }
             addActionRow(data);
+        }
+
+        // --- NEW: Load Conditions ---
+        this.conditions.clear();
+        this.conditionsContainer.clearChildren();
+        for (SkillCondition condition : skill.getConditions()) {
+            ConditionData data = new ConditionData();
+            if (condition instanceof HandItemCondition hand) {
+                data.type = "Hand Item";
+                data.item = Registries.ITEM.getId(hand.getTargetItem()).toString();
+                data.count = String.valueOf(hand.getMinCount());
+                data.slot = hand.getSlot().name();
+            }
+            addConditionRow(data);
         }
 
         updatePreview();
@@ -561,7 +591,7 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
         layout.child(Components.label(Text.of(label)).color(Color.ofArgb(0xFFAAAAAA)));
         var box = Components.textBox(Sizing.fill(100));
         box.verticalSizing(Sizing.fixed(20));
-        box.setMaxLength(Integer.MAX_VALUE); // Fix truncation issue
+        box.setMaxLength(Integer.MAX_VALUE);
         box.setText(value);
         box.setCursorToStart();
         box.onChanged().subscribe(onChange::accept);
@@ -575,7 +605,7 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
         layout.margins(Insets.bottom(5));
         var box = Components.textBox(Sizing.fill(100));
         box.verticalSizing(Sizing.fixed(20));
-        box.setMaxLength(Integer.MAX_VALUE); // Fix truncation issue
+        box.setMaxLength(Integer.MAX_VALUE);
         box.setText(value);
         box.setCursorToStart();
         Consumer<String> selectItem = (match) -> { box.setText(match); onChange.accept(match); closeOverlay(); };
@@ -614,13 +644,11 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
         var btn = Components.button(Text.of(current), b -> {});
         btn.sizing(Sizing.fill(100), Sizing.fixed(20));
 
-        // Custom Renderer: Mimic Text Box with Centered Text
         btn.renderer((context, button, delta) -> {
             context.fill(button.x(), button.y(), button.x() + button.width(), button.y() + button.height(), 0xFF000000);
             int borderColor = button.isHovered() ? 0xFFFFFFFF : 0xFFA0A0A0;
             context.drawBorder(button.x(), button.y(), button.width(), button.height(), borderColor);
 
-            // Center the text
             int textWidth = MinecraftClient.getInstance().textRenderer.getWidth(button.getMessage());
             int centerX = button.x() + (button.width() - textWidth) / 2;
             int centerY = button.y() + (button.height() - 8) / 2;
@@ -656,7 +684,7 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
     private FlowLayout row(Component... children) {
         var layout = Containers.horizontalFlow(Sizing.fill(100), Sizing.content());
         layout.gap(5);
-        // Force alignment to bottom so inputs sit on same line
+        // CHANGED: VerticalAlignment.TOP
         layout.verticalAlignment(VerticalAlignment.TOP);
         for (Component c : children) layout.child(c);
         return layout;
@@ -666,6 +694,7 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
         parentIds.add(parentId);
         var row = Containers.horizontalFlow(Sizing.fill(100), Sizing.content());
         row.gap(5);
+        // CHANGED: VerticalAlignment.TOP
         row.verticalAlignment(VerticalAlignment.TOP);
         row.margins(Insets.bottom(5));
 
@@ -712,6 +741,39 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
         collapsible.child(content);
         collapsible.margins(Insets.bottom(10));
         actionsContainer.child(collapsible);
+    }
+
+    private void addConditionRow(ConditionData data) {
+        conditions.add(data);
+        var collapsible = Containers.collapsible(Sizing.fill(100), Sizing.content(), Text.of("Condition"), true);
+        var content = Containers.verticalFlow(Sizing.fill(100), Sizing.content());
+        content.padding(Insets.of(5));
+
+        content.child(dropdown("Type", List.of("Hand Item"), data.type, s -> {
+            data.type = s;
+            updatePreview();
+        }, 100).margins(Insets.bottom(5)));
+
+        if (data.type.equals("Hand Item")) {
+            List<String> itemIds = Registries.ITEM.getIds().stream().map(Identifier::toString).sorted().toList();
+            content.child(autocompleteField("Item ID", data.item, itemIds, s -> { data.item = s; updatePreview(); }, 100));
+            content.child(field("Minimum Count", data.count, s -> { data.count = s; updatePreview(); }, 100).margins(Insets.top(5)));
+            content.child(dropdown("Slot", List.of("MAINHAND", "OFFHAND"), data.slot, s -> { data.slot = s; updatePreview(); }, 100).margins(Insets.top(5)));
+        }
+
+        var removeBtn = Components.button(Text.of("Remove"), btn -> {
+            conditions.remove(data);
+            conditionsContainer.removeChild(collapsible);
+            updatePreview();
+        });
+        removeBtn.sizing(Sizing.fill(100), Sizing.fixed(20));
+        removeBtn.margins(Insets.top(5));
+        applyStandardButtonRenderer(removeBtn);
+
+        content.child(removeBtn);
+        collapsible.child(content);
+        collapsible.margins(Insets.bottom(10));
+        conditionsContainer.child(collapsible);
     }
 
     private void addEffectRow(EffectData data) {
@@ -862,6 +924,20 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
                 actionsJson.add(act);
             }
             if (actionsJson.size() > 0) root.add("actions", actionsJson);
+
+            // NEW: Conditions
+            JsonArray conditionsJson = new JsonArray();
+            for (ConditionData c : conditions) {
+                JsonObject cond = new JsonObject();
+                if (c.type.equals("Hand Item")) {
+                    cond.addProperty("type", "jd_skill_tree:hand_item");
+                    cond.addProperty("item", c.item);
+                    cond.addProperty("count", tryParse(c.count));
+                    cond.addProperty("slot", c.slot);
+                }
+                conditionsJson.add(cond);
+            }
+            if (conditionsJson.size() > 0) root.add("conditions", conditionsJson);
 
             return GSON.toJson(root);
         } catch (Exception e) { return ""; }

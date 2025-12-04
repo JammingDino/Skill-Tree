@@ -2,7 +2,9 @@ package com.jd_skill_tree.skills;
 
 import com.google.gson.annotations.SerializedName;
 import com.jd_skill_tree.skills.actions.SkillAction;
+import com.jd_skill_tree.skills.conditions.SkillCondition;
 import com.jd_skill_tree.skills.effects.SkillEffect;
+import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 import net.minecraft.registry.Registries;
@@ -28,6 +30,9 @@ public class Skill {
 
     @SerializedName("actions")
     private List<SkillAction> actions = new ArrayList<>();
+
+    @SerializedName("conditions")
+    private List<SkillCondition> conditions = new ArrayList<>();
 
     // --- Fields that are NOT in the JSON, but are managed by our code ---
     private transient Identifier id; // 'transient' means GSON will ignore this field
@@ -82,6 +87,7 @@ public class Skill {
         return this.effects;
     }
     public List<SkillAction> getActions() { return this.actions; }
+    public List<SkillCondition> getConditions() { return this.conditions; }
 
     /**
      * This is called by our SkillLoader after a skill is created from JSON.
@@ -89,5 +95,14 @@ public class Skill {
      */
     public void setId(Identifier id) {
         this.id = id;
+    }
+
+    public boolean areConditionsMet(PlayerEntity player) {
+        if (this.conditions == null || this.conditions.isEmpty()) return true;
+
+        for (SkillCondition condition : this.conditions) {
+            if (!condition.test(player)) return false;
+        }
+        return true;
     }
 }

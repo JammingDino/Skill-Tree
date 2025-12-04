@@ -14,12 +14,10 @@ import net.minecraft.world.World;
 public class SkillActionHandler {
 
     public static void register() {
-        System.out.println("JD Skill Tree: Action Handler Registered"); // Startup check
 
         // Handle Block Break
         PlayerBlockBreakEvents.AFTER.register((world, player, pos, state, blockEntity) -> {
             if (!world.isClient) {
-                System.out.println(">> EVENT: Block Broken at " + pos.toShortString());
                 triggerActions(player, world, pos, TriggerType.BLOCK_BREAK);
             }
         });
@@ -41,17 +39,15 @@ public class SkillActionHandler {
         for (String skillId : skillData.getUnlockedSkills()) {
             SkillManager.getSkill(new Identifier(skillId)).ifPresent(skill -> {
 
-                boolean hasMatchingAction = false;
+                if (!skill.areConditionsMet(player)) {
+                    // System.out.println("DEBUG: Conditions not met for skill " + skill.getName());
+                    return;
+                }
 
                 for (SkillAction action : skill.getActions()) {
                     if (action.getTrigger() == type) {
-                        hasMatchingAction = true;
                         action.execute(player, world, pos);
                     }
-                }
-
-                if (hasMatchingAction) {
-                    System.out.println("   -> MATCH: Skill [" + skill.getName() + "] triggered action for " + type);
                 }
             });
         }
