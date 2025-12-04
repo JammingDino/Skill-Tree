@@ -82,6 +82,14 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
     }
     private final List<EffectData> effects = new ArrayList<>();
 
+    // --- Action Data Class ---
+    private static class ActionData {
+        String type = "Command";
+        String trigger = "BLOCK_BREAK";
+        String command = "/say Hello";
+    }
+    private final List<ActionData> actions = new ArrayList<>();
+
     private SkillWidget previewWidget;
     private Skill previewSkill;
     private static final Gson GSON = new GsonBuilder()
@@ -92,6 +100,7 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
 
     // --- UI Variables ---
     private FlowLayout effectsContainer;
+    private FlowLayout actionsContainer;
     private FlowLayout parentsContainer;
     private FlowLayout overlayLayer;
     private LabelComponent exportTextDisplay;
@@ -116,8 +125,12 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
         // Capture lists so we can rebuild the UI rows
         List<String> loadedParents = new ArrayList<>(this.parentIds);
         this.parentIds.clear();
+
         List<EffectData> loadedEffects = new ArrayList<>(this.effects);
         this.effects.clear();
+
+        List<ActionData> loadedActions = new ArrayList<>(this.actions);
+        this.actions.clear();
 
         root.surface(Surface.VANILLA_TRANSLUCENT);
 
@@ -185,11 +198,24 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
         applyStandardButtonRenderer(addEffectBtn);
         editorContent.child(addEffectBtn);
 
+        // Actions Section
+        editorContent.child(Components.box(Sizing.fill(100), Sizing.fixed(1)).color(Color.ofArgb(0xFF555555)).margins(Insets.vertical(10)));
+        editorContent.child(Components.label(Text.of("Actions (Triggers)")).color(Color.ofRgb(0x55FFFF)).margins(Insets.bottom(5)));
+
+        actionsContainer = Containers.verticalFlow(Sizing.fill(100), Sizing.content());
+        editorContent.child(actionsContainer);
+
+        var addActionBtn = Components.button(Text.of("+ Add Action"), btn -> { addActionRow(new ActionData()); updatePreview(); });
+        addActionBtn.sizing(Sizing.fill(100), Sizing.fixed(20));
+        applyStandardButtonRenderer(addActionBtn);
+        editorContent.child(addActionBtn);
+
         editorContent.child(Containers.verticalFlow(Sizing.fill(100), Sizing.fixed(50)));
 
         // Restore Rows
         for (String p : loadedParents) addParentRow(p);
         for (EffectData e : loadedEffects) addEffectRow(e);
+        for (ActionData a : loadedActions) addActionRow(a);
 
         // Clear/Reset Button
         editorContent.child(Components.box(Sizing.fill(100), Sizing.fixed(1)).color(Color.ofArgb(0xFF555555)).margins(Insets.vertical(15)));
@@ -202,17 +228,17 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
         mainContent.child(editorScroll);
 
         // ==========================================================================================
-        // RIGHT COLUMN: SIDEBAR
+        // RIGHT COLUMN: SIDEBAR (SCROLLABLE)
         // ==========================================================================================
-        FlowLayout sidebar = Containers.verticalFlow(Sizing.fill(35), Sizing.fill(100));
-        sidebar.surface(Surface.DARK_PANEL).padding(Insets.of(10));
-        sidebar.alignment(HorizontalAlignment.LEFT, VerticalAlignment.TOP);
+        // 1. Create the content container for the sidebar
+        FlowLayout sidebarContent = Containers.verticalFlow(Sizing.fill(100), Sizing.content());
+        sidebarContent.surface(Surface.DARK_PANEL).padding(Insets.of(10));
+        sidebarContent.alignment(HorizontalAlignment.LEFT, VerticalAlignment.TOP);
 
         // Load Skill
-        sidebar.child(Components.label(Text.of("Load Existing Skill")).shadow(true).margins(Insets.bottom(5)));
+        sidebarContent.child(Components.label(Text.of("Load Existing Skill")).shadow(true).margins(Insets.bottom(5)));
         var loadContainer = Containers.horizontalFlow(Sizing.fill(100), Sizing.content());
         loadContainer.gap(5);
-        // Align bottom so button matches textbox
         loadContainer.verticalAlignment(VerticalAlignment.TOP);
 
         var loadInputLayout = autocompleteField("", "", availableSkills, s -> loadSkillId = s, 70);
@@ -238,24 +264,24 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
 
         loadContainer.child(loadInputLayout);
         loadContainer.child(loadBtn);
-        sidebar.child(loadContainer);
-        sidebar.child(Components.box(Sizing.fill(100), Sizing.fixed(1)).color(Color.ofArgb(0xFF555555)).margins(Insets.vertical(10)));
+        sidebarContent.child(loadContainer);
+        sidebarContent.child(Components.box(Sizing.fill(100), Sizing.fixed(1)).color(Color.ofArgb(0xFF555555)).margins(Insets.vertical(10)));
 
         // Preview
-        sidebar.child(Components.label(Text.of("Preview")).shadow(true).margins(Insets.bottom(5)));
-        sidebar.child(new PreviewComponent().margins(Insets.bottom(5)));
+        sidebarContent.child(Components.label(Text.of("Preview")).shadow(true).margins(Insets.bottom(5)));
+        sidebarContent.child(new PreviewComponent().margins(Insets.bottom(5)));
 
         // Export Settings
-        sidebar.child(Components.box(Sizing.fill(100), Sizing.fixed(1)).color(Color.ofArgb(0xFF555555)).margins(Insets.bottom(5)));
-        sidebar.child(Components.label(Text.of("Export Settings")).shadow(true).margins(Insets.bottom(5)));
+        sidebarContent.child(Components.box(Sizing.fill(100), Sizing.fixed(1)).color(Color.ofArgb(0xFF555555)).margins(Insets.bottom(5)));
+        sidebarContent.child(Components.label(Text.of("Export Settings")).shadow(true).margins(Insets.bottom(5)));
 
         var nsLayout = field("Namespace", exportNamespace, s -> exportNamespace = s, 100);
         this.namespaceField = (TextBoxComponent) nsLayout.children().get(1);
-        sidebar.child(nsLayout);
+        sidebarContent.child(nsLayout);
 
         var fileLayout = field("File Name", exportFileName, s -> exportFileName = s, 100);
         this.fileNameField = (TextBoxComponent) fileLayout.children().get(1);
-        sidebar.child(fileLayout);
+        sidebarContent.child(fileLayout);
 
         // Action Buttons
         FlowLayout buttonsRow = Containers.horizontalFlow(Sizing.fill(100), Sizing.content());
@@ -279,10 +305,12 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
 
         buttonsRow.child(exportBtn);
         buttonsRow.child(copyBtn);
-        sidebar.child(buttonsRow);
+        sidebarContent.child(buttonsRow);
 
         // JSON Output
-        sidebar.child(Components.label(Text.of("JSON Output")).color(Color.ofRgb(0xAAAAAA)).margins(Insets.bottom(2)));
+        sidebarContent.child(Components.label(Text.of("JSON Output")).color(Color.ofRgb(0xAAAAAA)).margins(Insets.bottom(2)));
+
+        // FIX: Give fixed height to the JSON container so it doesn't cause scrolling issues
         FlowLayout jsonDisplayContainer = Containers.verticalFlow(Sizing.fill(100), Sizing.content());
         jsonDisplayContainer.surface((context, component) -> {
             context.fill(component.x(), component.y(), component.x() + component.width(), component.y() + component.height(), 0xFF000000);
@@ -292,11 +320,15 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
         exportTextDisplay = Components.label(Text.of(""));
         exportTextDisplay.maxWidth(Integer.MAX_VALUE);
         exportTextDisplay.color(Color.ofRgb(0x00FF00));
-        var jsonScroll = Containers.verticalScroll(Sizing.fill(100), Sizing.fill(100), Containers.verticalFlow(Sizing.fill(100), Sizing.content()).child(exportTextDisplay));
-        jsonDisplayContainer.child(jsonScroll);
-        sidebar.child(jsonDisplayContainer);
 
-        mainContent.child(sidebar);
+        // Add label directly without internal ScrollContainer
+        jsonDisplayContainer.child(exportTextDisplay);
+        sidebarContent.child(jsonDisplayContainer);
+
+        // 2. Wrap sidebar content in a Scroll Container
+        var sidebarScroll = Containers.verticalScroll(Sizing.fill(35), Sizing.fill(100), sidebarContent);
+
+        mainContent.child(sidebarScroll);
         root.child(mainContent);
 
         overlayLayer = Containers.verticalFlow(Sizing.fixed(0), Sizing.fixed(0));
@@ -355,6 +387,7 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
             state.fileName = this.exportFileName;
             state.parents = this.parentIds;
             state.effects = this.effects;
+            state.actions = this.actions;
 
             String json = GSON.toJson(state);
             Files.createDirectories(AUTOSAVE_PATH.getParent());
@@ -379,6 +412,7 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
                 this.exportFileName = state.fileName;
                 if (state.parents != null) this.parentIds.addAll(state.parents);
                 if (state.effects != null) this.effects.addAll(state.effects);
+                if (state.actions != null) this.actions.addAll(state.actions);
             }
         } catch (Exception e) {
             System.err.println("Failed to load editor autosave");
@@ -396,6 +430,7 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
         this.exportFileName = "new_skill";
         this.parentIds.clear();
         this.effects.clear();
+        this.actions.clear();
 
         // Update UI
         if (nameField != null) nameField.setText(name);
@@ -408,6 +443,7 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
 
         if (parentsContainer != null) parentsContainer.clearChildren();
         if (effectsContainer != null) effectsContainer.clearChildren();
+        if (actionsContainer != null) actionsContainer.clearChildren();
 
         updatePreview();
         saveEditorState();
@@ -418,6 +454,7 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
         int tier;
         List<String> parents;
         List<EffectData> effects;
+        List<ActionData> actions;
     }
 
     // --- LOGIC: Load Skill ---
@@ -500,6 +537,19 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
             }
             addEffectRow(data);
         }
+
+        this.actions.clear();
+        this.actionsContainer.clearChildren();
+        for (com.jd_skill_tree.skills.actions.SkillAction action : skill.getActions()) {
+            ActionData data = new ActionData();
+            if (action instanceof com.jd_skill_tree.skills.actions.CommandSkillAction cmd) {
+                data.type = "Command";
+                data.trigger = cmd.getTrigger().name();
+                data.command = cmd.getCommand();
+            }
+            addActionRow(data);
+        }
+
         updatePreview();
     }
 
@@ -564,13 +614,19 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
         var btn = Components.button(Text.of(current), b -> {});
         btn.sizing(Sizing.fill(100), Sizing.fixed(20));
 
-        // Custom Renderer: Mimic Text Box
+        // Custom Renderer: Mimic Text Box with Centered Text
         btn.renderer((context, button, delta) -> {
             context.fill(button.x(), button.y(), button.x() + button.width(), button.y() + button.height(), 0xFF000000);
             int borderColor = button.isHovered() ? 0xFFFFFFFF : 0xFFA0A0A0;
             context.drawBorder(button.x(), button.y(), button.width(), button.height(), borderColor);
+
+            // Center the text
+            int textWidth = MinecraftClient.getInstance().textRenderer.getWidth(button.getMessage());
+            int centerX = button.x() + (button.width() - textWidth) / 2;
+            int centerY = button.y() + (button.height() - 8) / 2;
+
             context.drawText(MinecraftClient.getInstance().textRenderer, button.getMessage(),
-                    button.x() + 4, button.y() + (button.height() - 8) / 2, 0xFFE0E0E0, false);
+                    centerX, centerY, 0xFFE0E0E0, false);
         });
 
         btn.onPress(b -> {
@@ -579,7 +635,11 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
             int containerHeight = Math.min(options.size(), maxItemsVisible) * itemHeight + borderPadding;
             FlowLayout list = Containers.verticalFlow(Sizing.fixed(btn.width()), Sizing.content());
             for (String opt : options) {
-                var optBtn = Components.button(Text.of(opt), ob -> { btn.setMessage(Text.of(opt)); onSelect.accept(opt); closeOverlay(); });
+                var optBtn = Components.button(Text.of(opt), ob -> {
+                    btn.setMessage(Text.of(opt));
+                    onSelect.accept(opt);
+                    closeOverlay();
+                });
                 optBtn.sizing(Sizing.fill(100), Sizing.fixed(itemHeight));
                 optBtn.renderer(ButtonComponent.Renderer.flat(0xFF000000, 0xFF444444, 0xFFA0A0A0));
                 list.child(optBtn);
@@ -607,6 +667,7 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
         var row = Containers.horizontalFlow(Sizing.fill(100), Sizing.content());
         row.gap(5);
         row.verticalAlignment(VerticalAlignment.TOP);
+        row.margins(Insets.bottom(5));
 
         var parentField = autocompleteField("", parentId, availableSkills, s -> {
             int index = parentsContainer.children().indexOf(row);
@@ -623,6 +684,34 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
         row.child(parentField);
         row.child(removeBtn);
         parentsContainer.child(row);
+    }
+
+    private void addActionRow(ActionData data) {
+        actions.add(data);
+        var collapsible = Containers.collapsible(Sizing.fill(100), Sizing.content(), Text.of("Action"), true);
+        var content = Containers.verticalFlow(Sizing.fill(100), Sizing.content());
+        content.padding(Insets.of(5));
+
+        content.child(dropdown("Trigger", List.of("BLOCK_BREAK", "BLOCK_PLACE"), data.trigger, s -> {
+            data.trigger = s;
+            updatePreview();
+        }, 100).margins(Insets.bottom(5)));
+
+        content.child(field("Command (Use @p, %x%, %y%, %z%)", data.command, s -> { data.command = s; updatePreview(); }, 100));
+
+        var removeBtn = Components.button(Text.of("Remove"), btn -> {
+            actions.remove(data);
+            actionsContainer.removeChild(collapsible);
+            updatePreview();
+        });
+        removeBtn.sizing(Sizing.fill(100), Sizing.fixed(20));
+        removeBtn.margins(Insets.top(5));
+        applyStandardButtonRenderer(removeBtn);
+
+        content.child(removeBtn);
+        collapsible.child(content);
+        collapsible.margins(Insets.bottom(10));
+        actionsContainer.child(collapsible);
     }
 
     private void addEffectRow(EffectData data) {
@@ -760,6 +849,20 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
             }
 
             if (effectsJson.size() > 0) root.add("effects", effectsJson);
+
+            // Actions
+            JsonArray actionsJson = new JsonArray();
+            for (ActionData a : actions) {
+                JsonObject act = new JsonObject();
+                if (a.type.equals("Command")) {
+                    act.addProperty("type", "jd_skill_tree:command");
+                    act.addProperty("trigger", a.trigger);
+                    act.addProperty("command", a.command);
+                }
+                actionsJson.add(act);
+            }
+            if (actionsJson.size() > 0) root.add("actions", actionsJson);
+
             return GSON.toJson(root);
         } catch (Exception e) { return ""; }
     }
