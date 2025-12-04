@@ -1,6 +1,7 @@
 package com.jd_skill_tree.skills;
 
 import com.google.gson.annotations.SerializedName;
+import com.jd_skill_tree.skills.actions.SkillAction;
 import com.jd_skill_tree.skills.effects.SkillEffect;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
@@ -24,6 +25,9 @@ public class Skill {
     private int cost;
     @SerializedName("prerequisites") // Tells GSON to map the "prerequisites" json key to this field
     private List<Identifier> prerequisiteIds = new ArrayList<>();
+
+    @SerializedName("actions")
+    private List<SkillAction> actions = new ArrayList<>();
 
     // --- Fields that are NOT in the JSON, but are managed by our code ---
     private transient Identifier id; // 'transient' means GSON will ignore this field
@@ -77,6 +81,7 @@ public class Skill {
     public List<SkillEffect> getEffects() { // <-- ADD THIS GETTER
         return this.effects;
     }
+    public List<SkillAction> getActions() { return this.actions; }
 
     /**
      * This is called by our SkillLoader after a skill is created from JSON.

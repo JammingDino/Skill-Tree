@@ -40,13 +40,12 @@ public record SkillEffectType<T extends SkillEffect>(Function<JsonObject, T> fac
      * Registers a new type of skill effect.
      * This should be called for each effect we want to make available.
      */
-    public static <T extends SkillEffect> SkillEffectType<T> register(Identifier id, Function<JsonObject, T> factory) {
+    public static <T extends SkillEffect> void register(Identifier id, Function<JsonObject, T> factory) {
         if (REGISTRY.containsKey(id)) {
             throw new IllegalArgumentException("Duplicate skill effect type: " + id);
         }
         SkillEffectType<T> type = new SkillEffectType<>(factory);
         REGISTRY.put(id, type);
-        return type;
     }
 
     /**

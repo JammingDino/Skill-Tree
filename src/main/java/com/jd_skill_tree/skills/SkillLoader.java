@@ -5,7 +5,9 @@ import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import com.google.gson.JsonElement;
 import com.jd_skill_tree.Jd_skill_tree;
+import com.jd_skill_tree.skills.actions.SkillActionListAdapter;
 import com.jd_skill_tree.skills.effects.SkillEffect;
+import com.jd_skill_tree.skills.actions.SkillAction;
 import com.jd_skill_tree.skills.effects.SkillEffectListAdapter;
 import net.fabricmc.fabric.api.resource.IdentifiableResourceReloadListener;
 import net.minecraft.resource.ResourceManager;
@@ -20,12 +22,14 @@ import java.util.Map;
 public class SkillLoader extends JsonDataLoader implements IdentifiableResourceReloadListener {
 
     private static final Type SKILL_EFFECT_LIST_TYPE = new TypeToken<List<SkillEffect>>() {}.getType();
+    private static final Type SKILL_ACTION_LIST_TYPE = new TypeToken<List<SkillAction>>() {}.getType();
 
     public static final Gson GSON = new GsonBuilder()
             .setPrettyPrinting()
             .disableHtmlEscaping()
             .registerTypeAdapter(Identifier.class, new IdentifierAdapter())
             .registerTypeAdapter(SKILL_EFFECT_LIST_TYPE, new SkillEffectListAdapter())
+            .registerTypeAdapter(SKILL_ACTION_LIST_TYPE, new SkillActionListAdapter())
             .create();
     public static final SkillLoader INSTANCE = new SkillLoader();
 
