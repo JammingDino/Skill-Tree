@@ -2,11 +2,12 @@ package com.jd_skill_tree.skills.effects;
 
 import com.google.gson.*;
 import com.jd_skill_tree.Jd_skill_tree;
-import net.minecraft.util.Identifier;
+import net.minecraft.registry.Registries;
 
 import java.lang.reflect.Type;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 public class SkillEffectListAdapter implements JsonDeserializer<List<SkillEffect>>, JsonSerializer<List<SkillEffect>> {
 
@@ -37,7 +38,7 @@ public class SkillEffectListAdapter implements JsonDeserializer<List<SkillEffect
             // 1. Identify the type based on the class
             if (effect instanceof AttributeSkillEffect attrEffect) {
                 obj.addProperty("type", "jd_skill_tree:attribute");
-                obj.addProperty("attribute", attrEffect.getAttribute() != null ? net.minecraft.registry.Registries.ATTRIBUTE.getId(attrEffect.getAttribute()).toString() : "");
+                obj.addProperty("attribute", attrEffect.getAttribute() != null ? Objects.requireNonNull(Registries.ATTRIBUTE.getId(attrEffect.getAttribute())).toString() : "");
                 obj.addProperty("operation", attrEffect.getOperation().name());
                 obj.addProperty("value", attrEffect.getValue());
             }
