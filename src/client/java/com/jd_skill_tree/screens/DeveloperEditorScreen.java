@@ -12,6 +12,7 @@ import com.jd_skill_tree.skills.actions.CommandSkillAction;
 import com.jd_skill_tree.skills.actions.SkillAction;
 import com.jd_skill_tree.skills.conditions.HandItemCondition;
 import com.jd_skill_tree.skills.conditions.SkillCondition;
+import com.jd_skill_tree.skills.conditions.YLevelCondition;
 import com.jd_skill_tree.skills.effects.*;
 import io.wispforest.owo.ui.base.BaseComponent;
 import io.wispforest.owo.ui.base.BaseOwoScreen;
@@ -96,6 +97,9 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
         String item = "minecraft:stick";
         String count = "1";
         String slot = "MAINHAND";
+
+        String yComparison = "GREATER_THAN";
+        String yValue = "64";
     }
     private final List<ConditionData> conditions = new ArrayList<>();
 
@@ -577,6 +581,11 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
                 data.count = String.valueOf(hand.getMinCount());
                 data.slot = hand.getSlot().name();
             }
+            else if (condition instanceof YLevelCondition yLevel) {
+                data.type = "Y-Level";
+                data.yComparison = yLevel.getComparison().name();
+                data.yValue = String.valueOf(yLevel.getTargetY());
+            }
             addConditionRow(data);
         }
 
@@ -749,8 +758,13 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
         var content = Containers.verticalFlow(Sizing.fill(100), Sizing.content());
         content.padding(Insets.of(5));
 
-        content.child(dropdown("Type", List.of("Hand Item"), data.type, s -> {
+        content.child(dropdown("Type", List.of("Hand Item", "Y-Level"), data.type, s -> {
             data.type = s;
+
+            conditions.remove(data);
+            conditionsContainer.removeChild(collapsible);
+            addConditionRow(data);
+
             updatePreview();
         }, 100).margins(Insets.bottom(5)));
 
@@ -759,6 +773,13 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
             content.child(autocompleteField("Item ID", data.item, itemIds, s -> { data.item = s; updatePreview(); }, 100));
             content.child(field("Minimum Count", data.count, s -> { data.count = s; updatePreview(); }, 100).margins(Insets.top(5)));
             content.child(dropdown("Slot", List.of("MAINHAND", "OFFHAND"), data.slot, s -> { data.slot = s; updatePreview(); }, 100).margins(Insets.top(5)));
+        }
+        else if (data.type.equals("Y-Level")) {
+            content.child(dropdown("Comparison", List.of("GREATER_THAN", "LESS_THAN", "EQUAL_TO"), data.yComparison, s -> {
+                data.yComparison = s;
+                updatePreview();
+            }, 100));
+            content.child(field("Y Level", data.yValue, s -> { data.yValue = s; updatePreview(); }, 100).margins(Insets.top(5)));
         }
 
         var removeBtn = Components.button(Text.of("Remove"), btn -> {
@@ -934,6 +955,11 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
                     cond.addProperty("item", c.item);
                     cond.addProperty("count", tryParse(c.count));
                     cond.addProperty("slot", c.slot);
+                }
+                else if (c.type.equals("Y-Level")) {
+                    cond.addProperty("type", "jd_skill_tree:y_level");
+                    cond.addProperty("comparison", c.yComparison);
+                    cond.addProperty("y_level", tryParse(c.yValue));
                 }
                 conditionsJson.add(cond);
             }

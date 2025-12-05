@@ -27,5 +27,6 @@ public record SkillConditionType<T extends SkillCondition>(Function<JsonObject, 
     public static void registerAll() {
         Jd_skill_tree.LOGGER.info("Registering skill conditions...");
         register(new Identifier(Jd_skill_tree.MOD_ID, "hand_item"), HandItemCondition::fromJson);
+        register(new Identifier(Jd_skill_tree.MOD_ID, "y_level"), YLevelCondition::fromJson);
     }
 }
