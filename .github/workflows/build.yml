@@ -50,18 +50,15 @@ jobs:
                   if line.strip().startswith('mod_version='):
                       key, value = line.strip().split('=')
                       parts = value.split('.')
-                      # Increment the patch number (last digit)
                       if len(parts) == 3:
                           parts[2] = str(int(parts[2]) + 1)
                           new_version = '.'.join(parts)
                           f.write(f'{key}={new_version}\n')
                       else:
-                          # Fallback if version format is weird
                           f.write(line)
                   else:
                       f.write(line)
           
-          # Output to GitHub Environment
           if new_version:
               with open(os.environ['GITHUB_ENV'], 'a') as env_file:
                   env_file.write(f'NEW_VERSION={new_version}\n')
@@ -77,25 +74,57 @@ jobs:
       - name: Build with Gradle
         run: ./gradlew build
 
+      # --- NEW STEP: Generate Uniform Release Notes ---
+      - name: Generate Release Notes
+        run: |
+          echo "Automated release for version ${{ env.NEW_VERSION }}." > RELEASE_NOTES.md
+          echo "" >> RELEASE_NOTES.md
+          echo "**Changelog:**" >> RELEASE_NOTES.md
+          echo "${{ github.event.head_commit.message }}" >> RELEASE_NOTES.md
+
+      # --- Publish to Mod Sites ---
+      - name: Publish to Mod Sites
+        uses: kir-antipov/mc-publish@v3.3
+        with:
+          modrinth-id: dnC6tCcs
+          curseforge-id: 1397099
+
+          modrinth-token: ${{ secrets.MODRINTH_TOKEN }}
+          curseforge-token: ${{ secrets.CURSEFORGE_TOKEN }}
+
+          files: build/libs/!(*-sources|*-dev).jar
+
+          # Use the environment variable for the Title
+          name: Release v${{ env.NEW_VERSION }}
+          # Read the Description/Changelog from the file we generated
+          changelog-file: RELEASE_NOTES.md
+
+          version: v${{ env.NEW_VERSION }}
+          version-type: release
+
+          loaders: fabric
+          game-versions: 1.20
+
+          dependencies: |
+            fabric-api | depends | *
+            owo-lib | depends | *
+
       - name: Commit and Push Version Bump
         run: |
           git config --global user.name "github-actions[bot]"
           git config --global user.email "github-actions[bot]@users.noreply.github.com"
           git add gradle.properties
-          # [skip ci] prevents this commit from triggering the workflow again (infinite loop protection)
           git commit -m "chore: bump version to ${{ env.NEW_VERSION }} [skip ci]"
           git push
 
+      # --- Create GitHub Release ---
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
           tag_name: v${{ env.NEW_VERSION }}
           name: Release v${{ env.NEW_VERSION }}
-          body: |
-            Automated release for version ${{ env.NEW_VERSION }}.
-            
-            **Changelog:**
-            ${{ github.event.head_commit.message }}
+          # Read the exact same file for the GitHub Body
+          body_path: RELEASE_NOTES.md
           files: build/libs/*.jar
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

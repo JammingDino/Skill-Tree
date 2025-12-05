@@ -11,6 +11,7 @@ import com.jd_skill_tree.skills.SkillManager;
 import com.jd_skill_tree.skills.actions.CommandSkillAction;
 import com.jd_skill_tree.skills.actions.SkillAction;
 import com.jd_skill_tree.skills.conditions.HandItemCondition;
+import com.jd_skill_tree.skills.conditions.HealthCondition;
 import com.jd_skill_tree.skills.conditions.SkillCondition;
 import com.jd_skill_tree.skills.conditions.YLevelCondition;
 import com.jd_skill_tree.skills.effects.*;
@@ -100,6 +101,9 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
 
         String yComparison = "GREATER_THAN";
         String yValue = "64";
+
+        String healthComparison = "GREATER_THAN";
+        String healthValue = "10.0";
     }
     private final List<ConditionData> conditions = new ArrayList<>();
 
@@ -586,6 +590,11 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
                 data.yComparison = yLevel.getComparison().name();
                 data.yValue = String.valueOf(yLevel.getTargetY());
             }
+            else if (condition instanceof HealthCondition health) {
+                data.type = "Health";
+                data.healthComparison = health.getComparison().name();
+                data.healthValue = String.valueOf(health.getTargetHealth());
+            }
             addConditionRow(data);
         }
 
@@ -758,7 +767,7 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
         var content = Containers.verticalFlow(Sizing.fill(100), Sizing.content());
         content.padding(Insets.of(5));
 
-        content.child(dropdown("Type", List.of("Hand Item", "Y-Level"), data.type, s -> {
+        content.child(dropdown("Type", List.of("Hand Item", "Y-Level", "Health"), data.type, s -> {
             data.type = s;
 
             conditions.remove(data);
@@ -780,6 +789,13 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
                 updatePreview();
             }, 100));
             content.child(field("Y Level", data.yValue, s -> { data.yValue = s; updatePreview(); }, 100).margins(Insets.top(5)));
+        }
+        else if (data.type.equals("Health")) {
+            content.child(dropdown("Comparison", List.of("GREATER_THAN", "LESS_THAN", "EQUAL_TO"), data.healthComparison, s -> {
+                data.healthComparison = s;
+                updatePreview();
+            }, 100));
+            content.child(field("Amount (20.0 = 10 Hearts)", data.healthValue, s -> { data.healthValue = s; updatePreview(); }, 100).margins(Insets.top(5)));
         }
 
         var removeBtn = Components.button(Text.of("Remove"), btn -> {
@@ -960,6 +976,15 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
                     cond.addProperty("type", "jd_skill_tree:y_level");
                     cond.addProperty("comparison", c.yComparison);
                     cond.addProperty("y_level", tryParse(c.yValue));
+                }
+                else if (c.type.equals("Health")) {
+                    cond.addProperty("type", "jd_skill_tree:health");
+                    cond.addProperty("comparison", c.healthComparison);
+                    try {
+                        cond.addProperty("amount", Float.parseFloat(c.healthValue));
+                    } catch (NumberFormatException e) {
+                        cond.addProperty("amount", 20.0f);
+                    }
                 }
                 conditionsJson.add(cond);
             }

@@ -41,6 +41,11 @@ public class SkillConditionListAdapter implements JsonDeserializer<List<SkillCon
                 obj.addProperty("comparison", yLevel.getComparison().name());
                 obj.addProperty("y_level", yLevel.getTargetY());
             }
+            else if (condition instanceof HealthCondition health) {
+                obj.addProperty("type", "jd_skill_tree:health");
+                obj.addProperty("comparison", health.getComparison().name());
+                obj.addProperty("amount", health.getTargetHealth());
+            }
             jsonArray.add(obj);
         }
         return jsonArray;
