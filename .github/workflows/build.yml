@@ -19,6 +19,25 @@ jobs:
     if: "!contains(github.event.head_commit.message, '[skip ci]')"
 
     steps:
+      - name: Validate Token with Curl
+        env:
+          # MAP SECRET TO ENV VARIABLE (Crucial! Prevents $ sign corruption)
+          CF_TOKEN: ${{ secrets.CURSEFORGE_API_KEY }}
+        run: |
+          echo "Testing Token validity..."
+          # Attempt to fetch the game versions list from CurseForge API
+          response=$(curl -s -o /dev/null -w "%{http_code}" -H "x-api-token: $CF_TOKEN" https://minecraft.curseforge.com/api/game/versions)
+          
+          echo "CurseForge API Response Code: $response"
+          
+          if [ "$response" == "200" ]; then
+            echo "✅ SUCCESS: The token is valid and working."
+          else
+            echo "❌ FAILURE: The token is invalid (Response: $response)."
+            echo "::error::CurseForge rejected the token. Please regenerate it one more time."
+            exit 1
+          fi
+          
       - name: Checkout Repository
         uses: actions/checkout@v4
         with:
