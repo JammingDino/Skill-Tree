@@ -82,43 +82,6 @@ jobs:
           echo "**Changelog:**" >> RELEASE_NOTES.md
           echo "${{ github.event.head_commit.message }}" >> RELEASE_NOTES.md
 
-      - name: DIAGNOSTIC - Check Secret Visibility
-        run: |
-          echo "Checking Secrets..."
-          
-          # Check the OLD name
-          LEN_OLD=${#old_token}
-          echo "Length of 'CURSEFORGE_TOKEN': $LEN_OLD"
-          
-          # Check the NEW name
-          LEN_NEW=${#new_token}
-          echo "Length of 'CURSEFORGE_API_KEY': $LEN_NEW"
-          
-          # Check the CF_UPLOAD name (if you tried that)
-          LEN_CF=${#cf_token}
-          echo "Length of 'CF_UPLOAD_TOKEN': $LEN_CF"
-        env:
-          old_token: ${{ secrets.CURSEFORGE_TOKEN }}
-          new_token: ${{ secrets.CURSEFORGE_API_KEY }}
-          cf_token: ${{ secrets.CF_UPLOAD_TOKEN }}
-
-      - name: Debug Secret Format
-        run: |
-          token="${{ secrets.CURSEFORGE_API_KEY }}"
-          echo "Length of token: ${#token}"
-          first_three="${token:0:3}"
-          echo "First 3 chars: $first_three"
-          
-          if [[ "${#token}" -ne 60 ]]; then
-            echo "::error::Token length is ${#token}, but it should be 60! You likely copied the wrong string."
-            exit 1
-          fi
-          
-          if [[ "$first_three" != "\$2a" ]]; then
-             echo "::error::Token does not start with \$2a! It is definitely invalid."
-             exit 1
-          fi
-
       # --- Publish to Mod Sites ---
       - name: Publish to Mod Sites
         uses: kir-antipov/mc-publish@v3.3
