@@ -82,6 +82,26 @@ jobs:
           echo "**Changelog:**" >> RELEASE_NOTES.md
           echo "${{ github.event.head_commit.message }}" >> RELEASE_NOTES.md
 
+      - name: DIAGNOSTIC - Check Secret Visibility
+        run: |
+          echo "Checking Secrets..."
+          
+          # Check the OLD name
+          LEN_OLD=${#old_token}
+          echo "Length of 'CURSEFORGE_TOKEN': $LEN_OLD"
+          
+          # Check the NEW name
+          LEN_NEW=${#new_token}
+          echo "Length of 'CURSEFORGE_API_KEY': $LEN_NEW"
+          
+          # Check the CF_UPLOAD name (if you tried that)
+          LEN_CF=${#cf_token}
+          echo "Length of 'CF_UPLOAD_TOKEN': $LEN_CF"
+        env:
+          old_token: ${{ secrets.CURSEFORGE_TOKEN }}
+          new_token: ${{ secrets.CURSEFORGE_API_KEY }}
+          cf_token: ${{ secrets.CF_UPLOAD_TOKEN }}
+
       - name: Debug Secret Format
         run: |
           token="${{ secrets.CURSEFORGE_API_KEY }}"
