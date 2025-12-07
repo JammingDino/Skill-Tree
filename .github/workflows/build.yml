@@ -82,32 +82,49 @@ jobs:
           echo "**Changelog:**" >> RELEASE_NOTES.md
           echo "${{ github.event.head_commit.message }}" >> RELEASE_NOTES.md
 
+      - name: Debug Secret Format
+        run: |
+          token="${{ secrets.CURSEFORGE_TOKEN }}"
+          echo "Length of token: ${#token}"
+          first_three="${token:0:3}"
+          echo "First 3 chars: $first_three"
+          
+          if [[ "${#token}" -ne 60 ]]; then
+            echo "::error::Token length is ${#token}, but it should be 60! You likely copied the wrong string."
+            exit 1
+          fi
+          
+          if [[ "$first_three" != "\$2a" ]]; then
+             echo "::error::Token does not start with \$2a! It is definitely invalid."
+             exit 1
+          fi
+
       # --- Publish to Mod Sites ---
-      # - name: Publish to Mod Sites
-        # uses: kir-antipov/mc-publish@v3.3
-        # with:
-          #;modrinth-id: dnC6tCcs
-          # curseforge-id: 1397099
+      - name: Publish to Mod Sites
+        uses: kir-antipov/mc-publish@v3.3
+        with:
+          modrinth-id: dnC6tCcs
+          curseforge-id: 1397099
 
-          # modrinth-token: ${{ secrets.MODRINTH_TOKEN }}
-          # curseforge-token: ${{ secrets.CURSEFORGE_TOKEN }}
+          modrinth-token: ${{ secrets.MODRINTH_TOKEN }}
+          curseforge-token: ${{ secrets.CURSEFORGE_TOKEN }}
 
-          # files: build/libs/!(*-sources|*-dev).jar
+          files: build/libs/!(*-sources|*-dev).jar
 
           # Use the environment variable for the Title
-          # name: Release v${{ env.NEW_VERSION }}
+          name: Release v${{ env.NEW_VERSION }}
           # Read the Description/Changelog from the file we generated
-          # changelog-file: RELEASE_NOTES.md
+          changelog-file: RELEASE_NOTES.md
 
-          # version: v${{ env.NEW_VERSION }}
-          # version-type: release
+          version: v${{ env.NEW_VERSION }}
+          version-type: release
 
-          # loaders: fabric
-          # game-versions: '1.20'
+          loaders: fabric
+          game-versions: '1.20'
 
-          # dependencies: |
-            # fabric-api | depends | *
-            # owo-lib | depends | *
+          dependencies: |
+            fabric-api | depends | *
+            owo-lib | depends | *
 
       - name: Commit and Push Version Bump
         run: |
