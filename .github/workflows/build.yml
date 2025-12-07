@@ -84,7 +84,7 @@ jobs:
 
       - name: Debug Secret Format
         run: |
-          token="${{ secrets.CURSEFORGE_TOKEN }}"
+          token="${{ secrets.CF_UPLOAD_TOKEN }}"
           echo "Length of token: ${#token}"
           first_three="${token:0:3}"
           echo "First 3 chars: $first_three"
@@ -107,7 +107,7 @@ jobs:
           curseforge-id: 1397099
 
           modrinth-token: ${{ secrets.MODRINTH_TOKEN }}
-          curseforge-token: ${{ secrets.CURSEFORGE_TOKEN }}
+          curseforge-token: ${{ secrets.CF_UPLOAD_TOKEN }}
 
           files: build/libs/!(*-sources|*-dev).jar
 
