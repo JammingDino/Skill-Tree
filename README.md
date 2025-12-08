@@ -2,6 +2,8 @@
 
 Welcome to the Skill Tree mod, a Minecraft mod that introduces a comprehensive and customizable skill system to the game! This mod allows players to unlock new abilities and perks by progressing through a visually interactive skill tree.
 
+Find the here mod on [Curseforge](https://www.curseforge.com/minecraft/mc-mods/skill-tree-fabric) and [Modrinth](https://modrinth.com/mod/skill-tree-(fabric))
+
 ## Table of Contents
 
 - [Features](#-features)

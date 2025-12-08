@@ -10,10 +10,7 @@ import com.jd_skill_tree.skills.Skill;
 import com.jd_skill_tree.skills.SkillManager;
 import com.jd_skill_tree.skills.actions.CommandSkillAction;
 import com.jd_skill_tree.skills.actions.SkillAction;
-import com.jd_skill_tree.skills.conditions.HandItemCondition;
-import com.jd_skill_tree.skills.conditions.HealthCondition;
-import com.jd_skill_tree.skills.conditions.SkillCondition;
-import com.jd_skill_tree.skills.conditions.YLevelCondition;
+import com.jd_skill_tree.skills.conditions.*;
 import com.jd_skill_tree.skills.effects.*;
 import io.wispforest.owo.ui.base.BaseComponent;
 import io.wispforest.owo.ui.base.BaseOwoScreen;
@@ -535,12 +532,10 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
                 data.enchLevel = String.valueOf(ench.getLevelAdded());
                 data.overEnchant = ench.isAllowOverEnchanting();
                 data.enchSlot = switch(ench.getTargetSlot()) {
-                    case OFFHAND -> "offhand";
-                    case HEAD -> "helmet";
                     case CHEST -> "chest";
                     case LEGS -> "legs";
                     case FEET -> "boots";
-                    default -> "mainhand";
+                    default -> "helmet";
                 };
             }
             else if (effect instanceof AttackKnockbackSkillEffect kb) {
@@ -594,6 +589,17 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
                 data.type = "Health";
                 data.healthComparison = health.getComparison().name();
                 data.healthValue = String.valueOf(health.getTargetHealth());
+            }
+            else if (condition instanceof EquippedItemCondition equipped) {
+                data.type = "Equipped Item";
+                data.item = Registries.ITEM.getId(equipped.getTargetItem()).toString();
+                data.count = "1"; // Armor usually count 1
+                data.slot = switch(equipped.getSlot()) {
+                    case FEET -> "BOOTS";
+                    case LEGS -> "LEGS";
+                    case CHEST -> "CHEST";
+                    default -> "HELMET";
+                };
             }
             addConditionRow(data);
         }
@@ -767,7 +773,7 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
         var content = Containers.verticalFlow(Sizing.fill(100), Sizing.content());
         content.padding(Insets.of(5));
 
-        content.child(dropdown("Type", List.of("Hand Item", "Y-Level", "Health"), data.type, s -> {
+        content.child(dropdown("Type", List.of("Hand Item", "Equipped Item", "Y-Level", "Health"), data.type, s -> {
             data.type = s;
 
             conditions.remove(data);
@@ -777,11 +783,29 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
             updatePreview();
         }, 100).margins(Insets.bottom(5)));
 
+        List<String> itemIds = Registries.ITEM.getIds().stream().map(Identifier::toString).sorted().toList();
+
         if (data.type.equals("Hand Item")) {
-            List<String> itemIds = Registries.ITEM.getIds().stream().map(Identifier::toString).sorted().toList();
             content.child(autocompleteField("Item ID", data.item, itemIds, s -> { data.item = s; updatePreview(); }, 100));
             content.child(field("Minimum Count", data.count, s -> { data.count = s; updatePreview(); }, 100).margins(Insets.top(5)));
-            content.child(dropdown("Slot", List.of("MAINHAND", "OFFHAND"), data.slot, s -> { data.slot = s; updatePreview(); }, 100).margins(Insets.top(5)));
+
+            // Ensure slot is valid for Hand
+            if (!data.slot.equals("MAINHAND") && !data.slot.equals("OFFHAND")) data.slot = "MAINHAND";
+
+            content.child(dropdown("Slot", List.of("MAINHAND", "OFFHAND"), data.slot, s -> {
+                data.slot = s; updatePreview();
+            }, 100).margins(Insets.top(5)));
+        }
+        // 2. EQUIPPED ITEM UI
+        else if (data.type.equals("Equipped Item")) {
+            content.child(autocompleteField("Armor ID", data.item, itemIds, s -> { data.item = s; updatePreview(); }, 100));
+
+            // Ensure slot is valid for Armor
+            if (data.slot.equals("MAINHAND") || data.slot.equals("OFFHAND")) data.slot = "HELMET";
+
+            content.child(dropdown("Armor Slot", List.of("HELMET", "CHEST", "LEGS", "BOOTS"), data.slot, s -> {
+                data.slot = s; updatePreview();
+            }, 100).margins(Insets.top(5)));
         }
         else if (data.type.equals("Y-Level")) {
             content.child(dropdown("Comparison", List.of("GREATER_THAN", "LESS_THAN", "EQUAL_TO"), data.yComparison, s -> {
@@ -970,7 +994,19 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
                     cond.addProperty("type", "jd_skill_tree:hand_item");
                     cond.addProperty("item", c.item);
                     cond.addProperty("count", tryParse(c.count));
-                    cond.addProperty("slot", c.slot);
+                    cond.addProperty("slot", c.slot.toLowerCase()); // mainhand/offhand
+                }
+                else if (c.type.equals("Equipped Item")) {
+                    cond.addProperty("type", "jd_skill_tree:equipped_item");
+                    cond.addProperty("item", c.item);
+
+                    String slotName = switch(c.slot) {
+                        case "BOOTS" -> "boots";
+                        case "LEGS" -> "legs";
+                        case "CHEST" -> "chest";
+                        default -> "helmet";
+                    };
+                    cond.addProperty("slot", slotName);
                 }
                 else if (c.type.equals("Y-Level")) {
                     cond.addProperty("type", "jd_skill_tree:y_level");
