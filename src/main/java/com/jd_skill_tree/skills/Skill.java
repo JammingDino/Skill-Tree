@@ -7,6 +7,8 @@ import com.jd_skill_tree.skills.effects.SkillEffect;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
+import net.minecraft.nbt.NbtCompound;
+import net.minecraft.nbt.StringNbtReader;
 import net.minecraft.registry.Registries;
 import net.minecraft.util.Identifier;
 
@@ -23,6 +25,9 @@ public class Skill {
     private String name;
     private String description;
     private Identifier icon;
+    @SerializedName("icon_nbt") // Matches JSON key "icon_nbt"
+    private String iconNbt;     // Stores the raw NBT string (e.g. "{Enchantments:[...]}")
+
     private int tier;
     private int cost;
     @SerializedName("prerequisites") // Tells GSON to map the "prerequisites" json key to this field
@@ -57,9 +62,21 @@ public class Skill {
         if (this.iconStackCache == null) {
             Optional<Item> item = Registries.ITEM.getOrEmpty(this.icon);
             this.iconStackCache = new ItemStack(item.orElse(net.minecraft.item.Items.BARRIER));
+
+            // Apply NBT if present
+            if (this.iconNbt != null && !this.iconNbt.isEmpty()) {
+                try {
+                    NbtCompound tag = StringNbtReader.parse(this.iconNbt);
+                    this.iconStackCache.setNbt(tag);
+                } catch (Exception e) {
+                    System.err.println("Failed to parse NBT for skill icon: " + this.iconNbt);
+                }
+            }
         }
         return this.iconStackCache;
     }
+
+    public String getIconNbt() { return iconNbt; }
 
     public List<Identifier> getPrerequisiteIds() {
         return this.prerequisiteIds;

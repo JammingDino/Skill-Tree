@@ -49,6 +49,7 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
     private String name = "New Skill";
     private String cost = "100";
     private String icon = "minecraft:apple";
+    private String iconNbt = "";
     private String description = "Description...";
     private final List<String> parentIds = new ArrayList<>();
     private int tier = 1;
@@ -58,6 +59,7 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
     private TextBoxComponent costField;
     private ButtonComponent tierButton;
     private TextBoxComponent iconField;
+    private TextBoxComponent iconNbtField;
     private TextBoxComponent descriptionField;
     private TextBoxComponent namespaceField;
     private TextBoxComponent fileNameField;
@@ -95,6 +97,7 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
         String item = "minecraft:stick";
         String count = "1";
         String slot = "MAINHAND";
+        String nbt = "";
 
         String yComparison = "GREATER_THAN";
         String yValue = "64";
@@ -179,6 +182,11 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
         var iconLayout = autocompleteField("Icon (Item ID)", icon, itemIds, s -> { icon = s; updatePreview(); }, 100);
         this.iconField = (TextBoxComponent) iconLayout.children().get(1);
         editorContent.child(iconLayout);
+
+        // NEW: Icon NBT Row
+        var iconNbtLayout = field("Icon NBT (e.g. {Enchantments:[{}]})", iconNbt, s -> { iconNbt = s; updatePreview(); }, 100);
+        this.iconNbtField = (TextBoxComponent) iconNbtLayout.children().get(1);
+        editorContent.child(iconNbtLayout);
 
         // Row 3: Description
         var descLayout = field("Description", description, s -> { description = s; updatePreview(); }, 100);
@@ -445,6 +453,8 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
         this.cost = "100";
         this.tier = 1;
         this.icon = "minecraft:apple";
+        this.iconNbt = "";
+        if (iconNbtField != null) iconNbtField.setText("");
         this.description = "Description...";
         this.exportNamespace = "my_skills";
         this.exportFileName = "new_skill";
@@ -492,6 +502,8 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
         this.descriptionField.setText(this.description);
         this.icon = Registries.ITEM.getId(skill.getIcon().getItem()).toString();
         this.iconField.setText(this.icon);
+        this.iconNbt = skill.getIconNbt() != null ? skill.getIconNbt() : "";
+        this.iconNbtField.setText(this.iconNbt);
 
         if (skill.getId() != null) {
             this.exportNamespace = skill.getId().getNamespace();
@@ -579,6 +591,7 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
                 data.item = Registries.ITEM.getId(hand.getTargetItem()).toString();
                 data.count = String.valueOf(hand.getMinCount());
                 data.slot = hand.getSlot().name();
+                data.nbt = hand.getNbt() != null ? hand.getNbt().toString() : "";
             }
             else if (condition instanceof YLevelCondition yLevel) {
                 data.type = "Y-Level";
@@ -600,6 +613,7 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
                     case CHEST -> "CHEST";
                     default -> "HELMET";
                 };
+                data.nbt = equipped.getNbt() != null ? equipped.getNbt().toString() : "";
             }
             addConditionRow(data);
         }
@@ -788,24 +802,21 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
         if (data.type.equals("Hand Item")) {
             content.child(autocompleteField("Item ID", data.item, itemIds, s -> { data.item = s; updatePreview(); }, 100));
             content.child(field("Minimum Count", data.count, s -> { data.count = s; updatePreview(); }, 100).margins(Insets.top(5)));
-
-            // Ensure slot is valid for Hand
+            // ... Slot logic ...
             if (!data.slot.equals("MAINHAND") && !data.slot.equals("OFFHAND")) data.slot = "MAINHAND";
+            content.child(dropdown("Slot", List.of("MAINHAND", "OFFHAND"), data.slot, s -> { data.slot = s; updatePreview(); }, 100).margins(Insets.top(5)));
 
-            content.child(dropdown("Slot", List.of("MAINHAND", "OFFHAND"), data.slot, s -> {
-                data.slot = s; updatePreview();
-            }, 100).margins(Insets.top(5)));
+            // NEW: NBT Field
+            content.child(field("NBT Tag (Optional)", data.nbt, s -> { data.nbt = s; updatePreview(); }, 100).margins(Insets.top(5)));
         }
-        // 2. EQUIPPED ITEM UI
         else if (data.type.equals("Equipped Item")) {
             content.child(autocompleteField("Armor ID", data.item, itemIds, s -> { data.item = s; updatePreview(); }, 100));
-
-            // Ensure slot is valid for Armor
+            // ... Slot logic ...
             if (data.slot.equals("MAINHAND") || data.slot.equals("OFFHAND")) data.slot = "HELMET";
+            content.child(dropdown("Armor Slot", List.of("HELMET", "CHEST", "LEGS", "BOOTS"), data.slot, s -> { data.slot = s; updatePreview(); }, 100).margins(Insets.top(5)));
 
-            content.child(dropdown("Armor Slot", List.of("HELMET", "CHEST", "LEGS", "BOOTS"), data.slot, s -> {
-                data.slot = s; updatePreview();
-            }, 100).margins(Insets.top(5)));
+            // NEW: NBT Field
+            content.child(field("NBT Tag (Optional)", data.nbt, s -> { data.nbt = s; updatePreview(); }, 100).margins(Insets.top(5)));
         }
         else if (data.type.equals("Y-Level")) {
             content.child(dropdown("Comparison", List.of("GREATER_THAN", "LESS_THAN", "EQUAL_TO"), data.yComparison, s -> {
@@ -924,6 +935,7 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
             root.addProperty("name", name);
             root.addProperty("description", description);
             root.addProperty("icon", icon);
+            if (!iconNbt.isEmpty()) root.addProperty("icon_nbt", iconNbt);
             root.addProperty("tier", tier);
             root.addProperty("cost", tryParse(cost));
 
@@ -994,12 +1006,13 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
                     cond.addProperty("type", "jd_skill_tree:hand_item");
                     cond.addProperty("item", c.item);
                     cond.addProperty("count", tryParse(c.count));
-                    cond.addProperty("slot", c.slot.toLowerCase()); // mainhand/offhand
+                    cond.addProperty("slot", c.slot.toLowerCase());
+                    if (!c.nbt.isEmpty()) cond.addProperty("nbt", c.nbt); // Save NBT
                 }
                 else if (c.type.equals("Equipped Item")) {
                     cond.addProperty("type", "jd_skill_tree:equipped_item");
                     cond.addProperty("item", c.item);
-
+                    // ... slot logic ...
                     String slotName = switch(c.slot) {
                         case "BOOTS" -> "boots";
                         case "LEGS" -> "legs";
@@ -1007,6 +1020,7 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
                         default -> "helmet";
                     };
                     cond.addProperty("slot", slotName);
+                    if (!c.nbt.isEmpty()) cond.addProperty("nbt", c.nbt); // Save NBT
                 }
                 else if (c.type.equals("Y-Level")) {
                     cond.addProperty("type", "jd_skill_tree:y_level");

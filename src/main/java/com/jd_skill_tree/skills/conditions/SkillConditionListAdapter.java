@@ -35,16 +35,9 @@ public class SkillConditionListAdapter implements JsonDeserializer<List<SkillCon
                 obj.addProperty("item", Registries.ITEM.getId(hand.getTargetItem()).toString());
                 obj.addProperty("count", hand.getMinCount());
                 obj.addProperty("slot", hand.getSlot() == HandItemCondition.HandSlot.OFFHAND ? "offhand" : "mainhand");
-            }
-            else if (condition instanceof YLevelCondition yLevel) {
-                obj.addProperty("type", "jd_skill_tree:y_level");
-                obj.addProperty("comparison", yLevel.getComparison().name());
-                obj.addProperty("y_level", yLevel.getTargetY());
-            }
-            else if (condition instanceof HealthCondition health) {
-                obj.addProperty("type", "jd_skill_tree:health");
-                obj.addProperty("comparison", health.getComparison().name());
-                obj.addProperty("amount", health.getTargetHealth());
+                if (hand.getNbt() != null) {
+                    obj.addProperty("nbt", hand.getNbt().toString());
+                }
             }
             else if (condition instanceof EquippedItemCondition equipped) {
                 obj.addProperty("type", "jd_skill_tree:equipped_item");
@@ -57,6 +50,19 @@ public class SkillConditionListAdapter implements JsonDeserializer<List<SkillCon
                     default -> "helmet";
                 };
                 obj.addProperty("slot", slotName);
+                if (equipped.getNbt() != null) {
+                    obj.addProperty("nbt", equipped.getNbt().toString());
+                }
+            }
+            else if (condition instanceof YLevelCondition yLevel) {
+                obj.addProperty("type", "jd_skill_tree:y_level");
+                obj.addProperty("comparison", yLevel.getComparison().name());
+                obj.addProperty("y_level", yLevel.getTargetY());
+            }
+            else if (condition instanceof HealthCondition health) {
+                obj.addProperty("type", "jd_skill_tree:health");
+                obj.addProperty("comparison", health.getComparison().name());
+                obj.addProperty("amount", health.getTargetHealth());
             }
             jsonArray.add(obj);
         }
