@@ -4,6 +4,8 @@ Welcome to **JD Skill Tree**, a fully data-driven progression mod for Minecraft 
 
 What sets this mod apart is its focus on **customization**. Server owners and modpack creators can build entirely new skill trees directly inside the game without writing a single line of code.
 
+Find the here mod on [Curseforge](https://www.curseforge.com/minecraft/mc-mods/skill-tree-fabric) and [Modrinth](https://modrinth.com/mod/skill-tree-(fabric))
+
 ## Table of Contents
 
 - [Features](#features)
