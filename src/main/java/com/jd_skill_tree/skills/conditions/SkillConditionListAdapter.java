@@ -74,6 +74,25 @@ public class SkillConditionListAdapter implements JsonDeserializer<List<SkillCon
                 obj.addProperty("comparison", armor.getComparison().name());
                 obj.addProperty("amount", armor.getTargetArmor());
             }
+            else if (condition instanceof TimeOfDayCondition time) {
+                obj.addProperty("type", "jd_skill_tree:time");
+                obj.addProperty("min", time.getMinTime());
+                obj.addProperty("max", time.getMaxTime());
+            }
+            else if (condition instanceof DimensionCondition dim) {
+                obj.addProperty("type", "jd_skill_tree:dimension");
+                obj.addProperty("dimension", dim.getDimensionId().toString());
+            }
+            else if (condition instanceof WalkingOnBlockCondition walk) {
+                obj.addProperty("type", "jd_skill_tree:walking_on");
+                obj.addProperty("block", Registries.BLOCK.getId(walk.getTargetBlock()).toString());
+            }
+            else if (condition instanceof WetnessCondition) {
+                obj.addProperty("type", "jd_skill_tree:wetness");
+            }
+            else if (condition instanceof InLavaCondition) {
+                obj.addProperty("type", "jd_skill_tree:in_lava");
+            }
             jsonArray.add(obj);
         }
         return jsonArray;

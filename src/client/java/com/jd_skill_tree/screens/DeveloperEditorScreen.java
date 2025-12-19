@@ -108,6 +108,11 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
         String hungerValue = "10";
         String armorComparison = "GREATER_THAN";
         String armorValue = "10";
+
+        String timeMin = "0";
+        String timeMax = "24000";
+        String dimension = "minecraft:overworld";
+        String walkingBlock = "minecraft:grass_block";
     }
     private final List<ConditionData> conditions = new ArrayList<>();
 
@@ -629,6 +634,25 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
                 };
                 data.nbt = equipped.getNbt() != null ? equipped.getNbt().toString() : "";
             }
+            else if (condition instanceof TimeOfDayCondition time) {
+                data.type = "Time";
+                data.timeMin = String.valueOf(time.getMinTime());
+                data.timeMax = String.valueOf(time.getMaxTime());
+            }
+            else if (condition instanceof DimensionCondition dim) {
+                data.type = "Dimension";
+                data.dimension = dim.getDimensionId().toString();
+            }
+            else if (condition instanceof WalkingOnBlockCondition walk) {
+                data.type = "Walking On";
+                data.walkingBlock = Registries.BLOCK.getId(walk.getTargetBlock()).toString();
+            }
+            else if (condition instanceof WetnessCondition) {
+                data.type = "Wetness";
+            }
+            else if (condition instanceof InLavaCondition) {
+                data.type = "In Lava";
+            }
             addConditionRow(data);
         }
 
@@ -801,7 +825,7 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
         var content = Containers.verticalFlow(Sizing.fill(100), Sizing.content());
         content.padding(Insets.of(5));
 
-        content.child(dropdown("Type", List.of("Hand Item", "Equipped Item", "Y-Level", "Health",  "Hunger", "Armor"), data.type, s -> {
+        content.child(dropdown("Type", List.of("Hand Item", "Equipped Item", "Y-Level", "Health",  "Hunger", "Armor", "Time", "Dimension", "Walking On", "Wetness", "In Lava"), data.type, s -> {
             data.type = s;
 
             conditions.remove(data);
@@ -857,6 +881,17 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
                 data.armorComparison = s; updatePreview();
             }, 100));
             content.child(field("Armor Points", data.armorValue, s -> { data.armorValue = s; updatePreview(); }, 100).margins(Insets.top(5)));
+        }
+        else if (data.type.equals("Time")) {
+            content.child(field("Min Time (0-24000)", data.timeMin, s -> { data.timeMin = s; updatePreview(); }, 100));
+            content.child(field("Max Time (0-24000)", data.timeMax, s -> { data.timeMax = s; updatePreview(); }, 100).margins(Insets.top(5)));
+        }
+        else if (data.type.equals("Dimension")) {
+            content.child(field("Dimension ID", data.dimension, s -> { data.dimension = s; updatePreview(); }, 100));
+        }
+        else if (data.type.equals("Walking On")) {
+            List<String> blockIds = Registries.BLOCK.getIds().stream().map(Identifier::toString).sorted().toList();
+            content.child(autocompleteField("Block ID", data.walkingBlock, blockIds, s -> { data.walkingBlock = s; updatePreview(); }, 100));
         }
 
         var removeBtn = Components.button(Text.of("Remove"), btn -> {
@@ -1071,6 +1106,25 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
                     cond.addProperty("type", "jd_skill_tree:armor");
                     cond.addProperty("comparison", c.armorComparison);
                     cond.addProperty("amount", tryParse(c.armorValue));
+                }
+                else if (c.type.equals("Time")) {
+                    cond.addProperty("type", "jd_skill_tree:time");
+                    cond.addProperty("min", tryParse(c.timeMin));
+                    cond.addProperty("max", tryParse(c.timeMax));
+                }
+                else if (c.type.equals("Dimension")) {
+                    cond.addProperty("type", "jd_skill_tree:dimension");
+                    cond.addProperty("dimension", c.dimension);
+                }
+                else if (c.type.equals("Walking On")) {
+                    cond.addProperty("type", "jd_skill_tree:walking_on");
+                    cond.addProperty("block", c.walkingBlock);
+                }
+                else if (c.type.equals("Wetness")) {
+                    cond.addProperty("type", "jd_skill_tree:wetness");
+                }
+                else if (c.type.equals("In Lava")) {
+                    cond.addProperty("type", "jd_skill_tree:in_lava");
                 }
                 conditionsJson.add(cond);
             }
