@@ -3,8 +3,8 @@ package com.jd_skill_tree.utils;
 import com.jd_skill_tree.blocks.ModBlocks;
 import com.jd_skill_tree.blocks.entity.ModBlockEntities;
 import com.jd_skill_tree.skills.SkillLoader;
+import com.jd_skill_tree.skills.actions.SkillActionEffectType;
 import com.jd_skill_tree.skills.actions.SkillActionHandler;
-import com.jd_skill_tree.skills.actions.SkillActionType;
 import com.jd_skill_tree.skills.conditions.SkillConditionType;
 import com.jd_skill_tree.skills.effects.SkillEffectType;
 import net.fabricmc.fabric.api.resource.ResourceManagerHelper;
@@ -20,7 +20,7 @@ public class ModRegistries {
     public static void registerAll() {
 
         SkillEffectType.registerAll();
-        SkillActionType.registerAll();
+        SkillActionEffectType.registerAll();
         SkillConditionType.registerAll();
 
         ModBlocks.registerModBlocks();
@@ -31,5 +31,6 @@ public class ModRegistries {
         ResourceManagerHelper.get(ResourceType.SERVER_DATA).registerReloadListener(SkillLoader.INSTANCE);
 
         SkillActionHandler.register();
+
     }
 }
