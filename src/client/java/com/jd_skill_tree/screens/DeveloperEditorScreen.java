@@ -35,6 +35,7 @@ import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
@@ -101,9 +102,17 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
 
         String yComparison = "GREATER_THAN";
         String yValue = "64";
-
         String healthComparison = "GREATER_THAN";
         String healthValue = "10.0";
+        String hungerComparison = "GREATER_THAN";
+        String hungerValue = "10";
+        String armorComparison = "GREATER_THAN";
+        String armorValue = "10";
+
+        String timeMin = "0";
+        String timeMax = "24000";
+        String dimension = "minecraft:overworld";
+        String walkingBlock = "minecraft:grass_block";
     }
     private final List<ConditionData> conditions = new ArrayList<>();
 
@@ -368,7 +377,7 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
         overlayLayer.positioning(Positioning.absolute(0, 0));
         overlayLayer.zIndex(500);
         overlayLayer.mouseDown().subscribe((mouseX, mouseY, button) -> {
-            if (overlayLayer.children().size() > 0) {
+            if (!overlayLayer.children().isEmpty()) {
                 Component child = overlayLayer.children().get(0);
                 boolean clickedDropdown = mouseX >= child.x() && mouseX <= child.x() + child.width() && mouseY >= child.y() && mouseY <= child.y() + child.height();
                 if (!clickedDropdown) { closeOverlay(); return true; }
@@ -524,7 +533,7 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
             EffectData data = new EffectData();
             if (effect instanceof AttributeSkillEffect attr) {
                 data.type = "Attribute";
-                data.attr = Registries.ATTRIBUTE.getId(attr.getAttribute()).toString();
+                data.attr = Objects.requireNonNull(Registries.ATTRIBUTE.getId(attr.getAttribute())).toString();
                 data.op = attr.getOperation().name();
                 data.val = String.valueOf(attr.getValue());
             }
@@ -603,6 +612,16 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
                 data.healthComparison = health.getComparison().name();
                 data.healthValue = String.valueOf(health.getTargetHealth());
             }
+            else if (condition instanceof HungerCondition hunger) {
+                data.type = "Hunger";
+                data.hungerComparison = hunger.getComparison().name();
+                data.hungerValue = String.valueOf(hunger.getTargetHunger());
+            }
+            else if (condition instanceof ArmorCondition armor) {
+                data.type = "Armor";
+                data.armorComparison = armor.getComparison().name();
+                data.armorValue = String.valueOf(armor.getTargetArmor());
+            }
             else if (condition instanceof EquippedItemCondition equipped) {
                 data.type = "Equipped Item";
                 data.item = Registries.ITEM.getId(equipped.getTargetItem()).toString();
@@ -614,6 +633,25 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
                     default -> "HELMET";
                 };
                 data.nbt = equipped.getNbt() != null ? equipped.getNbt().toString() : "";
+            }
+            else if (condition instanceof TimeOfDayCondition time) {
+                data.type = "Time";
+                data.timeMin = String.valueOf(time.getMinTime());
+                data.timeMax = String.valueOf(time.getMaxTime());
+            }
+            else if (condition instanceof DimensionCondition dim) {
+                data.type = "Dimension";
+                data.dimension = dim.getDimensionId().toString();
+            }
+            else if (condition instanceof WalkingOnBlockCondition walk) {
+                data.type = "Walking On";
+                data.walkingBlock = Registries.BLOCK.getId(walk.getTargetBlock()).toString();
+            }
+            else if (condition instanceof WetnessCondition) {
+                data.type = "Wetness";
+            }
+            else if (condition instanceof InLavaCondition) {
+                data.type = "In Lava";
             }
             addConditionRow(data);
         }
@@ -670,7 +708,7 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
             scroll.padding(Insets.of(1)); scroll.positioning(Positioning.absolute(box.x(), box.y() + box.height())); scroll.zIndex(600);
             openOverlay(scroll);
         });
-        box.keyPress().subscribe((code, scan, mod) -> { if (code == GLFW.GLFW_KEY_TAB) { if (overlayLayer.children().size() > 0) { Component child = overlayLayer.children().get(0); if (child instanceof ScrollContainer<?> scroll) { if (scroll.child() instanceof FlowLayout list && list.children().size() > 0) { Component firstBtn = list.children().get(0); if(firstBtn instanceof ButtonComponent btn) { selectItem.accept(btn.getMessage().getString()); return true; } } } } } return false; });
+        box.keyPress().subscribe((code, scan, mod) -> { if (code == GLFW.GLFW_KEY_TAB) { if (!overlayLayer.children().isEmpty()) { Component child = overlayLayer.children().get(0); if (child instanceof ScrollContainer<?> scroll) { if (scroll.child() instanceof FlowLayout list && !list.children().isEmpty()) { Component firstBtn = list.children().get(0); if(firstBtn instanceof ButtonComponent btn) { selectItem.accept(btn.getMessage().getString()); return true; } } } } } return false; });
         layout.child(box);
         return layout;
     }
@@ -696,7 +734,7 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
         });
 
         btn.onPress(b -> {
-            if(overlayLayer.children().size() > 0) { closeOverlay(); return; }
+            if(!overlayLayer.children().isEmpty()) { closeOverlay(); return; }
             int itemHeight = 15; int maxItemsVisible = 8; int borderPadding = 2;
             int containerHeight = Math.min(options.size(), maxItemsVisible) * itemHeight + borderPadding;
             FlowLayout list = Containers.verticalFlow(Sizing.fixed(btn.width()), Sizing.content());
@@ -787,7 +825,7 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
         var content = Containers.verticalFlow(Sizing.fill(100), Sizing.content());
         content.padding(Insets.of(5));
 
-        content.child(dropdown("Type", List.of("Hand Item", "Equipped Item", "Y-Level", "Health"), data.type, s -> {
+        content.child(dropdown("Type", List.of("Hand Item", "Equipped Item", "Y-Level", "Health",  "Hunger", "Armor", "Time", "Dimension", "Walking On", "Wetness", "In Lava"), data.type, s -> {
             data.type = s;
 
             conditions.remove(data);
@@ -831,6 +869,29 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
                 updatePreview();
             }, 100));
             content.child(field("Amount (20.0 = 10 Hearts)", data.healthValue, s -> { data.healthValue = s; updatePreview(); }, 100).margins(Insets.top(5)));
+        }
+        else if (data.type.equals("Hunger")) {
+            content.child(dropdown("Comparison", List.of("GREATER_THAN", "LESS_THAN", "EQUAL_TO"), data.hungerComparison, s -> {
+                data.hungerComparison = s; updatePreview();
+            }, 100));
+            content.child(field("Hunger Amount (0-20)", data.hungerValue, s -> { data.hungerValue = s; updatePreview(); }, 100).margins(Insets.top(5)));
+        }
+        else if (data.type.equals("Armor")) {
+            content.child(dropdown("Comparison", List.of("GREATER_THAN", "LESS_THAN", "EQUAL_TO"), data.armorComparison, s -> {
+                data.armorComparison = s; updatePreview();
+            }, 100));
+            content.child(field("Armor Points", data.armorValue, s -> { data.armorValue = s; updatePreview(); }, 100).margins(Insets.top(5)));
+        }
+        else if (data.type.equals("Time")) {
+            content.child(field("Min Time (0-24000)", data.timeMin, s -> { data.timeMin = s; updatePreview(); }, 100));
+            content.child(field("Max Time (0-24000)", data.timeMax, s -> { data.timeMax = s; updatePreview(); }, 100).margins(Insets.top(5)));
+        }
+        else if (data.type.equals("Dimension")) {
+            content.child(field("Dimension ID", data.dimension, s -> { data.dimension = s; updatePreview(); }, 100));
+        }
+        else if (data.type.equals("Walking On")) {
+            List<String> blockIds = Registries.BLOCK.getIds().stream().map(Identifier::toString).sorted().toList();
+            content.child(autocompleteField("Block ID", data.walkingBlock, blockIds, s -> { data.walkingBlock = s; updatePreview(); }, 100));
         }
 
         var removeBtn = Components.button(Text.of("Remove"), btn -> {
@@ -926,7 +987,7 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
     }
 
     private void rebuildEffectRow(Component collapsible, FlowLayout content, EffectData data) { var children = new ArrayList<>(content.children()); for (int i = 1; i < children.size(); i++) { content.removeChild(children.get(i)); } buildEffectFields(content, data, collapsible); }
-    @Override public boolean mouseClicked(double mouseX, double mouseY, int button) { if (overlayLayer.children().size() > 0) { Component child = overlayLayer.children().get(0); boolean clickedDropdown = mouseX >= child.x() && mouseX <= child.x() + child.width() && mouseY >= child.y() && mouseY <= child.y() + child.height(); if (!clickedDropdown) { closeOverlay(); return true; } } return super.mouseClicked(mouseX, mouseY, button); }
+    @Override public boolean mouseClicked(double mouseX, double mouseY, int button) { if (!overlayLayer.children().isEmpty()) { Component child = overlayLayer.children().get(0); boolean clickedDropdown = mouseX >= child.x() && mouseX <= child.x() + child.width() && mouseY >= child.y() && mouseY <= child.y() + child.height(); if (!clickedDropdown) { closeOverlay(); return true; } } return super.mouseClicked(mouseX, mouseY, button); }
     private void openOverlay(Component child) { overlayLayer.clearChildren(); overlayLayer.sizing(Sizing.fill(100), Sizing.fill(100)); overlayLayer.child(child); }
     private void closeOverlay() { overlayLayer.clearChildren(); overlayLayer.sizing(Sizing.fixed(0), Sizing.fixed(0)); }
     private String generateJson() {
@@ -942,7 +1003,7 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
             if (!parentIds.isEmpty()) {
                 JsonArray parents = new JsonArray();
                 for (String parentId : parentIds) { if (!parentId.trim().isEmpty()) { parents.add(parentId); } }
-                if (parents.size() > 0) { root.add("prerequisites", parents); }
+                if (!parents.isEmpty()) { root.add("prerequisites", parents); }
             }
 
             JsonArray effectsJson = new JsonArray();
@@ -983,7 +1044,7 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
                 effectsJson.add(eff);
             }
 
-            if (effectsJson.size() > 0) root.add("effects", effectsJson);
+            if (!effectsJson.isEmpty()) root.add("effects", effectsJson);
 
             // Actions
             JsonArray actionsJson = new JsonArray();
@@ -996,7 +1057,7 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
                 }
                 actionsJson.add(act);
             }
-            if (actionsJson.size() > 0) root.add("actions", actionsJson);
+            if (!actionsJson.isEmpty()) root.add("actions", actionsJson);
 
             // NEW: Conditions
             JsonArray conditionsJson = new JsonArray();
@@ -1036,9 +1097,38 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
                         cond.addProperty("amount", 20.0f);
                     }
                 }
+                else if (c.type.equals("Hunger")) {
+                    cond.addProperty("type", "jd_skill_tree:hunger");
+                    cond.addProperty("comparison", c.hungerComparison);
+                    cond.addProperty("amount", tryParse(c.hungerValue));
+                }
+                else if (c.type.equals("Armor")) {
+                    cond.addProperty("type", "jd_skill_tree:armor");
+                    cond.addProperty("comparison", c.armorComparison);
+                    cond.addProperty("amount", tryParse(c.armorValue));
+                }
+                else if (c.type.equals("Time")) {
+                    cond.addProperty("type", "jd_skill_tree:time");
+                    cond.addProperty("min", tryParse(c.timeMin));
+                    cond.addProperty("max", tryParse(c.timeMax));
+                }
+                else if (c.type.equals("Dimension")) {
+                    cond.addProperty("type", "jd_skill_tree:dimension");
+                    cond.addProperty("dimension", c.dimension);
+                }
+                else if (c.type.equals("Walking On")) {
+                    cond.addProperty("type", "jd_skill_tree:walking_on");
+                    cond.addProperty("block", c.walkingBlock);
+                }
+                else if (c.type.equals("Wetness")) {
+                    cond.addProperty("type", "jd_skill_tree:wetness");
+                }
+                else if (c.type.equals("In Lava")) {
+                    cond.addProperty("type", "jd_skill_tree:in_lava");
+                }
                 conditionsJson.add(cond);
             }
-            if (conditionsJson.size() > 0) root.add("conditions", conditionsJson);
+            if (!conditionsJson.isEmpty()) root.add("conditions", conditionsJson);
 
             return GSON.toJson(root);
         } catch (Exception e) { return ""; }
