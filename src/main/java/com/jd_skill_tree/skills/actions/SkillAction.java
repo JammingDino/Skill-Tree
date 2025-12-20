@@ -4,15 +4,22 @@ import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 
-public interface SkillAction {
+public class SkillAction {
+    private final TriggerType trigger;
+    private final SkillActionEffect effect;
+    private final int interval; // used for TIMER
 
-    TriggerType getTrigger();
+    public SkillAction(TriggerType trigger, SkillActionEffect effect, int interval) {
+        this.trigger = trigger;
+        this.effect = effect;
+        this.interval = interval;
+    }
 
-    /**
-     * Executes the action.
-     * @param player The player performing the action.
-     * @param world The world level.
-     * @param pos The position of the event (block broken/placed).
-     */
-    void execute(PlayerEntity player, World world, BlockPos pos);
+    public void run(PlayerEntity player, World world, BlockPos pos) {
+        effect.execute(player, world, pos);
+    }
+
+    public TriggerType getTrigger() { return trigger; }
+    public SkillActionEffect getEffect() { return effect; }
+    public int getInterval() { return interval; }
 }

@@ -2,6 +2,7 @@ package com.jd_skill_tree.mixin;
 
 import com.jd_skill_tree.api.IUnlockedSkillsData;
 import com.jd_skill_tree.skills.SkillManager;
+import com.jd_skill_tree.skills.actions.SkillActionHandler;
 import com.jd_skill_tree.skills.effects.AttributeSkillEffect;
 import com.jd_skill_tree.skills.effects.SkillEffect;
 import com.jd_skill_tree.skills.effects.EnchantmentSkillEffect;
@@ -54,6 +55,7 @@ public abstract class PlayerEntityMixin extends LivingEntity implements IUnlocke
         if (player.getWorld().isClient()) return;
 
         EnchantmentSkillEffect.updateEnchantments(player);
+        SkillActionHandler.handleTimerActions(player);
 
         // --- ATTRIBUTE MODIFIER HANDLING ---
 

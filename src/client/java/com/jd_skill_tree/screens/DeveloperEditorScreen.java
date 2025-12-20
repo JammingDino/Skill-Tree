@@ -8,8 +8,10 @@ import com.jd_skill_tree.networking.SkillNetworking;
 import com.jd_skill_tree.screens.widgets.SkillWidget;
 import com.jd_skill_tree.skills.Skill;
 import com.jd_skill_tree.skills.SkillManager;
-import com.jd_skill_tree.skills.actions.CommandSkillAction;
+import com.jd_skill_tree.skills.actions.BurnActionEffect;
+import com.jd_skill_tree.skills.actions.CommandActionEffect;
 import com.jd_skill_tree.skills.actions.SkillAction;
+import com.jd_skill_tree.skills.actions.SkillActionEffect;
 import com.jd_skill_tree.skills.conditions.*;
 import com.jd_skill_tree.skills.effects.*;
 import io.wispforest.owo.ui.base.BaseComponent;
@@ -86,13 +88,20 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
     private final List<EffectData> effects = new ArrayList<>();
 
     private static class ActionData {
-        String type = "Command";
         String trigger = "BLOCK_BREAK";
-        String command = "/say Hello";
+        String interval = "20";
+        String effectType = "Command"; // "Command" or "Burn"
+
+        // Command Fields
+        String command = "/say hi";
+
+        // Burn Fields
+        String burnDuration = "100";
+        boolean burnIgnoreArmor = false;
     }
     private final List<ActionData> actions = new ArrayList<>();
 
-    // --- NEW: Condition Data ---
+    // --- Condition Data ---
     private static class ConditionData {
         String type = "Hand Item";
         String item = "minecraft:stick";
@@ -127,7 +136,7 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
     // --- UI Variables ---
     private FlowLayout effectsContainer;
     private FlowLayout actionsContainer;
-    private FlowLayout conditionsContainer; // NEW
+    private FlowLayout conditionsContainer;
     private FlowLayout parentsContainer;
     private FlowLayout overlayLayer;
     private LabelComponent exportTextDisplay;
@@ -192,7 +201,7 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
         this.iconField = (TextBoxComponent) iconLayout.children().get(1);
         editorContent.child(iconLayout);
 
-        // NEW: Icon NBT Row
+        // Icon NBT
         var iconNbtLayout = field("Icon NBT (e.g. {Enchantments:[{}]})", iconNbt, s -> { iconNbt = s; updatePreview(); }, 100);
         this.iconNbtField = (TextBoxComponent) iconNbtLayout.children().get(1);
         editorContent.child(iconNbtLayout);
@@ -283,7 +292,6 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
         sidebarContent.child(Components.label(Text.of("Load Existing Skill")).shadow(true).margins(Insets.bottom(5)));
         var loadContainer = Containers.horizontalFlow(Sizing.fill(100), Sizing.content());
         loadContainer.gap(5);
-        // CHANGED: VerticalAlignment.TOP
         loadContainer.verticalAlignment(VerticalAlignment.TOP);
 
         var loadInputLayout = autocompleteField("", "", availableSkills, s -> loadSkillId = s, 70);
@@ -582,15 +590,22 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
         this.actionsContainer.clearChildren();
         for (SkillAction action : skill.getActions()) {
             ActionData data = new ActionData();
-            if (action instanceof CommandSkillAction cmd) {
-                data.type = "Command";
-                data.trigger = cmd.getTrigger().name();
+            data.trigger = action.getTrigger().name();
+            data.interval = String.valueOf(action.getInterval());
+
+            SkillActionEffect effect = action.getEffect();
+
+            if (effect instanceof CommandActionEffect cmd) {
+                data.effectType = "Command";
                 data.command = cmd.getCommand();
+            } else if (effect instanceof BurnActionEffect burn) {
+                data.effectType = "Burn";
+                data.burnDuration = String.valueOf(burn.getDuration());
+                data.burnIgnoreArmor = burn.isIgnoreArmor();
             }
             addActionRow(data);
         }
 
-        // --- NEW: Load Conditions ---
         this.conditions.clear();
         this.conditionsContainer.clearChildren();
         for (SkillCondition condition : skill.getConditions()) {
@@ -625,7 +640,7 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
             else if (condition instanceof EquippedItemCondition equipped) {
                 data.type = "Equipped Item";
                 data.item = Registries.ITEM.getId(equipped.getTargetItem()).toString();
-                data.count = "1"; // Armor usually count 1
+                data.count = "1";
                 data.slot = switch(equipped.getSlot()) {
                     case FEET -> "BOOTS";
                     case LEGS -> "LEGS";
@@ -760,7 +775,6 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
     private FlowLayout row(Component... children) {
         var layout = Containers.horizontalFlow(Sizing.fill(100), Sizing.content());
         layout.gap(5);
-        // CHANGED: VerticalAlignment.TOP
         layout.verticalAlignment(VerticalAlignment.TOP);
         for (Component c : children) layout.child(c);
         return layout;
@@ -770,7 +784,6 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
         parentIds.add(parentId);
         var row = Containers.horizontalFlow(Sizing.fill(100), Sizing.content());
         row.gap(5);
-        // CHANGED: VerticalAlignment.TOP
         row.verticalAlignment(VerticalAlignment.TOP);
         row.margins(Insets.bottom(5));
 
@@ -791,19 +804,54 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
         parentsContainer.child(row);
     }
 
+    // --- UPDATED ACTION ROW LOGIC ---
+
     private void addActionRow(ActionData data) {
         actions.add(data);
         var collapsible = Containers.collapsible(Sizing.fill(100), Sizing.content(), Text.of("Action"), true);
         var content = Containers.verticalFlow(Sizing.fill(100), Sizing.content());
         content.padding(Insets.of(5));
 
-        content.child(dropdown("Trigger", List.of("BLOCK_BREAK", "BLOCK_PLACE"), data.trigger, s -> {
+        // The Trigger Dropdown (Always visible, Index 0)
+        content.child(dropdown("Trigger", List.of("BLOCK_BREAK", "BLOCK_PLACE", "TIMER"), data.trigger, s -> {
             data.trigger = s;
+            rebuildActionRow(collapsible, content, data);
             updatePreview();
         }, 100).margins(Insets.bottom(5)));
 
-        content.child(field("Command (Use @p, %x%, %y%, %z%)", data.command, s -> { data.command = s; updatePreview(); }, 100));
+        // Build the rest of the fields
+        buildActionFields(content, data, collapsible);
 
+        collapsible.child(content);
+        collapsible.margins(Insets.bottom(10));
+        actionsContainer.child(collapsible);
+    }
+
+    private void buildActionFields(FlowLayout content, ActionData data, Component collapsible) {
+        // 1. Trigger Specific Settings (Interval)
+        if (data.trigger.equals("TIMER")) {
+            content.child(field("Interval (Ticks)", data.interval, s -> { data.interval = s; updatePreview(); }, 100).margins(Insets.bottom(5)));
+        }
+
+        // 2. Effect Type Selector
+        content.child(dropdown("Effect Type", List.of("Command", "Burn"), data.effectType, s -> {
+            data.effectType = s;
+            rebuildActionRow(collapsible, content, data);
+            updatePreview();
+        }, 100).margins(Insets.bottom(5)));
+
+        // 3. Effect Specific Fields
+        if (data.effectType.equals("Command")) {
+            content.child(field("Command", data.command, s -> { data.command = s; updatePreview(); }, 100));
+        } else if (data.effectType.equals("Burn")) {
+            content.child(field("Duration (Ticks)", data.burnDuration, s -> { data.burnDuration = s; updatePreview(); }, 100));
+            var check = Components.checkbox(Text.of("Ignore Armor"));
+            check.checked(data.burnIgnoreArmor);
+            check.onChanged(checked -> { data.burnIgnoreArmor = checked; updatePreview(); });
+            content.child(check.margins(Insets.top(5)));
+        }
+
+        // Remove Button
         var removeBtn = Components.button(Text.of("Remove"), btn -> {
             actions.remove(data);
             actionsContainer.removeChild(collapsible);
@@ -814,10 +862,19 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
         applyStandardButtonRenderer(removeBtn);
 
         content.child(removeBtn);
-        collapsible.child(content);
-        collapsible.margins(Insets.bottom(10));
-        actionsContainer.child(collapsible);
     }
+
+    private void rebuildActionRow(Component collapsible, FlowLayout content, ActionData data) {
+        var children = new ArrayList<>(content.children());
+        // We keep the first child (index 0) because that is the Trigger dropdown
+        // All subsequent children (Interval, Effect Type, Specific Fields) are cleared
+        for (int i = 1; i < children.size(); i++) {
+            content.removeChild(children.get(i));
+        }
+        buildActionFields(content, data, collapsible);
+    }
+
+    // --- END ACTION LOGIC ---
 
     private void addConditionRow(ConditionData data) {
         conditions.add(data);
@@ -840,20 +897,14 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
         if (data.type.equals("Hand Item")) {
             content.child(autocompleteField("Item ID", data.item, itemIds, s -> { data.item = s; updatePreview(); }, 100));
             content.child(field("Minimum Count", data.count, s -> { data.count = s; updatePreview(); }, 100).margins(Insets.top(5)));
-            // ... Slot logic ...
             if (!data.slot.equals("MAINHAND") && !data.slot.equals("OFFHAND")) data.slot = "MAINHAND";
             content.child(dropdown("Slot", List.of("MAINHAND", "OFFHAND"), data.slot, s -> { data.slot = s; updatePreview(); }, 100).margins(Insets.top(5)));
-
-            // NEW: NBT Field
             content.child(field("NBT Tag (Optional)", data.nbt, s -> { data.nbt = s; updatePreview(); }, 100).margins(Insets.top(5)));
         }
         else if (data.type.equals("Equipped Item")) {
             content.child(autocompleteField("Armor ID", data.item, itemIds, s -> { data.item = s; updatePreview(); }, 100));
-            // ... Slot logic ...
             if (data.slot.equals("MAINHAND") || data.slot.equals("OFFHAND")) data.slot = "HELMET";
             content.child(dropdown("Armor Slot", List.of("HELMET", "CHEST", "LEGS", "BOOTS"), data.slot, s -> { data.slot = s; updatePreview(); }, 100).margins(Insets.top(5)));
-
-            // NEW: NBT Field
             content.child(field("NBT Tag (Optional)", data.nbt, s -> { data.nbt = s; updatePreview(); }, 100).margins(Insets.top(5)));
         }
         else if (data.type.equals("Y-Level")) {
@@ -990,6 +1041,7 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
     @Override public boolean mouseClicked(double mouseX, double mouseY, int button) { if (!overlayLayer.children().isEmpty()) { Component child = overlayLayer.children().get(0); boolean clickedDropdown = mouseX >= child.x() && mouseX <= child.x() + child.width() && mouseY >= child.y() && mouseY <= child.y() + child.height(); if (!clickedDropdown) { closeOverlay(); return true; } } return super.mouseClicked(mouseX, mouseY, button); }
     private void openOverlay(Component child) { overlayLayer.clearChildren(); overlayLayer.sizing(Sizing.fill(100), Sizing.fill(100)); overlayLayer.child(child); }
     private void closeOverlay() { overlayLayer.clearChildren(); overlayLayer.sizing(Sizing.fixed(0), Sizing.fixed(0)); }
+
     private String generateJson() {
         try {
             JsonObject root = new JsonObject();
@@ -1050,16 +1102,29 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
             JsonArray actionsJson = new JsonArray();
             for (ActionData a : actions) {
                 JsonObject act = new JsonObject();
-                if (a.type.equals("Command")) {
-                    act.addProperty("type", "jd_skill_tree:command");
-                    act.addProperty("trigger", a.trigger);
-                    act.addProperty("command", a.command);
+                // 1. Trigger
+                act.addProperty("trigger", a.trigger);
+                // 2. Interval (only for TIMER)
+                if (a.trigger.equals("TIMER")) {
+                    act.addProperty("interval", tryParse(a.interval));
                 }
+                // 3. Nested Effect Object
+                JsonObject effectObj = new JsonObject();
+                if (a.effectType.equals("Command")) {
+                    effectObj.addProperty("type", "jd_skill_tree:command");
+                    effectObj.addProperty("command", a.command);
+                } else if (a.effectType.equals("Burn")) {
+                    effectObj.addProperty("type", "jd_skill_tree:burn");
+                    effectObj.addProperty("duration", tryParse(a.burnDuration));
+                    effectObj.addProperty("ignore_armor", a.burnIgnoreArmor);
+                }
+                act.add("effect", effectObj);
+
                 actionsJson.add(act);
             }
             if (!actionsJson.isEmpty()) root.add("actions", actionsJson);
 
-            // NEW: Conditions
+            // Conditions
             JsonArray conditionsJson = new JsonArray();
             for (ConditionData c : conditions) {
                 JsonObject cond = new JsonObject();
@@ -1068,12 +1133,11 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
                     cond.addProperty("item", c.item);
                     cond.addProperty("count", tryParse(c.count));
                     cond.addProperty("slot", c.slot.toLowerCase());
-                    if (!c.nbt.isEmpty()) cond.addProperty("nbt", c.nbt); // Save NBT
+                    if (!c.nbt.isEmpty()) cond.addProperty("nbt", c.nbt);
                 }
                 else if (c.type.equals("Equipped Item")) {
                     cond.addProperty("type", "jd_skill_tree:equipped_item");
                     cond.addProperty("item", c.item);
-                    // ... slot logic ...
                     String slotName = switch(c.slot) {
                         case "BOOTS" -> "boots";
                         case "LEGS" -> "legs";
@@ -1081,7 +1145,7 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
                         default -> "helmet";
                     };
                     cond.addProperty("slot", slotName);
-                    if (!c.nbt.isEmpty()) cond.addProperty("nbt", c.nbt); // Save NBT
+                    if (!c.nbt.isEmpty()) cond.addProperty("nbt", c.nbt);
                 }
                 else if (c.type.equals("Y-Level")) {
                     cond.addProperty("type", "jd_skill_tree:y_level");
@@ -1143,7 +1207,7 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
         PacketByteBuf buf = PacketByteBufs.create();
         buf.writeString(exportNamespace);
         buf.writeString(exportFileName);
-        buf.writeString(json, 262144); // 256KB Limit
+        buf.writeString(json, 262144);
         ClientPlayNetworking.send(SkillNetworking.SAVE_SKILL_PACKET_ID, buf);
         btn.setMessage(Text.of("Request Sent"));
         new Thread(() -> { try { Thread.sleep(2000); MinecraftClient.getInstance().execute(() -> btn.setMessage(Text.of("Export to Server"))); } catch (InterruptedException ignored) {} }).start();

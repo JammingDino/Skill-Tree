@@ -10,21 +10,52 @@ import net.minecraft.world.World;
 
 public class SkillActionHandler {
 
+    /**
+     * Registers the initial event listeners.
+     * Called in ModRegistries.
+     */
     public static void register() {
-
-        // Handle Block Break
+        // Listen for Block Break events
         PlayerBlockBreakEvents.AFTER.register((world, player, pos, state, blockEntity) -> {
             if (!world.isClient) {
                 triggerActions(player, world, pos, TriggerType.BLOCK_BREAK);
             }
         });
-
-        // REMOVED: UseBlockCallback logic.
-        // Block Place is now handled precisely by BlockItemMixin.
     }
 
-    // CHANGED: Changed from private to public static so the Mixin can call it
+    /**
+     * Handles event-based triggers (Block Break, Block Place).
+     * This is also called from your Mixins (like BlockItemMixin).
+     */
     public static void triggerActions(PlayerEntity player, World world, BlockPos pos, TriggerType type) {
+        IUnlockedSkillsData skillData = (IUnlockedSkillsData) player;
+
+        // Iterate through all skills the player has unlocked
+        for (String skillId : skillData.getUnlockedSkills()) {
+            SkillManager.getSkill(new Identifier(skillId)).ifPresent(skill -> {
+
+                // Only proceed if conditions (Dimension, Hunger, etc.) are met
+                if (!skill.areConditionsMet(player)) {
+                    return;
+                }
+
+                // Check all actions inside this skill
+                for (SkillAction action : skill.getActions()) {
+                    if (action.getTrigger() == type) {
+                        action.run(player, world, pos);
+                    }
+                }
+            });
+        }
+    }
+
+    /**
+     * Handles timer-based triggers.
+     * Called from PlayerEntityMixin's tick method.
+     */
+    public static void handleTimerActions(PlayerEntity player) {
+        if (player.getWorld().isClient) return;
+
         IUnlockedSkillsData skillData = (IUnlockedSkillsData) player;
 
         for (String skillId : skillData.getUnlockedSkills()) {
@@ -35,8 +66,11 @@ public class SkillActionHandler {
                 }
 
                 for (SkillAction action : skill.getActions()) {
-                    if (action.getTrigger() == type) {
-                        action.execute(player, world, pos);
+                    // Check if it's a timer and if it's the right tick to fire
+                    if (action.getTrigger() == TriggerType.TIMER) {
+                        if (player.age % Math.max(1, action.getInterval()) == 0) {
+                            action.run(player, player.getWorld(), player.getBlockPos());
+                        }
                     }
                 }
             });
