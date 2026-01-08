@@ -37,5 +37,7 @@ public record SkillConditionType<T extends SkillCondition>(Function<JsonObject, 
         register(new Identifier(Jd_skill_tree.MOD_ID, "walking_on"), WalkingOnBlockCondition::fromJson);
         register(new Identifier(Jd_skill_tree.MOD_ID, "wetness"), WetnessCondition::fromJson);
         register(new Identifier(Jd_skill_tree.MOD_ID, "in_lava"), InLavaCondition::fromJson);
+        register(new Identifier(Jd_skill_tree.MOD_ID, "sprinting"), SprintingCondition::fromJson);
+        register(new Identifier(Jd_skill_tree.MOD_ID, "crouching"), CrouchingCondition::fromJson);
     }
 }

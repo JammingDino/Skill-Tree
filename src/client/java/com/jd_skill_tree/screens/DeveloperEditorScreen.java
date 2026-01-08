@@ -583,6 +583,7 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
                 data.type = "Lava Speed";
                 data.lavaValue = String.valueOf(lava.getMultiplier());
             }
+
             addEffectRow(data);
         }
 
@@ -667,6 +668,12 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
             }
             else if (condition instanceof InLavaCondition) {
                 data.type = "In Lava";
+            }
+            else if (condition instanceof SprintingCondition) {
+                data.type = "Sprinting";
+            }
+            else if (condition instanceof CrouchingCondition) {
+                data.type = "Crouching";
             }
             addConditionRow(data);
         }
@@ -882,7 +889,7 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
         var content = Containers.verticalFlow(Sizing.fill(100), Sizing.content());
         content.padding(Insets.of(5));
 
-        content.child(dropdown("Type", List.of("Hand Item", "Equipped Item", "Y-Level", "Health",  "Hunger", "Armor", "Time", "Dimension", "Walking On", "Wetness", "In Lava"), data.type, s -> {
+        content.child(dropdown("Type", List.of("Hand Item", "Equipped Item", "Y-Level", "Health",  "Hunger", "Armor", "Time", "Dimension", "Walking On", "Wetness", "In Lava", "Sprinting", "Crouching"), data.type, s -> {
             data.type = s;
 
             conditions.remove(data);
@@ -943,6 +950,12 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
         else if (data.type.equals("Walking On")) {
             List<String> blockIds = Registries.BLOCK.getIds().stream().map(Identifier::toString).sorted().toList();
             content.child(autocompleteField("Block ID", data.walkingBlock, blockIds, s -> { data.walkingBlock = s; updatePreview(); }, 100));
+        }
+        else if (data.type.equals("Sprinting")) {
+            // No fields needed
+        }
+        else if (data.type.equals("Crouching")) {
+            // No fields needed
         }
 
         var removeBtn = Components.button(Text.of("Remove"), btn -> {
@@ -1189,6 +1202,12 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
                 }
                 else if (c.type.equals("In Lava")) {
                     cond.addProperty("type", "jd_skill_tree:in_lava");
+                }
+                else if (c.type.equals("Sprinting")) {
+                    cond.addProperty("type", "jd_skill_tree:sprinting");
+                }
+                else if (c.type.equals("Crouching")) {
+                    cond.addProperty("type", "jd_skill_tree:crouching");
                 }
                 conditionsJson.add(cond);
             }
