@@ -93,6 +93,12 @@ public class SkillConditionListAdapter implements JsonDeserializer<List<SkillCon
             else if (condition instanceof InLavaCondition) {
                 obj.addProperty("type", "jd_skill_tree:in_lava");
             }
+            else if (condition instanceof SprintingCondition) {
+                obj.addProperty("type", "jd_skill_tree:sprinting");
+            }
+            else if (condition instanceof CrouchingCondition) {
+                obj.addProperty("type", "jd_skill_tree:crouching");
+            }
             jsonArray.add(obj);
         }
         return jsonArray;
