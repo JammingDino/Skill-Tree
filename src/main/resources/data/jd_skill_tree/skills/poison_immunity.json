@@ -1,0 +1,17 @@
+{
+  "name": "Poison Immunity",
+  "description": "You can no longer be poisoned.",
+  "icon": "minecraft:spider_eye",
+  "icon_nbt": "{Enchantments:[{}]}",
+  "tier": 5,
+  "cost": 3000,
+  "prerequisites": [
+    "jd_skill_tree:vitality_6"
+  ],
+  "effects": [
+    {
+      "type": "jd_skill_tree:effect_immunity",
+      "effect": "minecraft:poison"
+    }
+  ]
+}
