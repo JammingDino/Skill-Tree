@@ -8,10 +8,7 @@ import com.jd_skill_tree.networking.SkillNetworking;
 import com.jd_skill_tree.screens.widgets.SkillWidget;
 import com.jd_skill_tree.skills.Skill;
 import com.jd_skill_tree.skills.SkillManager;
-import com.jd_skill_tree.skills.actions.BurnActionEffect;
-import com.jd_skill_tree.skills.actions.CommandActionEffect;
-import com.jd_skill_tree.skills.actions.SkillAction;
-import com.jd_skill_tree.skills.actions.SkillActionEffect;
+import com.jd_skill_tree.skills.actions.*;
 import com.jd_skill_tree.skills.conditions.*;
 import com.jd_skill_tree.skills.effects.*;
 import io.wispforest.owo.ui.base.BaseComponent;
@@ -99,6 +96,14 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
         String command = "/say hi";
         String burnDuration = "100";
         boolean burnIgnoreArmor = false;
+
+        String delayTicks = "20";
+        String delayedEffectType = "Command"; // The type of the inner effect
+        String delayedCommand = "/say Later!";
+        String delayedBurnDuration = "100";
+        boolean delayedBurnIgnoreArmor = false;
+        ConditionData delayedCondition = null; // The inner condition
+
     }
     private final List<ActionData> actions = new ArrayList<>();
 
@@ -626,6 +631,25 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
                 data.effectType = "Burn";
                 data.burnDuration = String.valueOf(burn.getDuration());
                 data.burnIgnoreArmor = burn.isIgnoreArmor();
+            } else if (effect instanceof DelayedActionEffect delayed) {
+                data.effectType = "Delayed";
+                data.delayTicks = String.valueOf(delayed.getDelay());
+
+                // Load Inner Effect
+                SkillActionEffect inner = delayed.getNextEffect();
+                if (inner instanceof CommandActionEffect c) {
+                    data.delayedEffectType = "Command";
+                    data.delayedCommand = c.getCommand();
+                } else if (inner instanceof BurnActionEffect b) {
+                    data.delayedEffectType = "Burn";
+                    data.delayedBurnDuration = String.valueOf(b.getDuration());
+                    data.delayedBurnIgnoreArmor = b.isIgnoreArmor();
+                }
+
+                // Load Inner Condition
+                if (delayed.getNextCondition() != null) {
+                    data.delayedCondition = convertConditionToData(delayed.getNextCondition());
+                }
             }
             addActionRow(data);
         }
@@ -889,7 +913,7 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
         }
 
         // Effect Type Selector
-        content.child(dropdown("Effect Type", List.of("Command", "Burn"), data.effectType, s -> {
+        content.child(dropdown("Effect Type", List.of("Command", "Burn", "Delayed"), data.effectType, s -> {
             data.effectType = s;
             rebuildActionRow(collapsible, content, data); // Rebuild to change specific fields
             updatePreview();
@@ -904,6 +928,41 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
             check.checked(data.burnIgnoreArmor);
             check.onChanged(checked -> { data.burnIgnoreArmor = checked; updatePreview(); });
             content.child(check.margins(Insets.top(5)));
+        } else if (data.effectType.equals("Delayed")) {
+            content.child(field("Delay (Ticks)", data.delayTicks, s -> { data.delayTicks = s; updatePreview(); }, 100));
+
+            // Visual Separator for inner action
+            content.child(Components.box(Sizing.fill(100), Sizing.fixed(1)).color(Color.ofArgb(0xFF555555)).margins(Insets.vertical(5)));
+            content.child(Components.label(Text.of("Action After Delay")).color(Color.ofRgb(0x55FF55)));
+
+            // Inner Effect Selector
+            content.child(dropdown("Then Execute...", List.of("Command", "Burn"), data.delayedEffectType, s -> {
+                data.delayedEffectType = s;
+                rebuildActionRow(collapsible, content, data); // Rebuild to show inner fields
+                updatePreview();
+            }, 100));
+
+            // Inner Effect Fields
+            if (data.delayedEffectType.equals("Command")) {
+                content.child(field("Command", data.delayedCommand, s -> { data.delayedCommand = s; updatePreview(); }, 100));
+            } else if (data.delayedEffectType.equals("Burn")) {
+                content.child(field("Duration", data.delayedBurnDuration, s -> { data.delayedBurnDuration = s; updatePreview(); }, 100));
+                var check = Components.checkbox(Text.of("Ignore Armor"));
+                check.checked(data.delayedBurnIgnoreArmor);
+                check.onChanged(checked -> { data.delayedBurnIgnoreArmor = checked; updatePreview(); });
+                content.child(check);
+            }
+
+            // Inner Condition Editor
+            content.child(Components.label(Text.of("Delayed Condition (Optional)")).color(Color.ofRgb(0xAAAAAA)).margins(Insets.top(5)));
+            FlowLayout innerCondContainer = Containers.verticalFlow(Sizing.fill(100), Sizing.content());
+            renderConditionEditor(innerCondContainer, data.delayedCondition, (newCond) -> {
+                data.delayedCondition = newCond;
+                updatePreview();
+            });
+            content.child(innerCondContainer);
+
+            content.child(Components.box(Sizing.fill(100), Sizing.fixed(1)).color(Color.ofArgb(0xFF555555)).margins(Insets.vertical(5)));
         }
 
         // --- NEW: CONDITION EDITOR FOR ACTIONS ---
@@ -1284,7 +1343,28 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
                     effectObj.addProperty("type", "jd_skill_tree:burn");
                     effectObj.addProperty("duration", tryParse(a.burnDuration));
                     effectObj.addProperty("ignore_armor", a.burnIgnoreArmor);
+                } else if (a.effectType.equals("Delayed")) {
+                    effectObj.addProperty("type", "jd_skill_tree:delayed");
+                    effectObj.addProperty("delay", tryParse(a.delayTicks));
+
+                    // Inner Effect
+                    JsonObject innerEff = new JsonObject();
+                    if (a.delayedEffectType.equals("Command")) {
+                        innerEff.addProperty("type", "jd_skill_tree:command");
+                        innerEff.addProperty("command", a.delayedCommand);
+                    } else if (a.delayedEffectType.equals("Burn")) {
+                        innerEff.addProperty("type", "jd_skill_tree:burn");
+                        innerEff.addProperty("duration", tryParse(a.delayedBurnDuration));
+                        innerEff.addProperty("ignore_armor", a.delayedBurnIgnoreArmor);
+                    }
+                    effectObj.add("effect", innerEff);
+
+                    // Inner Condition
+                    if (a.delayedCondition != null) {
+                        effectObj.add("condition", generateConditionJson(a.delayedCondition));
+                    }
                 }
+
                 act.add("effect", effectObj);
 
                 if (a.condition != null) {
