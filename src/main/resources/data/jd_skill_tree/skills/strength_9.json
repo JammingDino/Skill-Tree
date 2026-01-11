@@ -1,0 +1,17 @@
+{
+  "name": "Strength IX",
+  "description": "Increases your attack damage by 3% (multiplicatively)",
+  "icon": "minecraft:netherite_sword",
+  "icon_nbt": "{Enchantments:[{}]}",
+  "tier": 5,
+  "cost": 3000,
+  "prerequisites": [ "jd_skill_tree:strength_8" ],
+  "effects": [
+    {
+      "type": "jd_skill_tree:attribute",
+      "attribute": "minecraft:generic.attack_damage",
+      "operation": "MULTIPLY_TOTAL",
+      "value": 0.03
+    }
+  ]
+}

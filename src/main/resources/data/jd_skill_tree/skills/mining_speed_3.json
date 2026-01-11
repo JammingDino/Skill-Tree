@@ -1,12 +1,10 @@
 {
   "name": "Mining Speed III",
-  "description": "Increases mining speed by 5%",
+  "description": "Increases your mining speed by 5%",
   "icon": "minecraft:iron_pickaxe",
   "tier": 3,
-  "cost": 1600,
-  "prerequisites": [
-    "jd_skill_tree:mining_speed_2"
-  ],
+  "cost": 600,
+  "prerequisites": [ "jd_skill_tree:mining_speed_2" ],
   "effects": [
     {
       "type": "jd_skill_tree:mining_speed",

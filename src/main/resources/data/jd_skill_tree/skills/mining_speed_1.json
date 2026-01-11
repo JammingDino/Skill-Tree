@@ -3,7 +3,7 @@
   "description": "Increases your mining speed by 5%",
   "icon": "minecraft:wooden_pickaxe",
   "tier": 1,
-  "cost": 200,
+  "cost": 100,
   "effects": [
     {
       "type": "jd_skill_tree:mining_speed",

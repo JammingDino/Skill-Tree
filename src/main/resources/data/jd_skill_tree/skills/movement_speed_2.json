@@ -1,18 +1,18 @@
 {
   "name": "Movement Speed II",
-  "description": "Increases movement speed by 3%.",
+  "description": "Increases your movement speed by 3% (multiplicatively)",
   "icon": "minecraft:chainmail_boots",
   "tier": 2,
-  "cost": 800,
+  "cost": 300,
+  "prerequisites": [
+    "jd_skill_tree:movement_speed_1"
+  ],
   "effects": [
     {
       "type": "jd_skill_tree:attribute",
       "attribute": "minecraft:generic.movement_speed",
-      "operation": "multiply_total",
+      "operation": "MULTIPLY_TOTAL",
       "value": 0.03
     }
-  ],
-  "prerequisites": [
-    "jd_skill_tree:movement_speed_1"
   ]
 }

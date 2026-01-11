@@ -1,20 +1,28 @@
 package com.jd_skill_tree.skills.effects;
 
 import com.google.gson.JsonObject;
+import com.jd_skill_tree.skills.conditions.SkillCondition;
+import com.jd_skill_tree.skills.conditions.SkillConditionType;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.util.JsonHelper;
 
 public class SwimSpeedSkillEffect implements SkillEffect {
 
     private final float multiplier;
+    private final SkillCondition condition;
 
-    public SwimSpeedSkillEffect(float multiplier) {
+    public SwimSpeedSkillEffect(float multiplier, SkillCondition condition) {
         this.multiplier = multiplier;
+        this.condition = condition;
+    }
+
+    @Override
+    public SkillCondition getCondition() {
+        return this.condition;
     }
 
     @Override
     public float modifySwimSpeed(PlayerEntity player, float currentSpeed) {
-        // Multiplier logic: 1.0 = +100% speed
         return currentSpeed * (1.0f + this.multiplier);
     }
 
@@ -24,6 +32,12 @@ public class SwimSpeedSkillEffect implements SkillEffect {
 
     public static SwimSpeedSkillEffect fromJson(JsonObject json) {
         float val = JsonHelper.getFloat(json, "value");
-        return new SwimSpeedSkillEffect(val);
+
+        SkillCondition cond = null;
+        if (json.has("condition")) {
+            cond = SkillConditionType.create(json.getAsJsonObject("condition"));
+        }
+
+        return new SwimSpeedSkillEffect(val, cond);
     }
 }

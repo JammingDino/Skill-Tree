@@ -21,10 +21,14 @@ public abstract class LivingEntityMixin {
     private Set<SkillEffect> jd_skill_tree$getActiveEffects(PlayerEntity player) {
         Set<SkillEffect> effects = new HashSet<>();
         IUnlockedSkillsData skillData = (IUnlockedSkillsData) player;
+
         for (String skillIdString : skillData.getUnlockedSkills()) {
             SkillManager.getSkill(new Identifier(skillIdString)).ifPresent(skill -> {
-                if (skill.areConditionsMet(player)) {
-                    effects.addAll(skill.getEffects());
+                // FIXED: Iterate effects individually and check their specific conditions
+                for (SkillEffect effect : skill.getEffects()) {
+                    if (effect.isActive(player)) {
+                        effects.add(effect);
+                    }
                 }
             });
         }

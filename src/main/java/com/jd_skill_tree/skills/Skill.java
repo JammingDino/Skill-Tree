@@ -36,9 +36,6 @@ public class Skill {
     @SerializedName("actions")
     private List<SkillAction> actions = new ArrayList<>();
 
-    @SerializedName("conditions")
-    private List<SkillCondition> conditions = new ArrayList<>();
-
     // --- Fields that are NOT in the JSON, but are managed by our code ---
     private transient Identifier id; // 'transient' means GSON will ignore this field
     private transient ItemStack iconStackCache; // A cache for the item stack to avoid creating it repeatedly
@@ -104,7 +101,6 @@ public class Skill {
         return this.effects;
     }
     public List<SkillAction> getActions() { return this.actions; }
-    public List<SkillCondition> getConditions() { return this.conditions; }
 
     /**
      * This is called by our SkillLoader after a skill is created from JSON.
@@ -112,14 +108,5 @@ public class Skill {
      */
     public void setId(Identifier id) {
         this.id = id;
-    }
-
-    public boolean areConditionsMet(PlayerEntity player) {
-        if (this.conditions == null || this.conditions.isEmpty()) return true;
-
-        for (SkillCondition condition : this.conditions) {
-            if (!condition.test(player)) return false;
-        }
-        return true;
     }
 }

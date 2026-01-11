@@ -41,8 +41,12 @@ public abstract class PlayerEntityMixin extends LivingEntity implements IUnlocke
 
         for (String skillIdString : skillData.getUnlockedSkills()) {
             SkillManager.getSkill(new Identifier(skillIdString)).ifPresent(skill -> {
-                if (skill.areConditionsMet(player)) {
-                    effects.addAll(skill.getEffects());
+
+                // Iterate all effects and check INDIVIDUALLY
+                for (SkillEffect effect : skill.getEffects()) {
+                    if (effect.isActive(player)) { // This checks the specific condition
+                        effects.add(effect);
+                    }
                 }
             });
         }

@@ -1,7 +1,9 @@
 package com.jd_skill_tree.skills.actions;
 
 import com.google.gson.*;
-import com.jd_skill_tree.Jd_skill_tree;
+import com.jd_skill_tree.skills.conditions.SkillCondition;
+import com.jd_skill_tree.skills.conditions.SkillConditionListAdapter;
+import com.jd_skill_tree.skills.conditions.SkillConditionType;
 import net.minecraft.util.JsonHelper;
 
 import java.lang.reflect.Type;
@@ -19,9 +21,14 @@ public class SkillActionListAdapter implements JsonDeserializer<List<SkillAction
                 TriggerType trigger = TriggerType.valueOf(JsonHelper.getString(obj, "trigger").toUpperCase());
                 int interval = JsonHelper.getInt(obj, "interval", 20);
 
-                // Nested effect parsing
                 SkillActionEffect effect = SkillActionEffectType.create(obj.getAsJsonObject("effect"));
-                actions.add(new SkillAction(trigger, effect, interval));
+
+                SkillCondition condition = null;
+                if (obj.has("condition")) {
+                    condition = SkillConditionType.create(obj.getAsJsonObject("condition"));
+                }
+
+                actions.add(new SkillAction(trigger, effect, interval, condition));
             }
         }
         return actions;
@@ -46,6 +53,13 @@ public class SkillActionListAdapter implements JsonDeserializer<List<SkillAction
                 effectObj.addProperty("ignore_armor", burn.isIgnoreArmor());
             }
             obj.add("effect", effectObj);
+
+            // --- FIXED: Use static helper ---
+            if (action.getCondition() != null) {
+                obj.add("condition", SkillConditionListAdapter.serializeCondition(action.getCondition(), context));
+            }
+            // --------------------------------
+
             array.add(obj);
         }
         return array;

@@ -1,0 +1,15 @@
+{
+  "name": "Strength I",
+  "description": "Increases your attack damage by 3% (multiplicatively)",
+  "icon": "minecraft:wooden_sword",
+  "tier": 1,
+  "cost": 100,
+  "effects": [
+    {
+      "type": "jd_skill_tree:attribute",
+      "attribute": "minecraft:generic.attack_damage",
+      "operation": "MULTIPLY_TOTAL",
+      "value": 0.03
+    }
+  ]
+}

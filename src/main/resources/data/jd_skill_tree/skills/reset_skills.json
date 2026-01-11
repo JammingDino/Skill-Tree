@@ -1,8 +1,9 @@
 {
   "name": "Reset Skills",
-  "description": "Revokes all unlocked skills and refunds all spent experience levels.",
+  "description": "Refunds all spent XP points and locks all skills.",
   "icon": "minecraft:barrier",
-  "tier": 1,
+  "tier": 0,
   "cost": 0,
-  "prerequisites": []
+  "effects": [],
+  "actions": []
 }

@@ -1,9 +1,9 @@
 {
   "name": "Vitality II",
-  "description": "Increases maximum life by a heart.",
-  "icon": "minecraft:apple",
+  "description": "Increases your maximum life by 2 hearts.",
+  "icon": "minecraft:carrot",
   "tier": 2,
-  "cost": 200,
+  "cost": 300,
   "prerequisites": [
     "jd_skill_tree:vitality_1"
   ],

@@ -1,0 +1,16 @@
+{
+  "name": "Strength IV",
+  "description": "Increases your attack damage by 3% (multiplicatively)",
+  "icon": "minecraft:golden_sword",
+  "tier": 3,
+  "cost": 1500,
+  "prerequisites": [ "jd_skill_tree:strength_3" ],
+  "effects": [
+    {
+      "type": "jd_skill_tree:attribute",
+      "attribute": "minecraft:generic.attack_damage",
+      "operation": "MULTIPLY_TOTAL",
+      "value": 0.03
+    }
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "name": "Strength III",
+  "description": "Increases your attack damage by 3% (multiplicatively)",
+  "icon": "minecraft:iron_sword",
+  "tier": 3,
+  "cost": 600,
+  "prerequisites": [ "jd_skill_tree:strength_2" ],
+  "effects": [
+    {
+      "type": "jd_skill_tree:attribute",
+      "attribute": "minecraft:generic.attack_damage",
+      "operation": "MULTIPLY_TOTAL",
+      "value": 0.03
+    }
+  ]
+}

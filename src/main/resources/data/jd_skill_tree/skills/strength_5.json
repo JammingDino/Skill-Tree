@@ -1,0 +1,16 @@
+{
+  "name": "Strength V",
+  "description": "Increases your attack damage by 3% (multiplicatively)",
+  "icon": "minecraft:diamond_sword",
+  "tier": 4,
+  "cost": 2000,
+  "prerequisites": [ "jd_skill_tree:strength_4" ],
+  "effects": [
+    {
+      "type": "jd_skill_tree:attribute",
+      "attribute": "minecraft:generic.attack_damage",
+      "operation": "MULTIPLY_TOTAL",
+      "value": 0.03
+    }
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "name": "Movement Speed VI",
+  "description": "Increases your movement speed by 3% (multiplicatively)",
+  "icon": "minecraft:netherite_boots",
+  "tier": 5,
+  "cost": 3000,
+  "prerequisites": [
+    "jd_skill_tree:movement_speed_5"
+  ],
+  "effects": [
+    {
+      "type": "jd_skill_tree:attribute",
+      "attribute": "minecraft:generic.movement_speed",
+      "operation": "MULTIPLY_TOTAL",
+      "value": 0.03
+    }
+  ]
+}

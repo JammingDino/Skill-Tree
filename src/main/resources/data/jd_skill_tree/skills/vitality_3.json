@@ -1,9 +1,9 @@
 {
   "name": "Vitality III",
-  "description": "Increases maximum life by a heart.",
-  "icon": "minecraft:golden_carrot",
+  "description": "Increases your maximum life by 2 hearts.",
+  "icon": "minecraft:apple",
   "tier": 3,
-  "cost": 300,
+  "cost": 600,
   "prerequisites": [
     "jd_skill_tree:vitality_2"
   ],

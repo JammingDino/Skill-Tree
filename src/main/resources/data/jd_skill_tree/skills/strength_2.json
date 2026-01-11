@@ -1,0 +1,16 @@
+{
+  "name": "Strength II",
+  "description": "Increases your attack damage by 3% (multiplicatively)",
+  "icon": "minecraft:stone_sword",
+  "tier": 2,
+  "cost": 300,
+  "prerequisites": [ "jd_skill_tree:strength_1" ],
+  "effects": [
+    {
+      "type": "jd_skill_tree:attribute",
+      "attribute": "minecraft:generic.attack_damage",
+      "operation": "MULTIPLY_TOTAL",
+      "value": 0.03
+    }
+  ]
+}

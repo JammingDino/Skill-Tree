@@ -1,7 +1,7 @@
 {
   "name": "Vitality I",
-  "description": "Increases maximum life by a heart.",
-  "icon": "minecraft:carrot",
+  "description": "Increases your maximum life by 2 hearts.",
+  "icon": "minecraft:potato",
   "tier": 1,
   "cost": 100,
   "effects": [
