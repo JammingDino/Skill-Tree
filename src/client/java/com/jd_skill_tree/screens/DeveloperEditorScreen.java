@@ -86,6 +86,7 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
         String xpValue = "0.5";
         String swimValue = "0.5";
         String lavaValue = "0.5";
+        String immuneEffectId = "minecraft:poison";
     }
     private final List<EffectData> effects = new ArrayList<>();
 
@@ -947,7 +948,7 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
         var content = Containers.verticalFlow(Sizing.fill(100), Sizing.content());
         content.padding(Insets.of(5));
 
-        content.child(dropdown("Type", List.of("Attribute", "Mining Speed", "Potion", "Enchantment", "Attack Knockback", "Experience", "Swim Speed", "Lava Speed"), data.type, s -> {
+        content.child(dropdown("Type", List.of("Attribute", "Mining Speed", "Potion", "Enchantment", "Attack Knockback", "Experience", "Swim Speed", "Lava Speed", "Effect Immunity"), data.type, s -> {
             data.type = s;
             rebuildEffectRow(collapsible, content, data);
             updatePreview();
@@ -1178,6 +1179,10 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
         else if (data.type.equals("Lava Speed")) {
             content.child(field("Multiplier (0.5 = +50% Speed)", data.lavaValue, s -> { data.lavaValue = s; updatePreview(); }, 100));
         }
+        else if (data.type.equals("Effect Immunity")) {
+            List<String> effectIds = Registries.STATUS_EFFECT.getIds().stream().map(Identifier::toString).sorted().toList();
+            content.child(autocompleteField("Immune To (Effect ID)", data.immuneEffectId, effectIds, s -> { data.immuneEffectId = s; updatePreview(); }, 100));
+        }
 
         var removeBtn = Components.button(Text.of("Remove"), btn -> {
             effects.remove(data);
@@ -1246,6 +1251,10 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
                 } else if (e.type.equals("Lava Speed")) {
                     eff.addProperty("type", "jd_skill_tree:lava_speed");
                     try { eff.addProperty("value", Double.parseDouble(e.lavaValue)); } catch (Exception ex) { eff.addProperty("value", 0.0); }
+                }
+                else if (e.type.equals("Effect Immunity")) {
+                    eff.addProperty("type", "jd_skill_tree:effect_immunity");
+                    eff.addProperty("effect", e.immuneEffectId);
                 }
 
                 if (e.condition != null) {

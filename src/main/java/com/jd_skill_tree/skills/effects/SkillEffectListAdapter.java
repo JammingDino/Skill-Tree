@@ -88,6 +88,10 @@ public class SkillEffectListAdapter implements JsonDeserializer<List<SkillEffect
                 obj.addProperty("type", "jd_skill_tree:lava_speed");
                 obj.addProperty("value", lavaEffect.getMultiplier());
             }
+            else if (effect instanceof EffectImmunitySkillEffect immuneEffect) {
+                obj.addProperty("type", "jd_skill_tree:effect_immunity");
+                obj.addProperty("effect", immuneEffect.getEffectId().toString());
+            }
 
             jsonArray.add(obj);
         }

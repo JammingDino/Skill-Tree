@@ -81,6 +81,13 @@ public interface SkillEffect {
         return getCondition() == null || getCondition().test(player);
     }
 
+    /**
+     * Checks if this skill effect prevents a specific status effect from being applied.
+     */
+    default boolean preventsEffect(net.minecraft.entity.effect.StatusEffect effect) {
+        return false;
+    }
+
     // In the future, we can add more methods here, e.g.:
     // default void onDamage(PlayerEntity player, DamageSource source, float amount) {}
     // default void onJump(PlayerEntity player) {}
