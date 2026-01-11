@@ -1,0 +1,17 @@
+{
+  "name": "Iron Stomach",
+  "description": "You are immune to the Hunger status effect.",
+  "icon": "minecraft:rotten_flesh",
+  "icon_nbt": "{Enchantments:[{}]}",
+  "tier": 3,
+  "cost": 1000,
+  "prerequisites": [
+    "jd_skill_tree:vitality_3"
+  ],
+  "effects": [
+    {
+      "type": "jd_skill_tree:effect_immunity",
+      "effect": "minecraft:hunger"
+    }
+  ]
+}
