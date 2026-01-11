@@ -69,6 +69,8 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
 
     // --- Data Classes ---
     private static class EffectData {
+        ConditionData condition = null;
+
         String type = "Attribute";
         String attr = "minecraft:generic.max_health";
         String op = "ADDITION";
@@ -88,14 +90,12 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
     private final List<EffectData> effects = new ArrayList<>();
 
     private static class ActionData {
+        ConditionData condition = null;
+
         String trigger = "BLOCK_BREAK";
         String interval = "20";
-        String effectType = "Command"; // "Command" or "Burn"
-
-        // Command Fields
+        String effectType = "Command";
         String command = "/say hi";
-
-        // Burn Fields
         String burnDuration = "100";
         boolean burnIgnoreArmor = false;
     }
@@ -103,27 +103,59 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
 
     // --- Condition Data ---
     private static class ConditionData {
+        // --- Type Identifier ---
+        // Options: AND, OR, NOT, Hand Item, Equipped Item, Y-Level, Health, Hunger, Armor,
+        // Time, Dimension, Walking On, Wetness, In Lava, Sprinting, Crouching
         String type = "Hand Item";
+
+        // --- Logic Structure (Recursive) ---
+        List<ConditionData> children = new ArrayList<>(); // Used for AND, OR
+        ConditionData child = null;                       // Used for NOT
+
+        // --- Item Conditions (Hand Item, Equipped Item) ---
         String item = "minecraft:stick";
         String count = "1";
+        // Used for both Hand (MAINHAND/OFFHAND) and Armor slots (HELMET/CHEST/LEGS/BOOTS)
         String slot = "MAINHAND";
         String nbt = "";
 
+        // --- Y-Level Condition ---
         String yComparison = "GREATER_THAN";
         String yValue = "64";
+
+        // --- Health Condition ---
         String healthComparison = "GREATER_THAN";
-        String healthValue = "10.0";
+        String healthValue = "10.0"; // Float value (20.0 = 10 hearts)
+
+        // --- Hunger Condition ---
         String hungerComparison = "GREATER_THAN";
-        String hungerValue = "10";
+        String hungerValue = "10";   // Int value (20 = full bar)
+
+        // --- Armor Condition ---
         String armorComparison = "GREATER_THAN";
         String armorValue = "10";
 
+        // --- Time Condition ---
         String timeMin = "0";
         String timeMax = "24000";
+
+        // --- Dimension Condition ---
         String dimension = "minecraft:overworld";
+
+        // --- Walking On Block Condition ---
         String walkingBlock = "minecraft:grass_block";
+
+        // --- Boolean/State Conditions ---
+        // Sprinting, Crouching, Wetness, In Lava don't need extra fields.
+        // Their existence is defined solely by the 'type' string.
+
+        /**
+         * Helper to check if this node holds other conditions.
+         */
+        boolean isLogic() {
+            return type.equals("AND") || type.equals("OR") || type.equals("NOT");
+        }
     }
-    private final List<ConditionData> conditions = new ArrayList<>();
 
     private SkillWidget previewWidget;
     private Skill previewSkill;
@@ -166,9 +198,6 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
 
         List<ActionData> loadedActions = new ArrayList<>(this.actions);
         this.actions.clear();
-
-        List<ConditionData> loadedConditions = new ArrayList<>(this.conditions);
-        this.conditions.clear();
 
         root.surface(Surface.VANILLA_TRANSLUCENT);
 
@@ -253,23 +282,10 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
         applyStandardButtonRenderer(addActionBtn);
         editorContent.child(addActionBtn);
 
-        // Conditions Section
-        editorContent.child(Components.box(Sizing.fill(100), Sizing.fixed(1)).color(Color.ofArgb(0xFF555555)).margins(Insets.vertical(10)));
-        editorContent.child(Components.label(Text.of("Conditions (Requirements)")).color(Color.ofRgb(0x55FFFF)).margins(Insets.bottom(5)));
-
-        conditionsContainer = Containers.verticalFlow(Sizing.fill(100), Sizing.content());
-        editorContent.child(conditionsContainer);
-
-        var addConditionBtn = Components.button(Text.of("+ Add Condition"), btn -> { addConditionRow(new ConditionData()); updatePreview(); });
-        addConditionBtn.sizing(Sizing.fill(100), Sizing.fixed(20));
-        applyStandardButtonRenderer(addConditionBtn);
-        editorContent.child(addConditionBtn);
-
         // Restore Rows
         for (String p : loadedParents) addParentRow(p);
         for (EffectData e : loadedEffects) addEffectRow(e);
         for (ActionData a : loadedActions) addActionRow(a);
-        for (ConditionData c : loadedConditions) addConditionRow(c);
 
         // Clear/Reset Button
         editorContent.child(Components.box(Sizing.fill(100), Sizing.fixed(1)).color(Color.ofArgb(0xFF555555)).margins(Insets.vertical(15)));
@@ -432,7 +448,6 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
             state.parents = this.parentIds;
             state.effects = this.effects;
             state.actions = this.actions;
-            state.conditions = this.conditions;
 
             String json = GSON.toJson(state);
             Files.createDirectories(AUTOSAVE_PATH.getParent());
@@ -458,7 +473,6 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
                 if (state.parents != null) this.parentIds.addAll(state.parents);
                 if (state.effects != null) this.effects.addAll(state.effects);
                 if (state.actions != null) this.actions.addAll(state.actions);
-                if (state.conditions != null) this.conditions.addAll(state.conditions);
             }
         } catch (Exception e) {
             System.err.println("Failed to load editor autosave");
@@ -478,7 +492,6 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
         this.parentIds.clear();
         this.effects.clear();
         this.actions.clear();
-        this.conditions.clear();
 
         if (nameField != null) nameField.setText(name);
         if (costField != null) costField.setText(cost);
@@ -539,6 +552,11 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
         this.effectsContainer.clearChildren();
         for (SkillEffect effect : skill.getEffects()) {
             EffectData data = new EffectData();
+
+            if (effect.getCondition() != null) {
+                data.condition = convertConditionToData(effect.getCondition());
+            }
+
             if (effect instanceof AttributeSkillEffect attr) {
                 data.type = "Attribute";
                 data.attr = Objects.requireNonNull(Registries.ATTRIBUTE.getId(attr.getAttribute())).toString();
@@ -594,6 +612,10 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
             data.trigger = action.getTrigger().name();
             data.interval = String.valueOf(action.getInterval());
 
+            if (action.getCondition() != null) {
+                data.condition = convertConditionToData(action.getCondition());
+            }
+
             SkillActionEffect effect = action.getEffect();
 
             if (effect instanceof CommandActionEffect cmd) {
@@ -607,78 +629,103 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
             addActionRow(data);
         }
 
-        this.conditions.clear();
-        this.conditionsContainer.clearChildren();
-        for (SkillCondition condition : skill.getConditions()) {
-            ConditionData data = new ConditionData();
-            if (condition instanceof HandItemCondition hand) {
-                data.type = "Hand Item";
-                data.item = Registries.ITEM.getId(hand.getTargetItem()).toString();
-                data.count = String.valueOf(hand.getMinCount());
-                data.slot = hand.getSlot().name();
-                data.nbt = hand.getNbt() != null ? hand.getNbt().toString() : "";
+        updatePreview();
+    }
+
+    private ConditionData convertConditionToData(SkillCondition cond) {
+        if (cond == null) return null;
+
+        ConditionData data = new ConditionData();
+
+        // --- LOGIC CONDITIONS ---
+        if (cond instanceof com.jd_skill_tree.skills.conditions.AndCondition c) {
+            data.type = "AND";
+            for (SkillCondition child : c.getConditions()) {
+                data.children.add(convertConditionToData(child));
             }
-            else if (condition instanceof YLevelCondition yLevel) {
-                data.type = "Y-Level";
-                data.yComparison = yLevel.getComparison().name();
-                data.yValue = String.valueOf(yLevel.getTargetY());
+        }
+        else if (cond instanceof com.jd_skill_tree.skills.conditions.OrCondition c) {
+            data.type = "OR";
+            for (SkillCondition child : c.getConditions()) {
+                data.children.add(convertConditionToData(child));
             }
-            else if (condition instanceof HealthCondition health) {
-                data.type = "Health";
-                data.healthComparison = health.getComparison().name();
-                data.healthValue = String.valueOf(health.getTargetHealth());
-            }
-            else if (condition instanceof HungerCondition hunger) {
-                data.type = "Hunger";
-                data.hungerComparison = hunger.getComparison().name();
-                data.hungerValue = String.valueOf(hunger.getTargetHunger());
-            }
-            else if (condition instanceof ArmorCondition armor) {
-                data.type = "Armor";
-                data.armorComparison = armor.getComparison().name();
-                data.armorValue = String.valueOf(armor.getTargetArmor());
-            }
-            else if (condition instanceof EquippedItemCondition equipped) {
-                data.type = "Equipped Item";
-                data.item = Registries.ITEM.getId(equipped.getTargetItem()).toString();
-                data.count = "1";
-                data.slot = switch(equipped.getSlot()) {
-                    case FEET -> "BOOTS";
-                    case LEGS -> "LEGS";
-                    case CHEST -> "CHEST";
-                    default -> "HELMET";
-                };
-                data.nbt = equipped.getNbt() != null ? equipped.getNbt().toString() : "";
-            }
-            else if (condition instanceof TimeOfDayCondition time) {
-                data.type = "Time";
-                data.timeMin = String.valueOf(time.getMinTime());
-                data.timeMax = String.valueOf(time.getMaxTime());
-            }
-            else if (condition instanceof DimensionCondition dim) {
-                data.type = "Dimension";
-                data.dimension = dim.getDimensionId().toString();
-            }
-            else if (condition instanceof WalkingOnBlockCondition walk) {
-                data.type = "Walking On";
-                data.walkingBlock = Registries.BLOCK.getId(walk.getTargetBlock()).toString();
-            }
-            else if (condition instanceof WetnessCondition) {
-                data.type = "Wetness";
-            }
-            else if (condition instanceof InLavaCondition) {
-                data.type = "In Lava";
-            }
-            else if (condition instanceof SprintingCondition) {
-                data.type = "Sprinting";
-            }
-            else if (condition instanceof CrouchingCondition) {
-                data.type = "Crouching";
-            }
-            addConditionRow(data);
+        }
+        else if (cond instanceof com.jd_skill_tree.skills.conditions.NotCondition c) {
+            data.type = "NOT";
+            data.child = convertConditionToData(c.getCondition());
         }
 
-        updatePreview();
+        // --- ITEM CONDITIONS ---
+        else if (cond instanceof HandItemCondition c) {
+            data.type = "Hand Item";
+            data.item = Registries.ITEM.getId(c.getTargetItem()).toString();
+            data.count = String.valueOf(c.getMinCount());
+            data.slot = c.getSlot().name();
+            data.nbt = c.getNbt() != null ? c.getNbt().toString() : "";
+        }
+        else if (cond instanceof EquippedItemCondition c) {
+            data.type = "Equipped Item";
+            data.item = Registries.ITEM.getId(c.getTargetItem()).toString();
+            // Convert EquipmentSlot enum to GUI friendly string
+            data.slot = switch (c.getSlot()) {
+                case FEET -> "BOOTS";
+                case LEGS -> "LEGS";
+                case CHEST -> "CHEST";
+                default -> "HELMET";
+            };
+            data.nbt = c.getNbt() != null ? c.getNbt().toString() : "";
+        }
+
+        // --- PLAYER STATS ---
+        else if (cond instanceof HealthCondition c) {
+            data.type = "Health";
+            data.healthComparison = c.getComparison().name();
+            data.healthValue = String.valueOf(c.getTargetHealth());
+        }
+        else if (cond instanceof HungerCondition c) {
+            data.type = "Hunger";
+            data.hungerComparison = c.getComparison().name();
+            data.hungerValue = String.valueOf(c.getTargetHunger());
+        }
+        else if (cond instanceof ArmorCondition c) {
+            data.type = "Armor";
+            data.armorComparison = c.getComparison().name();
+            data.armorValue = String.valueOf(c.getTargetArmor());
+        }
+        else if (cond instanceof SprintingCondition) {
+            data.type = "Sprinting";
+        }
+        else if (cond instanceof CrouchingCondition) {
+            data.type = "Crouching";
+        }
+        else if (cond instanceof WetnessCondition) {
+            data.type = "Wetness";
+        }
+        else if (cond instanceof InLavaCondition) {
+            data.type = "In Lava";
+        }
+
+        // --- WORLD STATE ---
+        else if (cond instanceof YLevelCondition c) {
+            data.type = "Y-Level";
+            data.yComparison = c.getComparison().name();
+            data.yValue = String.valueOf(c.getTargetY());
+        }
+        else if (cond instanceof TimeOfDayCondition c) {
+            data.type = "Time";
+            data.timeMin = String.valueOf(c.getMinTime());
+            data.timeMax = String.valueOf(c.getMaxTime());
+        }
+        else if (cond instanceof DimensionCondition c) {
+            data.type = "Dimension";
+            data.dimension = c.getDimensionId().toString();
+        }
+        else if (cond instanceof WalkingOnBlockCondition c) {
+            data.type = "Walking On";
+            data.walkingBlock = Registries.BLOCK.getId(c.getTargetBlock()).toString();
+        }
+
+        return data;
     }
 
     // --- WIDGET GENERATORS ---
@@ -819,14 +866,14 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
         var content = Containers.verticalFlow(Sizing.fill(100), Sizing.content());
         content.padding(Insets.of(5));
 
-        // The Trigger Dropdown (Always visible, Index 0)
+        // 1. Trigger Dropdown (Always Index 0)
         content.child(dropdown("Trigger", List.of("BLOCK_BREAK", "BLOCK_PLACE", "TIMER"), data.trigger, s -> {
             data.trigger = s;
             rebuildActionRow(collapsible, content, data);
             updatePreview();
         }, 100).margins(Insets.bottom(5)));
 
-        // Build the rest of the fields
+        // 2. Build Fields & Condition Editor
         buildActionFields(content, data, collapsible);
 
         collapsible.child(content);
@@ -835,19 +882,19 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
     }
 
     private void buildActionFields(FlowLayout content, ActionData data, Component collapsible) {
-        // 1. Trigger Specific Settings (Interval)
+        // Trigger Specifics
         if (data.trigger.equals("TIMER")) {
             content.child(field("Interval (Ticks)", data.interval, s -> { data.interval = s; updatePreview(); }, 100).margins(Insets.bottom(5)));
         }
 
-        // 2. Effect Type Selector
+        // Effect Type Selector
         content.child(dropdown("Effect Type", List.of("Command", "Burn"), data.effectType, s -> {
             data.effectType = s;
-            rebuildActionRow(collapsible, content, data);
+            rebuildActionRow(collapsible, content, data); // Rebuild to change specific fields
             updatePreview();
         }, 100).margins(Insets.bottom(5)));
 
-        // 3. Effect Specific Fields
+        // Effect Fields
         if (data.effectType.equals("Command")) {
             content.child(field("Command", data.command, s -> { data.command = s; updatePreview(); }, 100));
         } else if (data.effectType.equals("Burn")) {
@@ -858,120 +905,41 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
             content.child(check.margins(Insets.top(5)));
         }
 
+        // --- NEW: CONDITION EDITOR FOR ACTIONS ---
+        content.child(Components.box(Sizing.fill(100), Sizing.fixed(1)).color(Color.ofArgb(0xFF555555)).margins(Insets.vertical(5)));
+        content.child(Components.label(Text.of("Activation Condition (Optional)")).color(Color.ofRgb(0xAAAAAA)));
+
+        FlowLayout conditionContainer = Containers.verticalFlow(Sizing.fill(100), Sizing.content());
+        renderConditionEditor(conditionContainer, data.condition, (newCond) -> {
+            data.condition = newCond;
+            updatePreview();
+        });
+        content.child(conditionContainer);
+        // -----------------------------------------
+
         // Remove Button
-        var removeBtn = Components.button(Text.of("Remove"), btn -> {
+        var removeBtn = Components.button(Text.of("Remove Action"), btn -> {
             actions.remove(data);
             actionsContainer.removeChild(collapsible);
             updatePreview();
         });
         removeBtn.sizing(Sizing.fill(100), Sizing.fixed(20));
         removeBtn.margins(Insets.top(5));
-        applyStandardButtonRenderer(removeBtn);
-
+        removeBtn.renderer(ButtonComponent.Renderer.flat(0x00000000, 0xFF444444, 0xFF555555));
         content.child(removeBtn);
     }
 
     private void rebuildActionRow(Component collapsible, FlowLayout content, ActionData data) {
         var children = new ArrayList<>(content.children());
-        // We keep the first child (index 0) because that is the Trigger dropdown
-        // All subsequent children (Interval, Effect Type, Specific Fields) are cleared
+        // Remove everything AFTER the Trigger dropdown (index 0)
         for (int i = 1; i < children.size(); i++) {
             content.removeChild(children.get(i));
         }
+        // Re-add fields and the condition editor
         buildActionFields(content, data, collapsible);
     }
 
     // --- END ACTION LOGIC ---
-
-    private void addConditionRow(ConditionData data) {
-        conditions.add(data);
-        var collapsible = Containers.collapsible(Sizing.fill(100), Sizing.content(), Text.of("Condition"), true);
-        var content = Containers.verticalFlow(Sizing.fill(100), Sizing.content());
-        content.padding(Insets.of(5));
-
-        content.child(dropdown("Type", List.of("Hand Item", "Equipped Item", "Y-Level", "Health",  "Hunger", "Armor", "Time", "Dimension", "Walking On", "Wetness", "In Lava", "Sprinting", "Crouching"), data.type, s -> {
-            data.type = s;
-
-            conditions.remove(data);
-            conditionsContainer.removeChild(collapsible);
-            addConditionRow(data);
-
-            updatePreview();
-        }, 100).margins(Insets.bottom(5)));
-
-        List<String> itemIds = Registries.ITEM.getIds().stream().map(Identifier::toString).sorted().toList();
-
-        if (data.type.equals("Hand Item")) {
-            content.child(autocompleteField("Item ID", data.item, itemIds, s -> { data.item = s; updatePreview(); }, 100));
-            content.child(field("Minimum Count", data.count, s -> { data.count = s; updatePreview(); }, 100).margins(Insets.top(5)));
-            if (!data.slot.equals("MAINHAND") && !data.slot.equals("OFFHAND")) data.slot = "MAINHAND";
-            content.child(dropdown("Slot", List.of("MAINHAND", "OFFHAND"), data.slot, s -> { data.slot = s; updatePreview(); }, 100).margins(Insets.top(5)));
-            content.child(field("NBT Tag (Optional)", data.nbt, s -> { data.nbt = s; updatePreview(); }, 100).margins(Insets.top(5)));
-        }
-        else if (data.type.equals("Equipped Item")) {
-            content.child(autocompleteField("Armor ID", data.item, itemIds, s -> { data.item = s; updatePreview(); }, 100));
-            if (data.slot.equals("MAINHAND") || data.slot.equals("OFFHAND")) data.slot = "HELMET";
-            content.child(dropdown("Armor Slot", List.of("HELMET", "CHEST", "LEGS", "BOOTS"), data.slot, s -> { data.slot = s; updatePreview(); }, 100).margins(Insets.top(5)));
-            content.child(field("NBT Tag (Optional)", data.nbt, s -> { data.nbt = s; updatePreview(); }, 100).margins(Insets.top(5)));
-        }
-        else if (data.type.equals("Y-Level")) {
-            content.child(dropdown("Comparison", List.of("GREATER_THAN", "LESS_THAN", "EQUAL_TO"), data.yComparison, s -> {
-                data.yComparison = s;
-                updatePreview();
-            }, 100));
-            content.child(field("Y Level", data.yValue, s -> { data.yValue = s; updatePreview(); }, 100).margins(Insets.top(5)));
-        }
-        else if (data.type.equals("Health")) {
-            content.child(dropdown("Comparison", List.of("GREATER_THAN", "LESS_THAN", "EQUAL_TO"), data.healthComparison, s -> {
-                data.healthComparison = s;
-                updatePreview();
-            }, 100));
-            content.child(field("Amount (20.0 = 10 Hearts)", data.healthValue, s -> { data.healthValue = s; updatePreview(); }, 100).margins(Insets.top(5)));
-        }
-        else if (data.type.equals("Hunger")) {
-            content.child(dropdown("Comparison", List.of("GREATER_THAN", "LESS_THAN", "EQUAL_TO"), data.hungerComparison, s -> {
-                data.hungerComparison = s; updatePreview();
-            }, 100));
-            content.child(field("Hunger Amount (0-20)", data.hungerValue, s -> { data.hungerValue = s; updatePreview(); }, 100).margins(Insets.top(5)));
-        }
-        else if (data.type.equals("Armor")) {
-            content.child(dropdown("Comparison", List.of("GREATER_THAN", "LESS_THAN", "EQUAL_TO"), data.armorComparison, s -> {
-                data.armorComparison = s; updatePreview();
-            }, 100));
-            content.child(field("Armor Points", data.armorValue, s -> { data.armorValue = s; updatePreview(); }, 100).margins(Insets.top(5)));
-        }
-        else if (data.type.equals("Time")) {
-            content.child(field("Min Time (0-24000)", data.timeMin, s -> { data.timeMin = s; updatePreview(); }, 100));
-            content.child(field("Max Time (0-24000)", data.timeMax, s -> { data.timeMax = s; updatePreview(); }, 100).margins(Insets.top(5)));
-        }
-        else if (data.type.equals("Dimension")) {
-            content.child(field("Dimension ID", data.dimension, s -> { data.dimension = s; updatePreview(); }, 100));
-        }
-        else if (data.type.equals("Walking On")) {
-            List<String> blockIds = Registries.BLOCK.getIds().stream().map(Identifier::toString).sorted().toList();
-            content.child(autocompleteField("Block ID", data.walkingBlock, blockIds, s -> { data.walkingBlock = s; updatePreview(); }, 100));
-        }
-        else if (data.type.equals("Sprinting")) {
-            // No fields needed
-        }
-        else if (data.type.equals("Crouching")) {
-            // No fields needed
-        }
-
-        var removeBtn = Components.button(Text.of("Remove"), btn -> {
-            conditions.remove(data);
-            conditionsContainer.removeChild(collapsible);
-            updatePreview();
-        });
-        removeBtn.sizing(Sizing.fill(100), Sizing.fixed(20));
-        removeBtn.margins(Insets.top(5));
-        applyStandardButtonRenderer(removeBtn);
-
-        content.child(removeBtn);
-        collapsible.child(content);
-        collapsible.margins(Insets.bottom(10));
-        conditionsContainer.child(collapsible);
-    }
 
     private void addEffectRow(EffectData data) {
         effects.add(data);
@@ -986,9 +954,182 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
         }, 100).margins(Insets.bottom(5)));
 
         buildEffectFields(content, data, collapsible);
+
+        content.child(Components.box(Sizing.fill(100), Sizing.fixed(1)).color(Color.ofArgb(0xFF555555)).margins(Insets.vertical(5)));
+        content.child(Components.label(Text.of("Activation Condition (Optional)")).color(Color.ofRgb(0xAAAAAA)));
+
+        FlowLayout conditionContainer = Containers.verticalFlow(Sizing.fill(100), Sizing.content());
+        renderConditionEditor(conditionContainer, data.condition, (newCond) -> {
+            data.condition = newCond;
+            updatePreview();
+        });
+        content.child(conditionContainer);
+
         collapsible.child(content);
         collapsible.margins(Insets.bottom(10));
         effectsContainer.child(collapsible);
+    }
+
+    private void renderConditionEditor(FlowLayout container, ConditionData currentData, Consumer<ConditionData> onUpdate) {
+        container.clearChildren();
+
+        // 1. If null, show the "Add" button
+        if (currentData == null) {
+            ButtonComponent addBtn = Components.button(Text.of("+ Add Condition"), btn -> {
+                onUpdate.accept(new ConditionData()); // Create default
+                renderConditionEditor(container, new ConditionData(), onUpdate); // Re-render as editor
+            });
+            addBtn.sizing(Sizing.fill(100), Sizing.fixed(16));
+            addBtn.renderer(ButtonComponent.Renderer.flat(0x4400FF00, 0x8800FF00, 0xFF00FF00));
+            container.child(addBtn);
+            return;
+        }
+
+        // 2. We have data, so show the editor
+        FlowLayout wrapper = Containers.verticalFlow(Sizing.fill(100), Sizing.content());
+        wrapper.surface(Surface.flat(0x33000000)).padding(Insets.of(3));
+
+        if (currentData.isLogic()) {
+            wrapper.surface((context, component) -> {
+                context.fill(component.x(), component.y(), component.x() + component.width(), component.y() + component.height(), 0x33000000);
+                context.drawBorder(component.x(), component.y(), component.width(), component.height(), 0xFF555555);
+            });
+        }
+
+        // --- TYPE SELECTOR ---
+        List<String> types = List.of(
+                "AND", "OR", "NOT",
+                "Hand Item", "Equipped Item",
+                "Health", "Hunger", "Armor", "Sprinting", "Crouching", "Wetness", "In Lava",
+                "Y-Level", "Time", "Dimension", "Walking On"
+        );
+
+        wrapper.child(dropdown("Cond Type", types, currentData.type, s -> {
+            currentData.type = s;
+            if(!currentData.isLogic()) {
+                currentData.children.clear();
+                currentData.child = null;
+            }
+            onUpdate.accept(currentData);
+            renderConditionEditor(container, currentData, onUpdate);
+        }, 100).margins(Insets.bottom(2)));
+
+        // --- RENDER CHILDREN (Recursive) ---
+        if (currentData.type.equals("AND") || currentData.type.equals("OR")) {
+            FlowLayout childrenContainer = Containers.verticalFlow(Sizing.fill(100), Sizing.content());
+            childrenContainer.margins(Insets.left(8));
+
+            for (int i = 0; i < currentData.children.size(); i++) {
+                int idx = i;
+                FlowLayout childRow = Containers.verticalFlow(Sizing.fill(100), Sizing.content());
+                childRow.margins(Insets.bottom(2));
+
+                renderConditionEditor(childRow, currentData.children.get(i), (updated) -> {
+                    if (updated == null) {
+                        currentData.children.remove(idx);
+                    } else {
+                        currentData.children.set(idx, updated);
+                    }
+                    onUpdate.accept(currentData);
+                    renderConditionEditor(container, currentData, onUpdate);
+                });
+                childrenContainer.child(childRow);
+            }
+
+            ButtonComponent addChild = Components.button(Text.of("+ Add Sub-Condition"), btn -> {
+                currentData.children.add(new ConditionData());
+                onUpdate.accept(currentData);
+                renderConditionEditor(container, currentData, onUpdate);
+            });
+            addChild.sizing(Sizing.fill(100), Sizing.fixed(16));
+            childrenContainer.child(addChild);
+            wrapper.child(childrenContainer);
+        }
+        else if (currentData.type.equals("NOT")) {
+            FlowLayout childRow = Containers.verticalFlow(Sizing.fill(100), Sizing.content());
+            childRow.margins(Insets.left(8));
+
+            renderConditionEditor(childRow, currentData.child, (updated) -> {
+                currentData.child = updated;
+                onUpdate.accept(currentData);
+            });
+            wrapper.child(childRow);
+        }
+        else {
+            buildConditionFields(wrapper, currentData, () -> onUpdate.accept(currentData));
+        }
+
+        // --- REMOVE BUTTON (FIXED) ---
+        ButtonComponent remove = Components.button(Text.of("Remove Condition"), btn -> {
+            // 1. Update the data model to null
+            onUpdate.accept(null);
+            // 2. FIX: Immediately re-render THIS container with null data
+            // to force it to switch back to the "+ Add Condition" button state.
+            renderConditionEditor(container, null, onUpdate);
+        });
+        remove.renderer(ButtonComponent.Renderer.flat(0x00000000, 0x44FF0000, 0x88FF0000));
+        remove.sizing(Sizing.fill(100), Sizing.fixed(14));
+        remove.margins(Insets.top(2));
+        wrapper.child(remove);
+
+        container.child(wrapper);
+    }
+
+    // Moved specific field logic here
+    private void buildConditionFields(FlowLayout content, ConditionData data, Runnable onUpdate) {
+
+        // --- ITEM ---
+        if (data.type.equals("Hand Item")) {
+            List<String> items = Registries.ITEM.getIds().stream().map(Identifier::toString).sorted().toList();
+            content.child(autocompleteField("Item", data.item, items, s -> { data.item = s; onUpdate.run(); }, 100));
+            content.child(field("Min Count", data.count, s -> { data.count = s; onUpdate.run(); }, 100));
+            content.child(dropdown("Slot", List.of("MAINHAND", "OFFHAND"), data.slot, s -> { data.slot = s; onUpdate.run(); }, 100));
+            content.child(field("NBT", data.nbt, s -> { data.nbt = s; onUpdate.run(); }, 100));
+        }
+        else if (data.type.equals("Equipped Item")) {
+            List<String> items = Registries.ITEM.getIds().stream().map(Identifier::toString).sorted().toList();
+            content.child(autocompleteField("Item", data.item, items, s -> { data.item = s; onUpdate.run(); }, 100));
+            content.child(dropdown("Slot", List.of("HELMET", "CHEST", "LEGS", "BOOTS"), data.slot, s -> { data.slot = s; onUpdate.run(); }, 100));
+            content.child(field("NBT", data.nbt, s -> { data.nbt = s; onUpdate.run(); }, 100));
+        }
+
+        // --- PLAYER STATS ---
+        else if (data.type.equals("Health")) {
+            content.child(dropdown("Comp", List.of("GREATER_THAN", "LESS_THAN", "EQUAL_TO"), data.healthComparison, s -> { data.healthComparison = s; onUpdate.run(); }, 100));
+            content.child(field("Value (20.0 = Max)", data.healthValue, s -> { data.healthValue = s; onUpdate.run(); }, 100));
+        }
+        else if (data.type.equals("Hunger")) {
+            content.child(dropdown("Comp", List.of("GREATER_THAN", "LESS_THAN", "EQUAL_TO"), data.hungerComparison, s -> { data.hungerComparison = s; onUpdate.run(); }, 100));
+            content.child(field("Value (20 = Full)", data.hungerValue, s -> { data.hungerValue = s; onUpdate.run(); }, 100));
+        }
+        else if (data.type.equals("Armor")) {
+            content.child(dropdown("Comp", List.of("GREATER_THAN", "LESS_THAN", "EQUAL_TO"), data.armorComparison, s -> { data.armorComparison = s; onUpdate.run(); }, 100));
+            content.child(field("Armor Points", data.armorValue, s -> { data.armorValue = s; onUpdate.run(); }, 100));
+        }
+
+        // --- WORLD ---
+        else if (data.type.equals("Y-Level")) {
+            content.child(dropdown("Comp", List.of("GREATER_THAN", "LESS_THAN", "EQUAL_TO"), data.yComparison, s -> { data.yComparison = s; onUpdate.run(); }, 100));
+            content.child(field("Y Level", data.yValue, s -> { data.yValue = s; onUpdate.run(); }, 100));
+        }
+        else if (data.type.equals("Time")) {
+            content.child(field("Min (0-24000)", data.timeMin, s -> { data.timeMin = s; onUpdate.run(); }, 100));
+            content.child(field("Max (0-24000)", data.timeMax, s -> { data.timeMax = s; onUpdate.run(); }, 100));
+        }
+        else if (data.type.equals("Dimension")) {
+            content.child(field("Dimension ID", data.dimension, s -> { data.dimension = s; onUpdate.run(); }, 100));
+        }
+        else if (data.type.equals("Walking On")) {
+            List<String> blocks = Registries.BLOCK.getIds().stream().map(Identifier::toString).sorted().toList();
+            content.child(autocompleteField("Block", data.walkingBlock, blocks, s -> { data.walkingBlock = s; onUpdate.run(); }, 100));
+        }
+
+        // --- BOOLEANS (No Fields Needed) ---
+        else if (data.type.equals("Sprinting") || data.type.equals("Crouching") ||
+                data.type.equals("Wetness") || data.type.equals("In Lava")) {
+            // Just display a small helper text
+            content.child(Components.label(Text.of("True if " + data.type)).color(Color.ofRgb(0x888888)));
+        }
     }
 
     private void buildEffectFields(FlowLayout content, EffectData data, Component collapsible) {
@@ -1106,6 +1247,10 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
                     eff.addProperty("type", "jd_skill_tree:lava_speed");
                     try { eff.addProperty("value", Double.parseDouble(e.lavaValue)); } catch (Exception ex) { eff.addProperty("value", 0.0); }
                 }
+
+                if (e.condition != null) {
+                    eff.add("condition", generateConditionJson(e.condition));
+                }
                 effectsJson.add(eff);
             }
 
@@ -1133,88 +1278,110 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
                 }
                 act.add("effect", effectObj);
 
+                if (a.condition != null) {
+                    act.add("condition", generateConditionJson(a.condition));
+                }
+
                 actionsJson.add(act);
             }
             if (!actionsJson.isEmpty()) root.add("actions", actionsJson);
 
-            // Conditions
-            JsonArray conditionsJson = new JsonArray();
-            for (ConditionData c : conditions) {
-                JsonObject cond = new JsonObject();
-                if (c.type.equals("Hand Item")) {
-                    cond.addProperty("type", "jd_skill_tree:hand_item");
-                    cond.addProperty("item", c.item);
-                    cond.addProperty("count", tryParse(c.count));
-                    cond.addProperty("slot", c.slot.toLowerCase());
-                    if (!c.nbt.isEmpty()) cond.addProperty("nbt", c.nbt);
-                }
-                else if (c.type.equals("Equipped Item")) {
-                    cond.addProperty("type", "jd_skill_tree:equipped_item");
-                    cond.addProperty("item", c.item);
-                    String slotName = switch(c.slot) {
-                        case "BOOTS" -> "boots";
-                        case "LEGS" -> "legs";
-                        case "CHEST" -> "chest";
-                        default -> "helmet";
-                    };
-                    cond.addProperty("slot", slotName);
-                    if (!c.nbt.isEmpty()) cond.addProperty("nbt", c.nbt);
-                }
-                else if (c.type.equals("Y-Level")) {
-                    cond.addProperty("type", "jd_skill_tree:y_level");
-                    cond.addProperty("comparison", c.yComparison);
-                    cond.addProperty("y_level", tryParse(c.yValue));
-                }
-                else if (c.type.equals("Health")) {
-                    cond.addProperty("type", "jd_skill_tree:health");
-                    cond.addProperty("comparison", c.healthComparison);
-                    try {
-                        cond.addProperty("amount", Float.parseFloat(c.healthValue));
-                    } catch (NumberFormatException e) {
-                        cond.addProperty("amount", 20.0f);
-                    }
-                }
-                else if (c.type.equals("Hunger")) {
-                    cond.addProperty("type", "jd_skill_tree:hunger");
-                    cond.addProperty("comparison", c.hungerComparison);
-                    cond.addProperty("amount", tryParse(c.hungerValue));
-                }
-                else if (c.type.equals("Armor")) {
-                    cond.addProperty("type", "jd_skill_tree:armor");
-                    cond.addProperty("comparison", c.armorComparison);
-                    cond.addProperty("amount", tryParse(c.armorValue));
-                }
-                else if (c.type.equals("Time")) {
-                    cond.addProperty("type", "jd_skill_tree:time");
-                    cond.addProperty("min", tryParse(c.timeMin));
-                    cond.addProperty("max", tryParse(c.timeMax));
-                }
-                else if (c.type.equals("Dimension")) {
-                    cond.addProperty("type", "jd_skill_tree:dimension");
-                    cond.addProperty("dimension", c.dimension);
-                }
-                else if (c.type.equals("Walking On")) {
-                    cond.addProperty("type", "jd_skill_tree:walking_on");
-                    cond.addProperty("block", c.walkingBlock);
-                }
-                else if (c.type.equals("Wetness")) {
-                    cond.addProperty("type", "jd_skill_tree:wetness");
-                }
-                else if (c.type.equals("In Lava")) {
-                    cond.addProperty("type", "jd_skill_tree:in_lava");
-                }
-                else if (c.type.equals("Sprinting")) {
-                    cond.addProperty("type", "jd_skill_tree:sprinting");
-                }
-                else if (c.type.equals("Crouching")) {
-                    cond.addProperty("type", "jd_skill_tree:crouching");
-                }
-                conditionsJson.add(cond);
-            }
-            if (!conditionsJson.isEmpty()) root.add("conditions", conditionsJson);
-
             return GSON.toJson(root);
         } catch (Exception e) { return ""; }
+    }
+
+    private JsonObject generateConditionJson(ConditionData c) {
+        JsonObject cond = new JsonObject();
+
+        // --- LOGIC ---
+        if (c.type.equals("AND")) {
+            cond.addProperty("type", "jd_skill_tree:and");
+            JsonArray children = new JsonArray();
+            for (ConditionData child : c.children) children.add(generateConditionJson(child));
+            cond.add("conditions", children);
+        }
+        else if (c.type.equals("OR")) {
+            cond.addProperty("type", "jd_skill_tree:or");
+            JsonArray children = new JsonArray();
+            for (ConditionData child : c.children) children.add(generateConditionJson(child));
+            cond.add("conditions", children);
+        }
+        else if (c.type.equals("NOT")) {
+            cond.addProperty("type", "jd_skill_tree:not");
+            if (c.child != null) cond.add("condition", generateConditionJson(c.child));
+        }
+
+        // --- ITEMS ---
+        else if (c.type.equals("Hand Item")) {
+            cond.addProperty("type", "jd_skill_tree:hand_item");
+            cond.addProperty("item", c.item);
+            cond.addProperty("count", tryParse(c.count));
+            cond.addProperty("slot", c.slot.toLowerCase());
+            if (!c.nbt.isEmpty()) cond.addProperty("nbt", c.nbt);
+        }
+        else if (c.type.equals("Equipped Item")) {
+            cond.addProperty("type", "jd_skill_tree:equipped_item");
+            cond.addProperty("item", c.item);
+            String slotName = switch (c.slot) {
+                case "BOOTS" -> "boots";
+                case "LEGS" -> "legs";
+                case "CHEST" -> "chest";
+                default -> "helmet";
+            };
+            cond.addProperty("slot", slotName);
+            if (!c.nbt.isEmpty()) cond.addProperty("nbt", c.nbt);
+        }
+
+        // --- PLAYER STATE ---
+        else if (c.type.equals("Health")) {
+            cond.addProperty("type", "jd_skill_tree:health");
+            cond.addProperty("comparison", c.healthComparison);
+            try { cond.addProperty("amount", Float.parseFloat(c.healthValue)); } catch(Exception e) { cond.addProperty("amount", 20.0f); }
+        }
+        else if (c.type.equals("Hunger")) {
+            cond.addProperty("type", "jd_skill_tree:hunger");
+            cond.addProperty("comparison", c.hungerComparison);
+            cond.addProperty("amount", tryParse(c.hungerValue));
+        }
+        else if (c.type.equals("Armor")) {
+            cond.addProperty("type", "jd_skill_tree:armor");
+            cond.addProperty("comparison", c.armorComparison);
+            cond.addProperty("amount", tryParse(c.armorValue));
+        }
+        else if (c.type.equals("Sprinting")) {
+            cond.addProperty("type", "jd_skill_tree:sprinting");
+        }
+        else if (c.type.equals("Crouching")) {
+            cond.addProperty("type", "jd_skill_tree:crouching");
+        }
+        else if (c.type.equals("Wetness")) {
+            cond.addProperty("type", "jd_skill_tree:wetness");
+        }
+        else if (c.type.equals("In Lava")) {
+            cond.addProperty("type", "jd_skill_tree:in_lava");
+        }
+
+        // --- WORLD ---
+        else if (c.type.equals("Y-Level")) {
+            cond.addProperty("type", "jd_skill_tree:y_level");
+            cond.addProperty("comparison", c.yComparison);
+            cond.addProperty("y_level", tryParse(c.yValue));
+        }
+        else if (c.type.equals("Time")) {
+            cond.addProperty("type", "jd_skill_tree:time");
+            cond.addProperty("min", tryParse(c.timeMin));
+            cond.addProperty("max", tryParse(c.timeMax));
+        }
+        else if (c.type.equals("Dimension")) {
+            cond.addProperty("type", "jd_skill_tree:dimension");
+            cond.addProperty("dimension", c.dimension);
+        }
+        else if (c.type.equals("Walking On")) {
+            cond.addProperty("type", "jd_skill_tree:walking_on");
+            cond.addProperty("block", c.walkingBlock);
+        }
+
+        return cond;
     }
 
     private void updatePreview() { String json = generateJson(); if (json.isEmpty()) { exportTextDisplay.text(Text.of("Invalid JSON")); return; } exportTextDisplay.text(Text.of(json)); try { this.previewSkill = GSON.fromJson(json, Skill.class); this.previewSkill.setId(new Identifier("preview", "live")); } catch (Exception ignored) {} }

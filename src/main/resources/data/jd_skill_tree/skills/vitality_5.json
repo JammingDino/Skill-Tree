@@ -1,8 +1,8 @@
 {
   "name": "Vitality V",
-  "description": "Increases maximum life by a heart.",
-  "icon": "minecraft:enchanted_golden_apple",
-  "tier": 5,
+  "description": "Increases your maximum life by 2 hearts.",
+  "icon": "minecraft:golden_carrot",
+  "tier": 4,
   "cost": 2000,
   "prerequisites": [
     "jd_skill_tree:vitality_4"

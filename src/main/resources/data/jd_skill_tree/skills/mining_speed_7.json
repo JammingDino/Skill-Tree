@@ -1,0 +1,15 @@
+{
+  "name": "Mining Speed VII",
+  "description": "Increases your mining speed by 5%",
+  "icon": "minecraft:golden_pickaxe",
+  "icon_nbt": "{Enchantments:[{}]}",
+  "tier": 5,
+  "cost": 3000,
+  "prerequisites": [ "jd_skill_tree:mining_speed_6" ],
+  "effects": [
+    {
+      "type": "jd_skill_tree:mining_speed",
+      "value": 0.05
+    }
+  ]
+}

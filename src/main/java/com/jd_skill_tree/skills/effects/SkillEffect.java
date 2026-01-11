@@ -1,5 +1,6 @@
 package com.jd_skill_tree.skills.effects;
 
+import com.jd_skill_tree.skills.conditions.SkillCondition;
 import net.minecraft.block.BlockState;
 import net.minecraft.entity.player.PlayerEntity;
 
@@ -8,6 +9,8 @@ import net.minecraft.entity.player.PlayerEntity;
  * Each effect can react to different game events by overriding these methods.
  */
 public interface SkillEffect {
+
+    SkillCondition getCondition();
 
     /**
      * Called every tick for a player who has the skill unlocked.
@@ -69,6 +72,13 @@ public interface SkillEffect {
      */
     default float modifyLavaSpeed(PlayerEntity player, float currentSpeed) {
         return currentSpeed;
+    }
+
+    /**
+     * Helper to check if the effect is active for the player.
+     */
+    default boolean isActive(PlayerEntity player) {
+        return getCondition() == null || getCondition().test(player);
     }
 
     // In the future, we can add more methods here, e.g.:

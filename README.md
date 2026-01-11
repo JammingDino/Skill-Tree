@@ -4,7 +4,11 @@ Welcome to **JD Skill Tree**, a fully data-driven progression mod for Minecraft 
 
 What sets this mod apart is its focus on **customization**. Server owners and modpack creators can build entirely new skill trees directly inside the game without writing a single line of code.
 
-Find the here mod on [Curseforge](https://www.curseforge.com/minecraft/mc-mods/skill-tree-fabric) and [Modrinth](https://modrinth.com/mod/skill-tree-(fabric))
+[![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
+[![Fabric](https://img.shields.io/badge/Loader-Fabric-beige)](https://fabricmc.net/)
+[![Minecraft](https://img.shields.io/badge/Minecraft-1.20-green)](https://minecraft.wiki/w/Java_Edition_1.20)
+[![Modrinth Downloads](https://img.shields.io/modrinth/dt/dnC6tCcs?color=00AF5C&logo=modrinth&label=Downloads)](https://modrinth.com/mod/skill-tree-(fabric))
+[![CurseForge Downloads](https://img.shields.io/curseforge/dt/1397099?logo=curseforge&label=Downloads)](https://www.curseforge.com/minecraft/mc-mods/skill-tree-fabric)
 
 ## Table of Contents
 
@@ -19,44 +23,58 @@ Find the here mod on [Curseforge](https://www.curseforge.com/minecraft/mc-mods/s
 
 ## Features
 
-*   **Tiered Progression:** Unlock skills through 5 distinct tiers of Altars (Wood, Iron, Diamond, Emerald, and Obsidian).
-*   **XP-Based Economy:** Skills cost Experience Levels, turning your XP bar into a valuable resource for permanent power.
-*   **Passive Buffs:** Unlock attributes like Max Health, Movement Speed, Attack Damage, and specialized Mining Speed bonuses.
-*   **Visual Interface:** A clean, interactive GUI connecting skills via parent-child prerequisite nodes.
-*   **In-Game Editor:** A built-in developer environment to design custom skills visually and export them as JSON.
+*   **Interactive Skill Tree:** A clean, user-friendly UI for viewing and unlocking skills.
+*   **Custom Skills:** The system is designed to be easily expandable with new and unique skills.
+*   **Prerequisites:** Skills can have dependencies, requiring players to unlock parent skills first to create a true sense of progression.
+*   **Skill Altar:** A unique in-game block that serves as the central point for accessing and managing your skills.
 
-## Gameplay Guide
+## How to Use
 
-1.  **Craft a Skill Altar:** Begin by crafting the **Tier 1 Skill Altar**.
-2.  **Place & Interact:** Place the altar in the world and right-click it.
-3.  **Unlock Skills:** If you have enough XP levels, click a skill to unlock it.
-4.  **Upgrade:** To access more powerful skills, you must craft higher-tier altars (Iron, Diamond, etc.). A Tier 2 Altar allows you to view and unlock Tier 2 skills, provided you have the prerequisites from the previous tier.
+1.  **Craft the Skill Altar:** Start by crafting the central block for this mod, the **Skill Altar**. Higher tier skills will require higher tier skill alters.
+2.  **Access the Tree:** Place the Skill Altar in the world and right-click it to open the skill tree screen.
+3.  **Unlock Skills:** Gather the required resources or experience and click on a skill to unlock it, granting you its abilities!
 
-## Creating Addons (No Coding Required)
+## Project Structure
 
-JD Skill Tree is designed for "Creative Users." You can create your own skill trees for modpacks or servers using the built-in **Developer Console**.
+The project follows a standard Fabric mod structure. Here is a brief overview of the key directories and files:
 
-### How to use the In-Game Editor:
-
-1.  **Enter Creative Mode.**
-2.  **Get the Developer Altar:** Search for the **"Developer Skill Altar"** in the creative menu (or use `/give @s jd_skill_tree:developer_skill_altar`).
-3.  **Open the Console:** Place the block and right-click it. This opens the **Developer Editor Screen**.
-4.  **Design Your Skill:**
-    *   **Name & Description:** Set the display info.
-    *   **Icon:** Use autocomplete to find any item in the game to use as the icon.
-    *   **Cost & Tier:** Set the XP level cost and the Altar Tier required.
-    *   **Effects:** Add multiple effects (e.g., `generic.max_health` + `ADDITION` + `2.0`).
-    *   **Prerequisites:** Link it to other skill IDs.
-5.  **Export:** Click the **Export button** to automatically create a datapack within your world save with the given names that you set in the GUI, or press the **"Copy JSON"** button which will copy the complete code for that skill to your clipboard!
-6.  **Create the Datapack:** Paste that JSON into a file (e.g., `my_skill.json`) inside a datapack folder structure: `data/jd_skill_tree/skills/`.
-
-**Note:** You do not need to know Java or JSON formatting. The editor handles the syntax for you.
-
-## Installation & Dependencies
-
-This mod requires **Fabric Loader** and the following dependencies:
-*   [Fabric API](https://modrinth.com/mod/fabric-api)
-*   [owo-lib](https://modrinth.com/mod/owo-lib) (Required for the UI)
+```
+.
+├── .github/workflows                       # CI/CD pipelines (Auto Release and Bump Version)
+├── src
+│   ├── main
+│   │   ├── java/com/jd_skill_tree
+│   │   │   ├── api                         # Interfaces for cross-side logic (IUnlockedSkillsData)
+│   │   │   ├── blocks                      # Block definitions (SkillAltar, ModBlocks)
+│   │   │   │   └── entity                  # Block Entities (SkillAltarBlockEntity)
+│   │   │   ├── command                     # Server-side commands (/skill grant, etc.)
+│   │   │   ├── mixin                       # Core game modifications (PlayerEntityMixin, LivingEntityMixin)
+│   │   │   ├── networking                  # Packet handling (S2C and C2S communication)
+│   │   │   ├── skills                      # CORE: Skill data structure and logic
+│   │   │   │   ├── actions                 # Active triggers (SkillAction, TriggerType, Handlers)
+│   │   │   │   ├── conditions              # Requirement logic (Health, Items, Biomes, etc.)
+│   │   │   │   └── effects                 # Passive buffs (Attributes, Enchants, Mining Speed)
+│   │   │   ├── utils                       # Helpers (ExperienceUtils, ModRegistries)
+│   │   │   └── Jd_skill_tree.java          # Main Mod Initializer
+│   │   │
+│   │   └── resources                       # Server/Common resources
+│   │       ├── assets/jd_skill_tree        # Textures, models, blockstates
+│   │       ├── fabric.mod.json             # Mod metadata (License, dependencies)
+│   │       └── jd_skill_tree.mixins.json
+│   │
+│   └── client
+│       └── java/com/jd_skill_tree
+│           ├── blocks/entity/renderer      # Visual renderers (Floating Book animation)
+│           ├── client                      # Client interaction handlers
+│           ├── networking                  # Client-side packet receivers
+│           ├── screens                     # UI / GUI Logic
+│           │   └── widgets                 # Custom UI elements (Skill Nodes)
+│           ├── skills                      # Client-side data caching (ClientSkillData)
+│           └── Jd_skill_tree_client.java   # Client Mod Initializer
+│
+├── build.gradle                            # Dependencies and build configuration
+└── gradle.properties                       # Mod version and properties
+```
 
 ## For Developers
 
@@ -80,6 +98,21 @@ This project is built using the **Fabric** modding toolchain for Minecraft 1.20.
     ./gradlew build
     ```
     The compiled `.jar` file will be located in the `build/libs` directory.
+
+### Key Classes
+
+*   **`Jd_skill_tree.java`**: The main entry point. It now initializes the **SkillNetworking**, registers the new Action/Effect/Condition types, and handles server lifecycle events for data syncing.
+*   **`skills/Skill.java`**: Now a POJO (Plain Old Java Object) loaded entirely from JSON. Instead of hardcoded logic, it contains lists of `SkillEffect`, `SkillAction`, and `SkillCondition` objects.
+*   **`skills/SkillLoader.java`**: The resource listener that uses **GSON** to deserialize JSON files from data packs into Java objects. It handles the reloading of skills without restarting the game.
+*   **`skills/SkillManager.java`**: The active runtime registry. It caches all loaded skills and tracks which Attributes (e.g., Max Health) need to be monitored by the Mixins.
+*   **`blocks/SkillAltar.java`**: Defines the Altar's behavior. It detects player interaction to open the standard Skill Tree UI, or opens the **Developer Editor** if the Altar is Tier 99.
+*   **`screens/DeveloperEditorScreen.java`**: The complex client-side GUI that allows developers/admins to create, configure, test, and export new skills directly in-game.
+*   **`networking/SkillNetworking.java`**: Handles the critical communication between Server and Client, including syncing the entire Skill Registry (definitions) and the player's unlocked status.
+*   **`mixin/PlayerEntityMixin.java`**: The core gameplay logic engine. It injects code into the vanilla player entity to apply passive effects (Attributes, Knockback, XP multipliers) based on unlocked skills.
+
+## Contributing
+
+Contributions are welcome! If you have ideas for new skills, improvements, or bug fixes, please feel free to open an issue or submit a pull request.
 
 ## License
 

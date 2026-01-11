@@ -1,0 +1,14 @@
+{
+  "name": "Mining Speed VI",
+  "description": "Increases your mining speed by 5%",
+  "icon": "minecraft:netherite_pickaxe",
+  "tier": 5,
+  "cost": 3000,
+  "prerequisites": [ "jd_skill_tree:mining_speed_5" ],
+  "effects": [
+    {
+      "type": "jd_skill_tree:mining_speed",
+      "value": 0.05
+    }
+  ]
+}

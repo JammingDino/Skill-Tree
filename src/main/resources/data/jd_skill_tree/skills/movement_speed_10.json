@@ -1,0 +1,19 @@
+{
+  "name": "Movement Speed X",
+  "description": "Increases your movement speed by 10% (multiplicatively)",
+  "icon": "minecraft:potion",
+  "icon_nbt": "{Enchantments:[{}],Potion:\"minecraft:swiftness\"}",
+  "tier": 5,
+  "cost": 6000,
+  "prerequisites": [
+    "jd_skill_tree:movement_speed_9"
+  ],
+  "effects": [
+    {
+      "type": "jd_skill_tree:attribute",
+      "attribute": "minecraft:generic.movement_speed",
+      "operation": "MULTIPLY_TOTAL",
+      "value": 0.1
+    }
+  ]
+}

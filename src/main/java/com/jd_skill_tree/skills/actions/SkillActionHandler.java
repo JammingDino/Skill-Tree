@@ -30,18 +30,12 @@ public class SkillActionHandler {
     public static void triggerActions(PlayerEntity player, World world, BlockPos pos, TriggerType type) {
         IUnlockedSkillsData skillData = (IUnlockedSkillsData) player;
 
-        // Iterate through all skills the player has unlocked
         for (String skillId : skillData.getUnlockedSkills()) {
             SkillManager.getSkill(new Identifier(skillId)).ifPresent(skill -> {
 
-                // Only proceed if conditions (Dimension, Hunger, etc.) are met
-                if (!skill.areConditionsMet(player)) {
-                    return;
-                }
-
-                // Check all actions inside this skill
                 for (SkillAction action : skill.getActions()) {
                     if (action.getTrigger() == type) {
+                        // The action.run() method now checks action.shouldRun() internally
                         action.run(player, world, pos);
                     }
                 }
@@ -60,10 +54,6 @@ public class SkillActionHandler {
 
         for (String skillId : skillData.getUnlockedSkills()) {
             SkillManager.getSkill(new Identifier(skillId)).ifPresent(skill -> {
-
-                if (!skill.areConditionsMet(player)) {
-                    return;
-                }
 
                 for (SkillAction action : skill.getActions()) {
                     // Check if it's a timer and if it's the right tick to fire

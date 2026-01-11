@@ -3,6 +3,8 @@ package com.jd_skill_tree.skills.effects;
 import com.google.gson.JsonObject;
 import com.jd_skill_tree.api.IUnlockedSkillsData;
 import com.jd_skill_tree.skills.SkillManager;
+import com.jd_skill_tree.skills.conditions.SkillCondition;
+import com.jd_skill_tree.skills.conditions.SkillConditionType;
 import net.minecraft.enchantment.Enchantment;
 import net.minecraft.enchantment.EnchantmentHelper;
 import net.minecraft.entity.EquipmentSlot;
@@ -22,12 +24,19 @@ public class EnchantmentSkillEffect implements SkillEffect {
     private final int levelAdded;
     private final EquipmentSlot targetSlot;
     private final boolean allowOverEnchanting;
+    private final SkillCondition condition;
 
-    public EnchantmentSkillEffect(Identifier enchantmentId, int levelAdded, EquipmentSlot targetSlot, boolean allowOverEnchanting) {
+    public EnchantmentSkillEffect(Identifier enchantmentId, int levelAdded, EquipmentSlot targetSlot, boolean allowOverEnchanting, SkillCondition condition) {
         this.enchantmentId = enchantmentId;
         this.levelAdded = levelAdded;
         this.targetSlot = targetSlot;
         this.allowOverEnchanting = allowOverEnchanting;
+        this.condition = condition;
+    }
+
+    @Override
+    public SkillCondition getCondition() {
+        return this.condition;
     }
 
     // --- LOGIC HANDLER ---
@@ -40,12 +49,10 @@ public class EnchantmentSkillEffect implements SkillEffect {
             ItemStack stack = player.getEquippedStack(slot);
             if (stack.isEmpty()) continue;
 
-            // 1. Clean up previous bonuses first (always do this to prevent stuck tags)
+            // 1. Clean up previous bonuses first
             cleanStack(stack);
 
-            // 2. CHECK: Ensure the item is valid gear (Tools, Armor, Shears, etc.)
-            // We do this AFTER cleaning, so if a player swaps to an invalid item,
-            // the code stops here and doesn't try to enchant the invalid item.
+            // 2. CHECK: Ensure the item is valid gear
             if (!isValidGear(stack)) {
                 continue;
             }
@@ -60,19 +67,15 @@ public class EnchantmentSkillEffect implements SkillEffect {
                     .flatMap(skill -> skill.getEffects().stream())
                     .filter(effect -> effect instanceof EnchantmentSkillEffect)
                     .map(effect -> (EnchantmentSkillEffect) effect)
-                    .filter(effect -> effect.targetSlot == slot)
+                    // Check slot match AND the specific Condition for this effect
+                    .filter(effect -> effect.targetSlot == slot && effect.isActive(player))
                     .forEach(effect -> {
                         Enchantment ench = Registries.ENCHANTMENT.get(effect.enchantmentId);
                         if (ench != null) {
-
-                            // CHECK A: Enchantment Compatibility (e.g. Protection on Elytra)
-                            // If Over-Enchanting is disabled, we strictly enforce that the item supports this enchantment.
                             if (!effect.allowOverEnchanting && !ench.isAcceptableItem(stack)) {
                                 return;
                             }
-
                             bonusesToApply.merge(ench, effect.levelAdded, Integer::sum);
-
                             if (effect.allowOverEnchanting) {
                                 allowRuleBreaking.put(ench, true);
                             }
@@ -86,35 +89,22 @@ public class EnchantmentSkillEffect implements SkillEffect {
         }
     }
 
-    /**
-     * Determines if an item is valid "Gear" that can receive skill bonuses.
-     * Includes: Armor, Tools, Swords, Bows, Crossbows, Shields, Tridents, Shears, Flint & Steel.
-     */
     private static boolean isValidGear(ItemStack stack) {
         Item item = stack.getItem();
-
-        // 1. Catch-all for most modded/vanilla tools: Does it have durability?
-        // This covers almost all tools, weapons, and armor.
         if (item.getMaxDamage() > 0) return true;
-
-        // 2. Specific checks for items that might technically be valid even if logic changes
         if (item instanceof ToolItem || item instanceof ArmorItem) return true;
         if (item instanceof ShieldItem) return true;
         if (item instanceof BowItem || item instanceof CrossbowItem) return true;
         if (item instanceof TridentItem) return true;
         if (item instanceof FishingRodItem) return true;
-
-        // 3. Specifically requested inclusions
         if (item instanceof ShearsItem) return true;
         if (item instanceof FlintAndSteelItem) return true;
         if (item instanceof ElytraItem) return true;
-
         return false;
     }
 
     private static void cleanStack(ItemStack stack) {
         if (!stack.hasNbt() || !stack.getNbt().contains("jd_skill_bonus")) return;
-
         NbtCompound bonusTag = stack.getNbt().getCompound("jd_skill_bonus");
         Map<Enchantment, Integer> enchantments = EnchantmentHelper.get(stack);
 
@@ -133,7 +123,6 @@ public class EnchantmentSkillEffect implements SkillEffect {
                 }
             }
         }
-
         EnchantmentHelper.set(enchantments, stack);
         stack.getNbt().remove("jd_skill_bonus");
     }
@@ -151,12 +140,11 @@ public class EnchantmentSkillEffect implements SkillEffect {
             int currentLevel = enchantments.getOrDefault(ench, 0);
             int newLevel = currentLevel + bonus;
 
-            // CHECK B: Vanilla Max Level Cap
             if (!unlimited) {
                 int max = ench.getMaxLevel();
                 if (newLevel > max) {
                     newLevel = max;
-                    bonus = newLevel - currentLevel; // Adjust bonus to match what was actually added
+                    bonus = newLevel - currentLevel;
                 }
             }
 
@@ -172,8 +160,6 @@ public class EnchantmentSkillEffect implements SkillEffect {
             stack.getOrCreateNbt().put("jd_skill_bonus", bonusTag);
         }
     }
-
-    // --- GETTERS & FACTORY ---
 
     public Identifier getEnchantmentId() { return enchantmentId; }
     public int getLevelAdded() { return levelAdded; }
@@ -195,6 +181,11 @@ public class EnchantmentSkillEffect implements SkillEffect {
             default -> EquipmentSlot.MAINHAND;
         };
 
-        return new EnchantmentSkillEffect(enchId, level, slot, over);
+        SkillCondition cond = null;
+        if (json.has("condition")) {
+            cond = SkillConditionType.create(json.getAsJsonObject("condition"));
+        }
+
+        return new EnchantmentSkillEffect(enchId, level, slot, over, cond);
     }
 }

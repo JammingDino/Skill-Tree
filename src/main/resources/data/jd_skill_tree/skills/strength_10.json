@@ -1,0 +1,17 @@
+{
+  "name": "Strength Mastery X",
+  "description": "Increases your attack damage by 10% (multiplicatively)",
+  "icon": "minecraft:potion",
+  "icon_nbt": "{Enchantments:[{}],Potion:\"minecraft:strong_strength\"}",
+  "tier": 5,
+  "cost": 6000,
+  "prerequisites": [ "jd_skill_tree:strength_9" ],
+  "effects": [
+    {
+      "type": "jd_skill_tree:attribute",
+      "attribute": "minecraft:generic.attack_damage",
+      "operation": "MULTIPLY_TOTAL",
+      "value": 0.1
+    }
+  ]
+}

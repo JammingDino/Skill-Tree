@@ -1,18 +1,18 @@
 {
   "name": "Movement Speed IV",
-  "description": "Increases movement speed by 3%.",
+  "description": "Increases your movement speed by 3% (multiplicatively)",
   "icon": "minecraft:golden_boots",
-  "tier": 4,
-  "cost": 4000,
+  "tier": 3,
+  "cost": 1500,
+  "prerequisites": [
+    "jd_skill_tree:movement_speed_3"
+  ],
   "effects": [
     {
       "type": "jd_skill_tree:attribute",
       "attribute": "minecraft:generic.movement_speed",
-      "operation": "multiply_total",
+      "operation": "MULTIPLY_TOTAL",
       "value": 0.03
     }
-  ],
-  "prerequisites": [
-    "jd_skill_tree:movement_speed_3"
   ]
 }

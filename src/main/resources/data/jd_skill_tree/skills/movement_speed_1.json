@@ -1,16 +1,15 @@
 {
   "name": "Movement Speed I",
-  "description": "Increases movement speed by 3%.",
+  "description": "Increases your movement speed by 3% (multiplicatively)",
   "icon": "minecraft:leather_boots",
   "tier": 1,
-  "cost": 200,
+  "cost": 100,
   "effects": [
     {
       "type": "jd_skill_tree:attribute",
       "attribute": "minecraft:generic.movement_speed",
-      "operation": "multiply_total",
+      "operation": "MULTIPLY_TOTAL",
       "value": 0.03
     }
-  ],
-  "prerequisites": []
+  ]
 }

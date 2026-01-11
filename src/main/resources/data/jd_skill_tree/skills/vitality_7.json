@@ -1,0 +1,19 @@
+{
+  "name": "Vitality VII",
+  "description": "Increases your maximum life by 2 hearts.",
+  "icon": "minecraft:carrot",
+  "icon_nbt": "{Enchantments:[{}]}",
+  "tier": 5,
+  "cost": 3000,
+  "prerequisites": [
+    "jd_skill_tree:vitality_6"
+  ],
+  "effects": [
+    {
+      "type": "jd_skill_tree:attribute",
+      "attribute": "minecraft:generic.max_health",
+      "operation": "ADDITION",
+      "value": 2.0
+    }
+  ]
+}

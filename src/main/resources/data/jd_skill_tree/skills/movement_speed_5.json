@@ -1,18 +1,18 @@
 {
   "name": "Movement Speed V",
-  "description": "Increases movement speed by 3%.",
+  "description": "Increases your movement speed by 3% (multiplicatively)",
   "icon": "minecraft:diamond_boots",
-  "tier": 5,
-  "cost": 6000,
+  "tier": 4,
+  "cost": 2000,
+  "prerequisites": [
+    "jd_skill_tree:movement_speed_4"
+  ],
   "effects": [
     {
       "type": "jd_skill_tree:attribute",
       "attribute": "minecraft:generic.movement_speed",
-      "operation": "multiply_total",
+      "operation": "MULTIPLY_TOTAL",
       "value": 0.03
     }
-  ],
-  "prerequisites": [
-    "jd_skill_tree:movement_speed_4"
   ]
 }

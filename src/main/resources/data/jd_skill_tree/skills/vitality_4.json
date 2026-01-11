@@ -1,9 +1,9 @@
 {
   "name": "Vitality IV",
-  "description": "Increases maximum life by a heart.",
-  "icon": "minecraft:golden_apple",
-  "tier": 4,
-  "cost": 500,
+  "description": "Increases your maximum life by 2 hearts.",
+  "icon": "minecraft:bread",
+  "tier": 3,
+  "cost": 1500,
   "prerequisites": [
     "jd_skill_tree:vitality_3"
   ],
