@@ -51,7 +51,38 @@ public class SkillActionListAdapter implements JsonDeserializer<List<SkillAction
                 effectObj.addProperty("type", "jd_skill_tree:burn");
                 effectObj.addProperty("duration", burn.getDuration());
                 effectObj.addProperty("ignore_armor", burn.isIgnoreArmor());
+            } else if (effect instanceof DelayedActionEffect delayed) {
+                effectObj.addProperty("type", "jd_skill_tree:delayed");
+                effectObj.addProperty("delay", delayed.getDelay());
+
+                // Recursively serialize the inner effect
+                // We create a temporary list wrapper to reuse this adapter's logic for the inner action?
+                // No, we need to serialize the EFFECT specifically.
+                // We can't reuse SkillActionListAdapter because that serializes an Action (Trigger+Effect),
+                // we only want the Effect part here.
+
+                // Manual serialization of the inner effect:
+                JsonObject innerEffectObj = new JsonObject();
+                SkillActionEffect inner = delayed.getNextEffect();
+
+                if (inner instanceof CommandActionEffect c) {
+                    innerEffectObj.addProperty("type", "jd_skill_tree:command");
+                    innerEffectObj.addProperty("command", c.getCommand());
+                } else if (inner instanceof BurnActionEffect b) {
+                    innerEffectObj.addProperty("type", "jd_skill_tree:burn");
+                    innerEffectObj.addProperty("duration", b.getDuration());
+                    innerEffectObj.addProperty("ignore_armor", b.isIgnoreArmor());
+                }
+                effectObj.add("effect", innerEffectObj);
+
+                // Serialize the inner condition
+                if (delayed.getNextCondition() != null) {
+                    effectObj.add("condition",
+                            com.jd_skill_tree.skills.conditions.SkillConditionListAdapter
+                                    .serializeCondition(delayed.getNextCondition(), context));
+                }
             }
+
             obj.add("effect", effectObj);
 
             // --- FIXED: Use static helper ---

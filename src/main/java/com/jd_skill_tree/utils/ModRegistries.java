@@ -31,6 +31,7 @@ public class ModRegistries {
         ResourceManagerHelper.get(ResourceType.SERVER_DATA).registerReloadListener(SkillLoader.INSTANCE);
 
         SkillActionHandler.register();
+        ActionScheduler.register();
 
     }
 }

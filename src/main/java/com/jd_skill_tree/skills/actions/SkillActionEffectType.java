@@ -25,5 +25,6 @@ public record SkillActionEffectType<T extends SkillActionEffect>(Function<JsonOb
     public static void registerAll() {
         register(new Identifier(Jd_skill_tree.MOD_ID, "command"), CommandActionEffect::fromJson);
         register(new Identifier(Jd_skill_tree.MOD_ID, "burn"), BurnActionEffect::fromJson);
+        register(new Identifier(Jd_skill_tree.MOD_ID, "delayed"), DelayedActionEffect::fromJson);
     }
 }
