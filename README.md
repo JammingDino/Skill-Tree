@@ -1,6 +1,8 @@
-# Skill Tree Mod
+# JD Skill Tree
 
-Welcome to the Skill Tree mod, a Minecraft mod that introduces a comprehensive and customizable skill system to the game! This mod allows players to unlock new abilities and perks by progressing through a visually interactive skill tree.
+Welcome to **JD Skill Tree**, a fully data-driven progression mod for Minecraft 1.20! This mod introduces a tiered skill altar system that allows players to trade experience levels for permanent buffs.
+
+What sets this mod apart is its focus on **customization**. Server owners and modpack creators can build entirely new skill trees directly inside the game without writing a single line of code.
 
 [![License](https://img.shields.io/badge/License-Apache%202.0-blue.svg)](https://opensource.org/licenses/Apache-2.0)
 [![Fabric](https://img.shields.io/badge/Loader-Fabric-beige)](https://fabricmc.net/)
@@ -10,14 +12,14 @@ Welcome to the Skill Tree mod, a Minecraft mod that introduces a comprehensive a
 
 ## Table of Contents
 
-- [Features](#-features)
-- [How to Use](#-how-to-use)
-- [Project Structure](#-project-structure)
-- [For Developers](#-for-developers)
-  - [Building from Source](#building-from-source)
-  - [Key Classes](#key-classes)
-- [Contributing](#-contributing)
-- [License](#-license)
+- [Features](#features)
+- [gameplay-guide](#gameplay-guide)
+- [Creating Addons (No Coding Required)](#creating-addons-no-coding-required)
+- [Installation & Dependencies](#installation--dependencies)
+- [For Developers](#for-developers)
+- [License](#license)
+
+### ***You can also [Look through the wiki for more information](https://github.com/JammingDino/Skill-Tree/wiki)***
 
 ## Features
 
@@ -81,14 +83,13 @@ This project is built using the **Fabric** modding toolchain for Minecraft 1.20.
 ### Building from Source
 
 1.  **Prerequisites:**
-    *   Java Development Kit (JDK) 17 or newer.
+    *   Java Development Kit (JDK) 17.
 2.  **Clone the repository:**
     ```bash
     git clone https://github.com/JammingDino/jd_skill_tree.git
     cd jd_skill_tree
     ```
 3.  **Build the project:**
-    *   Use the included Gradle wrapper to build the mod JAR file.
     ```bash
     # On Windows
     gradlew build
