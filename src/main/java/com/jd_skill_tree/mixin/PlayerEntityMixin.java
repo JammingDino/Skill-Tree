@@ -252,4 +252,37 @@ public abstract class PlayerEntityMixin extends LivingEntity implements IUnlocke
     public void revokeSkill(String skillId) {
         this.unlockedSkills.remove(skillId);
     }
+
+    @Inject(method = "damage", at = @At("RETURN"))
+    private void onDamageTaken(net.minecraft.entity.damage.DamageSource source, float amount, CallbackInfoReturnable<Boolean> cir) {
+        // If damage was successful (returnValue is true)
+        if (cir.getReturnValue()) {
+            PlayerEntity player = (PlayerEntity) (Object) this;
+            if (!player.getWorld().isClient) {
+
+                // 1. Trigger "On Take Damage (Self)"
+                // Target is the player (for healing, buffs, etc.)
+                com.jd_skill_tree.skills.actions.SkillActionHandler.triggerActions(
+                        player,
+                        com.jd_skill_tree.skills.actions.TriggerType.TAKE_DAMAGE_SELF,
+                        player,
+                        player.getWorld(),
+                        player.getBlockPos()
+                );
+
+                // 2. Trigger "On Take Damage (Attacker)" - Thorns logic
+                // Check if there is an actual attacker entity (Skeleton, Zombie, Player)
+                net.minecraft.entity.Entity attacker = source.getAttacker();
+                if (attacker != null) {
+                    com.jd_skill_tree.skills.actions.SkillActionHandler.triggerActions(
+                            player, // Owner of the skill is still the victim
+                            com.jd_skill_tree.skills.actions.TriggerType.TAKE_DAMAGE_ATTACKER,
+                            attacker, // Target is the enemy
+                            player.getWorld(),
+                            attacker.getBlockPos()
+                    );
+                }
+            }
+        }
+    }
 }

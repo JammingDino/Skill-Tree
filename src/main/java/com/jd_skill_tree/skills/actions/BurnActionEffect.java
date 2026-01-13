@@ -1,6 +1,7 @@
 package com.jd_skill_tree.skills.actions;
 
 import com.google.gson.JsonObject;
+import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.util.JsonHelper;
 import net.minecraft.util.math.BlockPos;
@@ -17,19 +18,17 @@ public class BurnActionEffect implements SkillActionEffect {
     }
 
     @Override
-    public void execute(PlayerEntity player, World world, BlockPos pos) {
+    public void execute(Entity target, World world, BlockPos pos) {
         if (world.isClient) return;
-
-        // Visual/Logical fire (e.g. 100 ticks / 20 = 5 seconds of fire)
-        player.setOnFireFor(duration / 20);
+        target.setOnFireFor(duration / 20);
 
         if (ignoreArmor) {
             // In 1.20, 'magic' is the standard damage source that bypasses armor.
             // We use this for the 'ignoreArmor' toggle.
-            player.damage(world.getDamageSources().magic(), 1.0f);
+            target.damage(world.getDamageSources().magic(), 1.0f);
         } else {
             // Standard fire damage (respects armor)
-            player.damage(world.getDamageSources().onFire(), 1.0f);
+            target.damage(world.getDamageSources().onFire(), 1.0f);
         }
     }
 

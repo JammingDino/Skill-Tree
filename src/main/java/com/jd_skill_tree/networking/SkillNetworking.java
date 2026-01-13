@@ -6,6 +6,8 @@ import com.jd_skill_tree.api.IUnlockedSkillsData;
 import com.jd_skill_tree.skills.Skill;
 import com.jd_skill_tree.skills.SkillLoader;
 import com.jd_skill_tree.skills.SkillManager;
+import com.jd_skill_tree.skills.actions.SkillAction;
+import com.jd_skill_tree.skills.actions.TriggerType;
 import com.jd_skill_tree.utils.ExperienceUtils;
 import net.fabricmc.fabric.api.networking.v1.PacketByteBufs;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
@@ -85,6 +87,12 @@ public class SkillNetworking {
                 skillData.unlockSkill(skillIdString);
                 syncSkillsToClient(player);
                 player.sendMessage(Text.of("§aSkill Unlocked: " + skillToUnlock.getName()), false);
+
+                for (SkillAction action : skillToUnlock.getActions()) {
+                    if (action.getTrigger() == TriggerType.UNLOCK) {
+                        action.run(player, player, player.getWorld(), player.getBlockPos());
+                    }
+                }
             });
         });
 

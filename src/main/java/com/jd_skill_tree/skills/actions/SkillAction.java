@@ -1,6 +1,7 @@
 package com.jd_skill_tree.skills.actions;
 
 import com.jd_skill_tree.skills.conditions.SkillCondition;
+import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
@@ -8,8 +9,8 @@ import net.minecraft.world.World;
 public class SkillAction {
     private final TriggerType trigger;
     private final SkillActionEffect effect;
-    private final int interval; // used for TIMER
-    private final SkillCondition condition; // The specific condition for this action
+    private final int interval;
+    private final SkillCondition condition;
 
     public SkillAction(TriggerType trigger, SkillActionEffect effect, int interval, SkillCondition condition) {
         this.trigger = trigger;
@@ -18,20 +19,17 @@ public class SkillAction {
         this.condition = condition;
     }
 
-    /**
-     * Checks if the action is allowed to run for this player.
-     * Returns true if there is no condition, or if the condition is met.
-     */
-    public boolean shouldRun(PlayerEntity player) {
-        return condition == null || condition.test(player);
+    public boolean shouldRun(PlayerEntity owner) {
+        return condition == null || condition.test(owner);
     }
 
     /**
-     * Executes the action, BUT ONLY IF the condition is met.
+     * @param owner The player who possesses the skill (used for Conditions)
+     * @param target The entity being affected (used for Effects)
      */
-    public void run(PlayerEntity player, World world, BlockPos pos) {
-        if (shouldRun(player)) {
-            effect.execute(player, world, pos);
+    public void run(PlayerEntity owner, Entity target, World world, BlockPos pos) {
+        if (shouldRun(owner)) {
+            effect.execute(target, world, pos);
         }
     }
 
