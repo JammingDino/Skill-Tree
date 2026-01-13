@@ -892,7 +892,7 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
         content.padding(Insets.of(5));
 
         // 1. Trigger Dropdown (Always Index 0)
-        content.child(dropdown("Trigger", List.of("BLOCK_BREAK", "BLOCK_PLACE", "TIMER"), data.trigger, s -> {
+        content.child(dropdown("Trigger", List.of("BLOCK_BREAK", "BLOCK_PLACE", "TIMER", "TAKE_DAMAGE_SELF", "TAKE_DAMAGE_ATTACKER", "UNLOCK", "ATTACK_TARGET", "ATTACK_SELF"), data.trigger, s -> {
             data.trigger = s;
             rebuildActionRow(collapsible, content, data);
             updatePreview();

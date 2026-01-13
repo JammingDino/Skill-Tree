@@ -15,14 +15,15 @@ public class BlockItemMixin {
 
     @Inject(method = "place(Lnet/minecraft/item/ItemPlacementContext;)Lnet/minecraft/util/ActionResult;", at = @At("RETURN"))
     private void onPlace(ItemPlacementContext context, CallbackInfoReturnable<ActionResult> cir) {
-        // Only trigger if the placement was successful (SUCCESS or CONSUME)
         if (cir.getReturnValue().isAccepted()) {
             if (context.getPlayer() != null && !context.getWorld().isClient) {
+                // FIXED: Now passes 5 arguments: owner, trigger, target, world, pos
                 SkillActionHandler.triggerActions(
                         context.getPlayer(),
+                        TriggerType.BLOCK_PLACE,
+                        context.getPlayer(), // Target is the player placing the block
                         context.getWorld(),
-                        context.getBlockPos(), // This gets the pos of the newly placed block
-                        TriggerType.BLOCK_PLACE
+                        context.getBlockPos()
                 );
             }
         }
