@@ -21,8 +21,10 @@ public class SkillActionListAdapter implements JsonDeserializer<List<SkillAction
                 TriggerType trigger = TriggerType.valueOf(JsonHelper.getString(obj, "trigger").toUpperCase());
                 int interval = JsonHelper.getInt(obj, "interval", 20);
 
+                // Nested effect parsing
                 SkillActionEffect effect = SkillActionEffectType.create(obj.getAsJsonObject("effect"));
 
+                // Parse Condition
                 SkillCondition condition = null;
                 if (obj.has("condition")) {
                     condition = SkillConditionType.create(obj.getAsJsonObject("condition"));
@@ -42,57 +44,54 @@ public class SkillActionListAdapter implements JsonDeserializer<List<SkillAction
             obj.addProperty("trigger", action.getTrigger().name());
             obj.addProperty("interval", action.getInterval());
 
-            JsonObject effectObj = new JsonObject();
-            SkillActionEffect effect = action.getEffect();
-            if (effect instanceof CommandActionEffect cmd) {
-                effectObj.addProperty("type", "jd_skill_tree:command");
-                effectObj.addProperty("command", cmd.getCommand());
-            } else if (effect instanceof BurnActionEffect burn) {
-                effectObj.addProperty("type", "jd_skill_tree:burn");
-                effectObj.addProperty("duration", burn.getDuration());
-                effectObj.addProperty("ignore_armor", burn.isIgnoreArmor());
-            } else if (effect instanceof DelayedActionEffect delayed) {
-                effectObj.addProperty("type", "jd_skill_tree:delayed");
-                effectObj.addProperty("delay", delayed.getDelay());
+            // --- FIXED: Use helper to write Effect (Recursion Safe) ---
+            obj.add("effect", serializeEffect(action.getEffect(), context));
 
-                // Recursively serialize the inner effect
-                // We create a temporary list wrapper to reuse this adapter's logic for the inner action?
-                // No, we need to serialize the EFFECT specifically.
-                // We can't reuse SkillActionListAdapter because that serializes an Action (Trigger+Effect),
-                // we only want the Effect part here.
-
-                // Manual serialization of the inner effect:
-                JsonObject innerEffectObj = new JsonObject();
-                SkillActionEffect inner = delayed.getNextEffect();
-
-                if (inner instanceof CommandActionEffect c) {
-                    innerEffectObj.addProperty("type", "jd_skill_tree:command");
-                    innerEffectObj.addProperty("command", c.getCommand());
-                } else if (inner instanceof BurnActionEffect b) {
-                    innerEffectObj.addProperty("type", "jd_skill_tree:burn");
-                    innerEffectObj.addProperty("duration", b.getDuration());
-                    innerEffectObj.addProperty("ignore_armor", b.isIgnoreArmor());
-                }
-                effectObj.add("effect", innerEffectObj);
-
-                // Serialize the inner condition
-                if (delayed.getNextCondition() != null) {
-                    effectObj.add("condition",
-                            com.jd_skill_tree.skills.conditions.SkillConditionListAdapter
-                                    .serializeCondition(delayed.getNextCondition(), context));
-                }
-            }
-
-            obj.add("effect", effectObj);
-
-            // --- FIXED: Use static helper ---
+            // Write Condition
             if (action.getCondition() != null) {
                 obj.add("condition", SkillConditionListAdapter.serializeCondition(action.getCondition(), context));
             }
-            // --------------------------------
 
             array.add(obj);
         }
         return array;
+    }
+
+    // --- HELPER: Handles all effect types including new ones ---
+    private static JsonObject serializeEffect(SkillActionEffect effect, JsonSerializationContext context) {
+        JsonObject json = new JsonObject();
+
+        if (effect instanceof CommandActionEffect cmd) {
+            json.addProperty("type", "jd_skill_tree:command");
+            json.addProperty("command", cmd.getCommand());
+        }
+        else if (effect instanceof BurnActionEffect burn) {
+            json.addProperty("type", "jd_skill_tree:burn");
+            json.addProperty("duration", burn.getDuration());
+            json.addProperty("ignore_armor", burn.isIgnoreArmor());
+        }
+        else if (effect instanceof HealActionEffect heal) {
+            json.addProperty("type", "jd_skill_tree:heal");
+            json.addProperty("amount", heal.getAmount());
+            json.addProperty("is_hunger", heal.isHunger());
+        }
+        else if (effect instanceof LaunchActionEffect launch) {
+            json.addProperty("type", "jd_skill_tree:launch");
+            json.addProperty("strength", launch.getStrength());
+            json.addProperty("vertical", launch.getVertical());
+        }
+        else if (effect instanceof DelayedActionEffect delayed) {
+            json.addProperty("type", "jd_skill_tree:delayed");
+            json.addProperty("delay", delayed.getDelay());
+
+            // RECURSION: Serialize the inner effect using this same helper
+            json.add("effect", serializeEffect(delayed.getNextEffect(), context));
+
+            if (delayed.getNextCondition() != null) {
+                json.add("condition", SkillConditionListAdapter.serializeCondition(delayed.getNextCondition(), context));
+            }
+        }
+
+        return json;
     }
 }

@@ -6,7 +6,6 @@ import com.jd_skill_tree.skills.conditions.SkillConditionType;
 import com.jd_skill_tree.utils.ActionScheduler;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.JsonHelper;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
