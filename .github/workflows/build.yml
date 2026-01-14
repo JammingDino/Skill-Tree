@@ -128,3 +128,34 @@ jobs:
           files: build/libs/*.jar
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.10'
+
+      - name: Install Python Dependencies
+        run: |
+          pip install -r scripts/release_generator/requirements.txt
+
+      - name: Generate and Post Image
+        env:
+          # Secrets
+          DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
+
+          # Dynamic Variables
+          RELEASE_VERSION: v${{ env.NEW_VERSION }}
+
+          # We pass the raw commit message as a backup,
+          # though the script will try to read RELEASE_NOTES.md first
+          RELEASE_BODY: ${{ github.event.head_commit.message }}
+
+          # IDs
+          MODRINTH_PROJECT_ID: dnC6tCcs
+          CURSEFORGE_PROJECT_ID: 1397099
+        run: |
+          # Navigate to the script folder so relative asset paths work
+          cd scripts/release_generator
+          
+          # Enable the posting function (ensure your python script calls post_to_discord at the bottom!)
+          python generate_release.py

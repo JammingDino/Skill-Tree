@@ -103,6 +103,10 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
         String delayedBurnDuration = "100";
         boolean delayedBurnIgnoreArmor = false;
         ConditionData delayedCondition = null; // The inner condition
+        String healAmount = "2.0"; // 1 heart
+        boolean healIsHunger = false;
+        String launchStrength = "1.0";
+        String launchVertical = "0.5";
 
     }
     private final List<ActionData> actions = new ArrayList<>();
@@ -907,50 +911,77 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
     }
 
     private void buildActionFields(FlowLayout content, ActionData data, Component collapsible) {
-        // Trigger Specifics
+        // 1. Trigger Specific Settings
         if (data.trigger.equals("TIMER")) {
             content.child(field("Interval (Ticks)", data.interval, s -> { data.interval = s; updatePreview(); }, 100).margins(Insets.bottom(5)));
         }
 
-        // Effect Type Selector
-        content.child(dropdown("Effect Type", List.of("Command", "Burn", "Delayed"), data.effectType, s -> {
+        // 2. Main Effect Type Selector
+        List<String> types = List.of("Command", "Burn", "Delayed", "Explosion", "Heal", "Launch");
+        content.child(dropdown("Effect Type", types, data.effectType, s -> {
             data.effectType = s;
-            rebuildActionRow(collapsible, content, data); // Rebuild to change specific fields
+            rebuildActionRow(collapsible, content, data);
             updatePreview();
         }, 100).margins(Insets.bottom(5)));
 
-        // Effect Fields
+        // 3. Effect Specific Fields
         if (data.effectType.equals("Command")) {
             content.child(field("Command", data.command, s -> { data.command = s; updatePreview(); }, 100));
-        } else if (data.effectType.equals("Burn")) {
+        }
+        else if (data.effectType.equals("Burn")) {
             content.child(field("Duration (Ticks)", data.burnDuration, s -> { data.burnDuration = s; updatePreview(); }, 100));
             var check = Components.checkbox(Text.of("Ignore Armor"));
             check.checked(data.burnIgnoreArmor);
             check.onChanged(checked -> { data.burnIgnoreArmor = checked; updatePreview(); });
             content.child(check.margins(Insets.top(5)));
-        } else if (data.effectType.equals("Delayed")) {
+        }
+        else if (data.effectType.equals("Heal")) {
+            content.child(field("Amount (2.0 = 1 Heart)", data.healAmount, s -> { data.healAmount = s; updatePreview(); }, 100));
+            var hungerCheck = Components.checkbox(Text.of("Restore Hunger (unchecked = Health)"));
+            hungerCheck.checked(data.healIsHunger);
+            hungerCheck.onChanged(b -> { data.healIsHunger = b; updatePreview(); });
+            content.child(hungerCheck.margins(Insets.top(5)));
+        }
+        else if (data.effectType.equals("Launch")) {
+            content.child(field("Forward Strength", data.launchStrength, s -> { data.launchStrength = s; updatePreview(); }, 100));
+            content.child(field("Vertical Strength", data.launchVertical, s -> { data.launchVertical = s; updatePreview(); }, 100).margins(Insets.top(5)));
+        }
+        else if (data.effectType.equals("Delayed")) {
             content.child(field("Delay (Ticks)", data.delayTicks, s -> { data.delayTicks = s; updatePreview(); }, 100));
 
-            // Visual Separator for inner action
+            // --- DELAYED INNER ACTION UI ---
             content.child(Components.box(Sizing.fill(100), Sizing.fixed(1)).color(Color.ofArgb(0xFF555555)).margins(Insets.vertical(5)));
             content.child(Components.label(Text.of("Action After Delay")).color(Color.ofRgb(0x55FF55)));
 
             // Inner Effect Selector
-            content.child(dropdown("Then Execute...", List.of("Command", "Burn"), data.delayedEffectType, s -> {
+            // We limit the inner types to avoid infinite recursion complexity in the UI
+            content.child(dropdown("Then Execute...", List.of("Command", "Burn", "Heal", "Launch"), data.delayedEffectType, s -> {
                 data.delayedEffectType = s;
-                rebuildActionRow(collapsible, content, data); // Rebuild to show inner fields
+                rebuildActionRow(collapsible, content, data);
                 updatePreview();
             }, 100));
 
             // Inner Effect Fields
             if (data.delayedEffectType.equals("Command")) {
-                content.child(field("Command", data.delayedCommand, s -> { data.delayedCommand = s; updatePreview(); }, 100));
-            } else if (data.delayedEffectType.equals("Burn")) {
-                content.child(field("Duration", data.delayedBurnDuration, s -> { data.delayedBurnDuration = s; updatePreview(); }, 100));
+                content.child(field("Command", data.command, s -> { data.command = s; updatePreview(); }, 100));
+            }
+            else if (data.delayedEffectType.equals("Burn")) {
+                content.child(field("Duration (Ticks)", data.burnDuration, s -> { data.burnDuration = s; updatePreview(); }, 100));
                 var check = Components.checkbox(Text.of("Ignore Armor"));
-                check.checked(data.delayedBurnIgnoreArmor);
-                check.onChanged(checked -> { data.delayedBurnIgnoreArmor = checked; updatePreview(); });
-                content.child(check);
+                check.checked(data.burnIgnoreArmor);
+                check.onChanged(checked -> { data.burnIgnoreArmor = checked; updatePreview(); });
+                content.child(check.margins(Insets.top(5)));
+            }
+            else if (data.delayedEffectType.equals("Heal")) {
+                content.child(field("Amount (2.0 = 1 Heart)", data.healAmount, s -> { data.healAmount = s; updatePreview(); }, 100));
+                var hungerCheck = Components.checkbox(Text.of("Restore Hunger (unchecked = Health)"));
+                hungerCheck.checked(data.healIsHunger);
+                hungerCheck.onChanged(b -> { data.healIsHunger = b; updatePreview(); });
+                content.child(hungerCheck.margins(Insets.top(5)));
+            }
+            else if (data.delayedEffectType.equals("Launch")) {
+                content.child(field("Forward Strength", data.launchStrength, s -> { data.launchStrength = s; updatePreview(); }, 100));
+                content.child(field("Vertical Strength", data.launchVertical, s -> { data.launchVertical = s; updatePreview(); }, 100).margins(Insets.top(5)));
             }
 
             // Inner Condition Editor
@@ -965,7 +996,7 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
             content.child(Components.box(Sizing.fill(100), Sizing.fixed(1)).color(Color.ofArgb(0xFF555555)).margins(Insets.vertical(5)));
         }
 
-        // --- NEW: CONDITION EDITOR FOR ACTIONS ---
+        // 4. Main Activation Condition
         content.child(Components.box(Sizing.fill(100), Sizing.fixed(1)).color(Color.ofArgb(0xFF555555)).margins(Insets.vertical(5)));
         content.child(Components.label(Text.of("Activation Condition (Optional)")).color(Color.ofRgb(0xAAAAAA)));
 
@@ -975,9 +1006,8 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
             updatePreview();
         });
         content.child(conditionContainer);
-        // -----------------------------------------
 
-        // Remove Button
+        // 5. Remove Button
         var removeBtn = Components.button(Text.of("Remove Action"), btn -> {
             actions.remove(data);
             actionsContainer.removeChild(collapsible);
@@ -1007,7 +1037,7 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
         var content = Containers.verticalFlow(Sizing.fill(100), Sizing.content());
         content.padding(Insets.of(5));
 
-        content.child(dropdown("Type", List.of("Attribute", "Mining Speed", "Potion", "Enchantment", "Attack Knockback", "Experience", "Swim Speed", "Lava Speed", "Effect Immunity"), data.type, s -> {
+        content.child(dropdown("Type", List.of("Attribute", "Mining Speed", "Potion", "Enchantment", "Attack Knockback", "Experience", "Swim Speed", "Lava Speed", "Effect Immunity", "Creative Flight"), data.type, s -> {
             data.type = s;
             rebuildEffectRow(collapsible, content, data);
             updatePreview();
@@ -1241,6 +1271,8 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
         else if (data.type.equals("Effect Immunity")) {
             List<String> effectIds = Registries.STATUS_EFFECT.getIds().stream().map(Identifier::toString).sorted().toList();
             content.child(autocompleteField("Immune To (Effect ID)", data.immuneEffectId, effectIds, s -> { data.immuneEffectId = s; updatePreview(); }, 100));
+        } else if (data.type.equals("Creative Flight")) {
+            content.child(Components.label(Text.of("Enables flight while active.")).color(Color.ofRgb(0x888888)));
         }
 
         var removeBtn = Components.button(Text.of("Remove"), btn -> {
@@ -1310,10 +1342,11 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
                 } else if (e.type.equals("Lava Speed")) {
                     eff.addProperty("type", "jd_skill_tree:lava_speed");
                     try { eff.addProperty("value", Double.parseDouble(e.lavaValue)); } catch (Exception ex) { eff.addProperty("value", 0.0); }
-                }
-                else if (e.type.equals("Effect Immunity")) {
+                } else if (e.type.equals("Effect Immunity")) {
                     eff.addProperty("type", "jd_skill_tree:effect_immunity");
                     eff.addProperty("effect", e.immuneEffectId);
+                } else if (e.type.equals("Creative Flight")) {
+                    eff.addProperty("type", "jd_skill_tree:creative_flight");
                 }
 
                 if (e.condition != null) {
@@ -1363,6 +1396,15 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
                     if (a.delayedCondition != null) {
                         effectObj.add("condition", generateConditionJson(a.delayedCondition));
                     }
+                } else if (a.effectType.equals("Heal")) {
+                    effectObj.addProperty("type", "jd_skill_tree:heal");
+                    effectObj.addProperty("amount", tryParseFloat(a.healAmount));
+                    effectObj.addProperty("is_hunger", a.healIsHunger);
+                }
+                else if (a.effectType.equals("Launch")) {
+                    effectObj.addProperty("type", "jd_skill_tree:launch");
+                    effectObj.addProperty("strength", tryParseFloat(a.launchStrength));
+                    effectObj.addProperty("vertical", tryParseFloat(a.launchVertical));
                 }
 
                 act.add("effect", effectObj);
@@ -1377,6 +1419,10 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
 
             return GSON.toJson(root);
         } catch (Exception e) { return ""; }
+    }
+
+    private float tryParseFloat(String s) {
+        try { return Float.parseFloat(s); } catch (Exception e) { return 0.0f; }
     }
 
     private JsonObject generateConditionJson(ConditionData c) {

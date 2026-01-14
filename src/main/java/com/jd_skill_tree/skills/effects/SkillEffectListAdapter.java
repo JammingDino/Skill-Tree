@@ -45,18 +45,15 @@ public class SkillEffectListAdapter implements JsonDeserializer<List<SkillEffect
                 obj.addProperty("attribute", attrEffect.getAttribute() != null ? Objects.requireNonNull(Registries.ATTRIBUTE.getId(attrEffect.getAttribute())).toString() : "");
                 obj.addProperty("operation", attrEffect.getOperation().name());
                 obj.addProperty("value", attrEffect.getValue());
-            }
-            else if (effect instanceof MiningSpeedSkillEffect miningEffect) {
+            } else if (effect instanceof MiningSpeedSkillEffect miningEffect) {
                 obj.addProperty("type", "jd_skill_tree:mining_speed");
                 obj.addProperty("value", miningEffect.getMultiplier());
-            }
-            else if (effect instanceof PotionSkillEffect potionEffect) {
+            } else if (effect instanceof PotionSkillEffect potionEffect) {
                 obj.addProperty("type", "jd_skill_tree:potion");
                 obj.addProperty("effect", potionEffect.getEffectId().toString());
                 obj.addProperty("amplifier", potionEffect.getAmplifier());
                 obj.addProperty("hide_particles", potionEffect.shouldHideParticles());
-            }
-            else if (effect instanceof EnchantmentSkillEffect enchEffect) {
+            } else if (effect instanceof EnchantmentSkillEffect enchEffect) {
                 obj.addProperty("type", "jd_skill_tree:enchantment");
                 obj.addProperty("enchantment", enchEffect.getEnchantmentId().toString());
                 obj.addProperty("level_added", enchEffect.getLevelAdded());
@@ -71,26 +68,23 @@ public class SkillEffectListAdapter implements JsonDeserializer<List<SkillEffect
                     default -> "mainhand";
                 };
                 obj.addProperty("slot", slotName);
-            }
-            else if (effect instanceof AttackKnockbackSkillEffect kbEffect) {
+            } else if (effect instanceof AttackKnockbackSkillEffect kbEffect) {
                 obj.addProperty("type", "jd_skill_tree:attack_knockback");
                 obj.addProperty("value", kbEffect.getAmount());
-            }
-            else if (effect instanceof ExperienceSkillEffect xpEffect) {
+            } else if (effect instanceof ExperienceSkillEffect xpEffect) {
                 obj.addProperty("type", "jd_skill_tree:experience");
                 obj.addProperty("value", xpEffect.getMultiplier());
-            }
-            else if (effect instanceof SwimSpeedSkillEffect swimEffect) {
+            } else if (effect instanceof SwimSpeedSkillEffect swimEffect) {
                 obj.addProperty("type", "jd_skill_tree:swim_speed");
                 obj.addProperty("value", swimEffect.getMultiplier());
-            }
-            else if (effect instanceof LavaSpeedSkillEffect lavaEffect) {
+            } else if (effect instanceof LavaSpeedSkillEffect lavaEffect) {
                 obj.addProperty("type", "jd_skill_tree:lava_speed");
                 obj.addProperty("value", lavaEffect.getMultiplier());
-            }
-            else if (effect instanceof EffectImmunitySkillEffect immuneEffect) {
+            } else if (effect instanceof EffectImmunitySkillEffect immuneEffect) {
                 obj.addProperty("type", "jd_skill_tree:effect_immunity");
                 obj.addProperty("effect", immuneEffect.getEffectId().toString());
+            } else if (effect instanceof CreativeFlightSkillEffect) {
+                obj.addProperty("type", "jd_skill_tree:creative_flight");
             }
 
             jsonArray.add(obj);

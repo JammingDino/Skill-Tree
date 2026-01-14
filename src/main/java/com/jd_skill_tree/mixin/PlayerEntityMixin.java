@@ -114,6 +114,32 @@ public abstract class PlayerEntityMixin extends LivingEntity implements IUnlocke
         for (SkillEffect effect : activeEffects) {
             effect.onTick(player);
         }
+
+        boolean hasFlightSkill = false;
+
+        // 1. Check all active effects
+        for (SkillEffect effect : jd_skill_tree$getActiveEffects()) {
+            if (effect instanceof com.jd_skill_tree.skills.effects.CreativeFlightSkillEffect) {
+                hasFlightSkill = true;
+                break;
+            }
+            // Run standard tick logic for other effects (like Potions)
+            effect.onTick(player);
+        }
+
+        // 2. Apply Flight Logic
+        // We only interfere if the player is NOT in Creative/Spectator
+        if (!player.isCreative() && !player.isSpectator()) {
+            boolean canFly = hasFlightSkill;
+
+            if (player.getAbilities().allowFlying != canFly) {
+                player.getAbilities().allowFlying = canFly;
+                if (!canFly) {
+                    player.getAbilities().flying = false; // Stop flying immediately if skill lost
+                }
+                player.sendAbilitiesUpdate(); // Sync to client
+            }
+        }
     }
 
     @Inject(method = "getBlockBreakingSpeed", at = @At("RETURN"), cancellable = true)

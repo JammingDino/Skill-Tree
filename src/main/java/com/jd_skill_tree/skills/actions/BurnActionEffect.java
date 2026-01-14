@@ -2,11 +2,9 @@ package com.jd_skill_tree.skills.actions;
 
 import com.google.gson.JsonObject;
 import net.minecraft.entity.Entity;
-import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.util.JsonHelper;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
-import net.minecraft.entity.damage.DamageSource;
 
 public class BurnActionEffect implements SkillActionEffect {
     private final int duration; // in ticks
