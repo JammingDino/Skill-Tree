@@ -85,6 +85,8 @@ public class SkillEffectListAdapter implements JsonDeserializer<List<SkillEffect
                 obj.addProperty("effect", immuneEffect.getEffectId().toString());
             } else if (effect instanceof CreativeFlightSkillEffect) {
                 obj.addProperty("type", "jd_skill_tree:creative_flight");
+            } else if (effect instanceof ElytraSkillEffect) {
+                obj.addProperty("type", "jd_skill_tree:elytra");
             }
 
             jsonArray.add(obj);

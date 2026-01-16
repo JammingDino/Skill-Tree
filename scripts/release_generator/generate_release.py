@@ -392,4 +392,4 @@ if __name__ == "__main__":
     image_file = generate_image(m_stats, c_stats)
 
     # Uncomment to enable posting
-    # post_to_discord(image_file)
+    post_to_discord(image_file)

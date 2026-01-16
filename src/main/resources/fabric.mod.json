@@ -23,7 +23,11 @@
 		]
 	},
   "mixins": [
-    "jd_skill_tree.mixins.json"
+    "jd_skill_tree.mixins.json",
+    {
+      "config": "jd_skill_tree.client.mixins.json",
+      "environment": "client"
+    }
   ],
 	"depends": {
 		"fabricloader": ">=0.17.3",
