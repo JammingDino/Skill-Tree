@@ -1,0 +1,12 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "com.jd_skill_tree.mixin",
+  "compatibilityLevel": "JAVA_17",
+  "mixins": [
+    "ElytraFeatureRendererMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}

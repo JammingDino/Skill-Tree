@@ -65,5 +65,6 @@ public record SkillEffectType<T extends SkillEffect>(Function<JsonObject, T> fac
         register(new Identifier(Jd_skill_tree.MOD_ID, "lava_speed"), LavaSpeedSkillEffect::fromJson);
         register(new Identifier(Jd_skill_tree.MOD_ID, "effect_immunity"), EffectImmunitySkillEffect::fromJson);
         register(new Identifier(Jd_skill_tree.MOD_ID, "creative_flight"), CreativeFlightSkillEffect::fromJson);
+        register(new Identifier(Jd_skill_tree.MOD_ID, "elytra"), ElytraSkillEffect::fromJson);
     }
 }

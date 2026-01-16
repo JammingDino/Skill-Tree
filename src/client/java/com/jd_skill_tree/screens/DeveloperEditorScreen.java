@@ -1037,7 +1037,7 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
         var content = Containers.verticalFlow(Sizing.fill(100), Sizing.content());
         content.padding(Insets.of(5));
 
-        content.child(dropdown("Type", List.of("Attribute", "Mining Speed", "Potion", "Enchantment", "Attack Knockback", "Experience", "Swim Speed", "Lava Speed", "Effect Immunity", "Creative Flight"), data.type, s -> {
+        content.child(dropdown("Type", List.of("Attribute", "Mining Speed", "Potion", "Enchantment", "Attack Knockback", "Experience", "Swim Speed", "Lava Speed", "Effect Immunity", "Creative Flight", "Elytra"), data.type, s -> {
             data.type = s;
             rebuildEffectRow(collapsible, content, data);
             updatePreview();
@@ -1273,6 +1273,8 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
             content.child(autocompleteField("Immune To (Effect ID)", data.immuneEffectId, effectIds, s -> { data.immuneEffectId = s; updatePreview(); }, 100));
         } else if (data.type.equals("Creative Flight")) {
             content.child(Components.label(Text.of("Enables flight while active.")).color(Color.ofRgb(0x888888)));
+        } else if (data.type.equals("Elytra")) {
+            content.child(Components.label(Text.of("Grants passive Elytra flight.")).color(Color.ofRgb(0x888888)));
         }
 
         var removeBtn = Components.button(Text.of("Remove"), btn -> {
@@ -1347,6 +1349,8 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
                     eff.addProperty("effect", e.immuneEffectId);
                 } else if (e.type.equals("Creative Flight")) {
                     eff.addProperty("type", "jd_skill_tree:creative_flight");
+                } else if (e.type.equals("Elytra")) {
+                    eff.addProperty("type", "jd_skill_tree:elytra");
                 }
 
                 if (e.condition != null) {
