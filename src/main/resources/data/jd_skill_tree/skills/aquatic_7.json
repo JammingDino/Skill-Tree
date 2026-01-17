@@ -1,0 +1,11 @@
+{
+  "name": "Tidal Sprint",
+  "description": "Swim with incredible force. (+15% Swim Speed)",
+  "icon": "minecraft:nautilus_shell",
+  "tier": 5,
+  "cost": 3000,
+  "prerequisites": ["jd_skill_tree:aquatic_6"],
+  "effects": [
+    { "type": "jd_skill_tree:swim_speed", "value": 0.15 }
+  ]
+}

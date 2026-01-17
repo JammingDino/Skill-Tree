@@ -1,0 +1,11 @@
+{
+  "name": "Paddle Power",
+  "description": "Your strokes are more efficient. (+5% Swim Speed)",
+  "icon": "minecraft:seagrass",
+  "tier": 2,
+  "cost": 250,
+  "prerequisites": ["jd_skill_tree:aquatic_1"],
+  "effects": [
+    { "type": "jd_skill_tree:swim_speed", "value": 0.05 }
+  ]
+}

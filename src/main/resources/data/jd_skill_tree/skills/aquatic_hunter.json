@@ -1,0 +1,17 @@
+{
+  "name": "Shark Skin",
+  "description": "While wet, you regenerate health rapidly.",
+  "icon": "minecraft:prismarine_bricks",
+  "tier": 5,
+  "cost": 2500,
+  "prerequisites": ["jd_skill_tree:aquatic_6"],
+  "effects": [
+    {
+      "type": "jd_skill_tree:potion",
+      "effect": "minecraft:regeneration",
+      "amplifier": 1,
+      "hide_particles": true,
+      "condition": { "type": "jd_skill_tree:wetness" }
+    }
+  ]
+}

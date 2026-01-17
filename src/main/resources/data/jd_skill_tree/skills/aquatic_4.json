@@ -1,0 +1,11 @@
+{
+  "name": "Current Rider",
+  "description": "Move effortlessly with the flow. (+5% Swim Speed)",
+  "icon": "minecraft:salmon",
+  "tier": 3,
+  "cost": 800,
+  "prerequisites": ["jd_skill_tree:aquatic_3"],
+  "effects": [
+    { "type": "jd_skill_tree:swim_speed", "value": 0.05 }
+  ]
+}

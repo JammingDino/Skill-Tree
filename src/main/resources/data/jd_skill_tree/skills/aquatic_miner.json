@@ -1,0 +1,15 @@
+{
+  "name": "Aqua Miner",
+  "description": "Mining Speed is increased by 30% while underwater.",
+  "icon": "minecraft:diamond_pickaxe",
+  "tier": 5,
+  "cost": 1500,
+  "prerequisites": ["jd_skill_tree:aquatic_5"],
+  "effects": [
+    {
+      "type": "jd_skill_tree:mining_speed",
+      "value": 0.3,
+      "condition": { "type": "jd_skill_tree:wetness" }
+    }
+  ]
+}

@@ -71,39 +71,93 @@ function parseChangelog(rawText) {
     return rawText ? rawText.trim() : "";
 }
 
-// --- MAIN ---
-(async () => {
-    const stats = await fetchStats();
-    const changelog = parseChangelog(CONFIG.rawBody); // Keep as full string
+async function postToDiscord(version, imagePaths, modName) {
+    const webhookUrl = process.env.DISCORD_WEBHOOK_URL;
+    if (!webhookUrl) return;
 
-    const images = {
-        main: loadBase64Image('assets/icon.png'),
-        modrinth: loadBase64Image('assets/modrinth.ico'),
-        curseforge: loadBase64Image('assets/curseforge.ico')
-    };
+    // Project Links
+    const modrinthUrl = `https://modrinth.com/mod/dnC6tCcs`;
+    const curseforgeUrl = `https://www.curseforge.com/minecraft/mc-mods/1397099`;
+    const githubUrl = `https://github.com/your-username/your-repo/releases/tag/${version}`;
 
-    const browser = await puppeteer.launch({
-        args: ['--no-sandbox', '--disable-setuid-sandbox'],
-        // This helps in CI environments
-        headless: "new"
-    });
-    const page = await browser.newPage();
-    await page.setViewport({ width: 1080, height: 1080, deviceScaleFactor: 2 });
+    // Standard Clean Formatting
+    const content = `**${modName} ${version} is now available!**\n` +
+        `Modrinth: <${modrinthUrl}> | CurseForge: <${curseforgeUrl}> | GitHub: <${githubUrl}>`;
 
-    const htmlContent = fs.readFileSync(path.join(__dirname, 'assets/template.html'), 'utf-8');
-    await page.setContent(htmlContent);
+    const formData = new FormData();
+    formData.append('payload_json', JSON.stringify({
+        content: content
+    }));
 
-    // Pass the raw changelog string to the browser
-    await page.evaluate((config, stats, changelog, images) => {
-        window.renderCards(config, stats, changelog, images);
-    }, CONFIG, stats, changelog, images);
-
-    await new Promise(r => setTimeout(r, 500));
-
-    const cards = await page.$$('.project-card');
-    for (let i = 0; i < cards.length; i++) {
-        await cards[i].screenshot({ path: `release_card_${i + 1}.png` });
+    // Attach screenshots
+    for (let i = 0; i < imagePaths.length; i++) {
+        const buffer = fs.readFileSync(imagePaths[i]);
+        const blob = new Blob([buffer], { type: 'image/png' });
+        formData.append(`file${i}`, blob, `release_card_${i + 1}.png`);
     }
 
-    await browser.close();
+    try {
+        const response = await fetch(webhookUrl, {
+            method: 'POST',
+            body: formData
+        });
+        if (!response.ok) throw new Error(await response.text());
+        console.log("✅ Successfully posted to Discord");
+    } catch (err) {
+        console.error("❌ Discord Post Error:", err);
+    }
+}
+
+// --- MAIN ---
+(async () => {
+    try {
+        const stats = await fetchStats();
+        // Ensure CONFIG.rawBody is the full markdown string
+        const changelog = parseChangelog(CONFIG.rawBody);
+
+        const images = {
+            main: loadBase64Image('assets/icon.png'),
+            modrinth: loadBase64Image('assets/modrinth.ico'),
+            curseforge: loadBase64Image('assets/curseforge.ico')
+        };
+
+        const browser = await puppeteer.launch({
+            args: ['--no-sandbox', '--disable-setuid-sandbox'],
+            headless: "new"
+        });
+
+        const page = await browser.newPage();
+        await page.setViewport({ width: 1080, height: 1080, deviceScaleFactor: 2 });
+
+        const htmlContent = fs.readFileSync(path.join(__dirname, 'assets/template.html'), 'utf-8');
+        await page.setContent(htmlContent);
+
+        // Inject data and trigger the smart-pagination logic in the template
+        await page.evaluate((config, stats, changelog, images) => {
+            window.renderCards(config, stats, changelog, images);
+        }, CONFIG, stats, changelog, images);
+
+        // Wait for rendering and font scaling to finish
+        await new Promise(r => setTimeout(r, 1000));
+
+        const cards = await page.$$('.project-card');
+        const savedPaths = [];
+
+        // Single loop to capture and store paths
+        for (let i = 0; i < cards.length; i++) {
+            const imagePath = `release_card_${i + 1}.png`;
+            await cards[i].screenshot({ path: imagePath });
+            savedPaths.push(imagePath);
+            console.log(`Generated: ${imagePath}`);
+        }
+
+        // Post to Discord with all necessary metadata
+        await postToDiscord(CONFIG.version, savedPaths, CONFIG.modName);
+
+        await browser.close();
+        console.log("Success! Browser closed.");
+    } catch (error) {
+        console.error("Critical error in release generator:", error);
+        process.exit(1);
+    }
 })();

@@ -1,0 +1,11 @@
+{
+  "name": "Streamlined",
+  "description": "Reduce drag while swimming. (+5% Swim Speed)",
+  "icon": "minecraft:cod",
+  "tier": 3,
+  "cost": 500,
+  "prerequisites": ["jd_skill_tree:aquatic_2"],
+  "effects": [
+    { "type": "jd_skill_tree:swim_speed", "value": 0.05 }
+  ]
+}

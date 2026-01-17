@@ -1,0 +1,17 @@
+{
+  "name": "Abyssal Vision",
+  "description": "Gain Night Vision, but ONLY when you are underwater/wet.",
+  "icon": "minecraft:ender_eye",
+  "tier": 4,
+  "cost": 1000,
+  "prerequisites": ["jd_skill_tree:aquatic_4"],
+  "effects": [
+    {
+      "type": "jd_skill_tree:potion",
+      "effect": "minecraft:night_vision",
+      "amplifier": 0,
+      "hide_particles": true,
+      "condition": { "type": "jd_skill_tree:wetness" }
+    }
+  ]
+}
