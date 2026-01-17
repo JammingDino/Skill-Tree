@@ -129,33 +129,24 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Setup Python
-        uses: actions/setup-python@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
         with:
-          python-version: '3.10'
+          node-version: '20' # Using a modern LTS version
 
-      - name: Install Python Dependencies
+      - name: Install Dependencies
         run: |
-          pip install -r scripts/release_generator/requirements.txt
+          cd scripts/js_release
+          npm install
 
-      - name: Generate and Post Image
+      - name: Generate Release Cards
         env:
-          # Secrets
+          # Pass the variables the script expects
           DISCORD_WEBHOOK_URL: ${{ secrets.DISCORD_WEBHOOK_URL }}
-
-          # Dynamic Variables
-          RELEASE_VERSION: v${{ env.NEW_VERSION }}
-
-          # We pass the raw commit message as a backup,
-          # though the script will try to read RELEASE_NOTES.md first
+          # Assuming you have set NEW_VERSION in a previous step
+          RELEASE_VERSION: ${{ env.NEW_VERSION }}
+          # Passing the raw body for the markdown parser
           RELEASE_BODY: ${{ github.event.head_commit.message }}
-
-          # IDs
-          MODRINTH_PROJECT_ID: dnC6tCcs
-          CURSEFORGE_PROJECT_ID: 1397099
         run: |
-          # Navigate to the script folder so relative asset paths work
-          cd scripts/release_generator
-          
-          # Enable the posting function (ensure your python script calls post_to_discord at the bottom!)
-          python generate_release.py
+          cd scripts/js_release
+          node index.js
