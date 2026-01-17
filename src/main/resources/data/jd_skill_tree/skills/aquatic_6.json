@@ -1,0 +1,11 @@
+{
+  "name": "Marine Velocity",
+  "description": "You are becoming one with the ocean. (+10% Swim Speed)",
+  "icon": "minecraft:prismarine_crystals",
+  "tier": 4,
+  "cost": 2000,
+  "prerequisites": ["jd_skill_tree:aquatic_5"],
+  "effects": [
+    { "type": "jd_skill_tree:swim_speed", "value": 0.1 }
+  ]
+}

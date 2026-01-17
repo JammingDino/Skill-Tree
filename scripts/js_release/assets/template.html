@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;700;900&display=swap');
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        body {
+            background: transparent;
+            display: flex;
+            flex-direction: column;
+            gap: 40px;
+            font-family: 'Inter', sans-serif;
+            color: #fff;
+        }
+
+        .project-card {
+            width: 1080px;
+            height: 1080px;
+            background: linear-gradient(135deg, #1a1a1a 0%, #0d0d0d 100%);
+            position: relative;
+            overflow: hidden;
+            display: flex;
+            flex-direction: column;
+            padding: 90px;
+        }
+
+        .glow-orb {
+            position: absolute;
+            width: 800px; height: 800px; border-radius: 50%;
+            background: radial-gradient(circle, rgba(213, 0, 249, 0.12) 0%, rgba(0,0,0,0) 70%);
+            top: -200px; left: 50%; transform: translateX(-50%); z-index: 0;
+        }
+
+        /* --- COVER --- */
+        .content-layer-center {
+            z-index: 1; width: 100%; height: 100%;
+            display: flex; flex-direction: column; align-items: center; justify-content: center;
+        }
+        .main-icon { width: 340px; height: 340px; border-radius: 50px; border: 6px solid #333; margin-bottom: 40px; }
+        .title { font-size: 96px; font-weight: 900; margin-bottom: 20px; background: linear-gradient(to bottom, #fff, #bbb); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        .version-badge { background: rgba(213, 0, 249, 0.1); border: 2px solid rgba(213, 0, 249, 0.4); color: #e040fb; padding: 12px 35px; border-radius: 60px; font-size: 38px; font-weight: 700; margin-bottom: 60px; }
+
+        .stats-container { display: flex; gap: 30px; }
+        .stat-box { background: #1e1e1e; border-radius: 24px; padding: 20px 40px; display: flex; align-items: center; gap: 20px; border: 1px solid #333; min-width: 320px; }
+        .stat-value { font-size: 40px; font-weight: 700; }
+        .stat-label { font-size: 16px; color: #888; text-transform: uppercase; }
+
+        /* --- CHANGELOG --- */
+        .changelog-header { font-size: 60px; font-weight: 800; margin-bottom: 30px; border-bottom: 3px solid #333; padding-bottom: 20px; z-index: 1; }
+        .changelog-content { width: 100%; color: #ccc; z-index: 1; flex-grow: 1; line-height: 1.5; font-size: 34px; }
+
+        .changelog-content strong { color: #e040fb; font-weight: 700; }
+        .changelog-content code { background: rgba(255, 64, 129, 0.15); padding: 2px 8px; border-radius: 6px; font-family: monospace; color: #ff80ab; font-size: 0.85em; }
+        .changelog-content p { margin-bottom: 0.8em; }
+        .changelog-content ul { list-style: none; margin-bottom: 0.8em; }
+        .changelog-content li { position: relative; padding-left: 35px; margin-bottom: 12px; }
+        .changelog-content li::before { content: "▸"; position: absolute; left: 0; color: #e040fb; }
+
+        .page-footer { margin-top: auto; color: #444; font-size: 28px; font-weight: 800; width: 100%; text-align: right; z-index: 1; }
+    </style>
+</head>
+<body>
+<div id="container"></div>
+
+<script>
+    function formatNum(num) {
+        if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+        if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
+        return num.toString();
+    }
+
+    window.renderCards = (config, stats, changelogRaw, images) => {
+        const container = document.getElementById('container');
+
+        // 1. RENDER COVER CARD
+        const coverCard = document.createElement('div');
+        coverCard.className = 'project-card';
+        coverCard.innerHTML = `<div class="glow-orb"></div><div class="content-layer-center">
+            <img src="${images.main || ''}" class="main-icon">
+            <h1 class="title">${config.modName}</h1>
+            <div class="version-badge">${config.version}</div>
+            <div class="stats-container">
+                <div class="stat-box"><img src="${images.modrinth || ''}" class="platform-icon" width="44">
+                <div class="stat-text"><div class="stat-value">${formatNum(stats.mCount)}</div><div class="stat-label">Modrinth</div></div></div>
+                <div class="stat-box"><img src="${images.curseforge || ''}" class="platform-icon" width="44">
+                <div class="stat-text"><div class="stat-value">${formatNum(stats.cCount)}</div><div class="stat-label">CurseForge</div></div></div>
+            </div></div>`;
+        container.appendChild(coverCard);
+
+        // 2. TARGETED PAGINATION (Aiming for 2 cards)
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = marked.parse(changelogRaw || "");
+        const rawElements = Array.from(tempDiv.children);
+
+        // Lowered threshold to ensure a split occurs if content is substantial
+        const SPLIT_THRESHOLD = 550;
+        const pages = [[]];
+        let currentPageIdx = 0;
+        let charCount = 0;
+
+        rawElements.forEach((el) => {
+            const elChars = el.innerText ? el.innerText.length : 100;
+
+            // Trigger split if threshold reached, but don't split if it's the only element
+            if (charCount + elChars > SPLIT_THRESHOLD && pages[currentPageIdx].length > 0) {
+                // If the element is a header/bold label, split immediately before it
+                const isHeader = el.tagName.match(/^H[1-6]$/) || el.innerHTML.trim().startsWith('<strong>');
+
+                // If the PREVIOUS element was a header, move it to this new page
+                const prev = pages[currentPageIdx][pages[currentPageIdx].length - 1];
+                const prevIsHeader = prev && (prev.tagName.match(/^H[1-6]$/) || prev.innerHTML.trim().startsWith('<strong>'));
+
+                currentPageIdx++;
+                pages[currentPageIdx] = [];
+                charCount = 0;
+
+                if (prevIsHeader) {
+                    const header = pages[currentPageIdx - 1].pop();
+                    pages[currentPageIdx].push(header);
+                    charCount += header.innerText.length;
+                }
+            }
+
+            pages[currentPageIdx].push(el.cloneNode(true));
+            charCount += elChars;
+        });
+
+        // 3. FINAL RENDER
+        pages.forEach((items, idx) => {
+            const pageEl = document.createElement('div');
+            pageEl.className = 'project-card';
+            pageEl.innerHTML = `
+                <div class="glow-orb"></div>
+                <h2 class="changelog-header">What's New in ${config.version}</h2>
+                <div class="changelog-content"></div>
+                <div class="page-footer">Page ${idx + 1}/${pages.length}</div>
+            `;
+            container.appendChild(pageEl);
+            const content = pageEl.querySelector('.changelog-content');
+            items.forEach(item => content.appendChild(item));
+
+            // Final Spacing Tweak: Ensure the font size fills the page nicely
+            if (pages.length === 1) content.style.fontSize = '34px';
+            else if (items.length < 3) content.style.fontSize = '40px';
+            else content.style.fontSize = '34px';
+        });
+    };
+</script>
+</body>
+</html>

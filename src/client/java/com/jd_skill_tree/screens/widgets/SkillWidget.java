@@ -11,6 +11,15 @@ import net.minecraft.text.OrderedText;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 import java.util.List;
+import net.minecraft.client.render.RenderLayer;
+import net.minecraft.client.render.VertexConsumer;
+import net.minecraft.util.math.MathHelper;
+import org.joml.Matrix4f;
+import com.mojang.blaze3d.systems.RenderSystem;
+import net.minecraft.client.render.GameRenderer;
+import net.minecraft.client.render.Tessellator;
+import net.minecraft.client.render.VertexFormat;
+import net.minecraft.client.render.VertexFormats;
 
 public class SkillWidget {
 
@@ -73,7 +82,6 @@ public class SkillWidget {
         int tooltipWidth = 160;
         int tooltipHeight = 8 + (description.size() * 10) + 12;
 
-        // Define the boundaries of the main box
         int boxX1 = tooltipX - 3;
         int boxY1 = tooltipY - 3;
         int boxX2 = tooltipX + tooltipWidth + 3;
@@ -82,7 +90,7 @@ public class SkillWidget {
         context.getMatrices().push();
         context.getMatrices().translate(0, 0, 400);
 
-        // 1. Draw Standard Background (Dark Translucent Black)
+        // 1. Draw Background
         int backgroundColor = -267386864; // 0xF0100010
         context.fillGradient(boxX1, boxY1 - 1, boxX2, boxY1, backgroundColor, backgroundColor);
         context.fillGradient(boxX1, boxY2, boxX2, boxY2 + 1, backgroundColor, backgroundColor);
@@ -90,80 +98,38 @@ public class SkillWidget {
         context.fillGradient(boxX1 - 1, boxY1, boxX1, boxY2, backgroundColor, backgroundColor);
         context.fillGradient(boxX2, boxY1, boxX2 + 1, boxY2, backgroundColor, backgroundColor);
 
-        // 2. Determine Colors based on Tier
-        int r = 255, g = 255, b = 255;
-        int glowBaseAlpha = 0x50; // Standard glow opacity
+        // 2. Borders & Title Color
+        int titleColor;
 
-        switch (this.skill.getTier()) {
-            case 1: // Grey
-                r = 170; g = 170; b = 170;
-                break;
-            case 2: // Green
-                r = 85; g = 255; b = 85;
-                break;
-            case 3: // Blue
-                r = 85; g = 85; b = 255;
-                break;
-            case 4: // Orange
-                r = 255; g = 170; b = 0;
-                break;
-            case 5: // Aggressive Red
-                double time = System.currentTimeMillis() * 0.005;
-                double sine = Math.sin(time); // -1.0 to 1.0
+        if (this.skill.getTier() == 5) {
+            // --- TIER 5: DYNAMIC GLOW ---
 
-                // Aggressive Red Formula
-                int redIntensity = (int)(230 + (sine * 25));
-                r = Math.max(0, Math.min(255, redIntensity));
-                g = 0;
-                b = 0;
+            // TIMING FIX:
+            // We use a 4-second period.
+            // We calculate normalized progress (0.0 -> 1.0) and multiply by 2*PI.
+            // This ensures end-state matches start-state perfectly.
+            long period = 4000L;
+            float progress = (System.currentTimeMillis() % period) / (float) period;
+            float phase = progress * (float) (Math.PI * 2);
 
-                // Higher opacity for Tier 5 to make it "pop"
-                glowBaseAlpha = 0xA0;
-                break;
+            drawDynamicBorder(context, boxX1, boxY1, boxX2 - boxX1, boxY2 - boxY1, phase, 6);
+            titleColor = getHummingPurpleGold(phase);
+        } else {
+            // --- TIERS 1-4: SUBTLE GLOW ---
+            int baseColor;
+            switch (this.skill.getTier()) {
+                case 2 -> baseColor = 0xFF55FF55; // Green
+                case 3 -> baseColor = 0xFF5555FF; // Blue
+                case 4 -> baseColor = 0xFFFFAA00; // Gold
+                default -> baseColor = 0xFFAAAAAA; // Grey
+            }
+
+            drawStaticGlow(context, boxX1, boxY1, boxX2 - boxX1, boxY2 - boxY1, baseColor, 4);
+            titleColor = baseColor;
         }
 
-        // 3. Draw OUTWARD Glow
-        int glowSize = 10; // Distance the glow radiates outwards
-
-        // Loop from 1 to glowSize to draw concentric rings moving outwards
-        for (int i = 1; i <= glowSize; i++) {
-            // Calculate fading alpha (Strongest near box, 0 at edge)
-            float fade = 1.0f - ((float)i / glowSize);
-            // Apply a curve so it doesn't fade too linearly (optional, looks nicer)
-            fade = fade * fade;
-
-            int currentAlpha = (int)(glowBaseAlpha * fade);
-            int fadeColor = (currentAlpha << 24) | (r << 16) | (g << 8) | b;
-
-            // Coordinates for the current ring
-            int x1 = boxX1 - i;
-            int y1 = boxY1 - i;
-            int x2 = boxX2 + i;
-            int y2 = boxY2 + i;
-
-            // Draw the 4 sides of the ring
-            // Top Line (Full Width)
-            context.fill(x1, y1, x2, y1 + 1, fadeColor);
-            // Bottom Line (Full Width)
-            context.fill(x1, y2 - 1, x2, y2, fadeColor);
-            // Left Line (Between Top and Bottom)
-            context.fill(x1, y1 + 1, x1 + 1, y2 - 1, fadeColor);
-            // Right Line (Between Top and Bottom)
-            context.fill(x2 - 1, y1 + 1, x2, y2 - 1, fadeColor);
-        }
-
-        // 4. Draw 1px Solid Borders (Over the inner-most part of the glow)
-        int fullAlpha = 0xFF;
-        int borderColor = (fullAlpha << 24) | (r << 16) | (g << 8) | b;
-
-        context.fill(boxX1, boxY1, boxX2, boxY1 + 1, borderColor); // Top
-        context.fill(boxX1, boxY2 - 1, boxX2, boxY2, borderColor); // Bottom
-        context.fill(boxX1, boxY1, boxX1 + 1, boxY2, borderColor); // Left
-        context.fill(boxX2 - 1, boxY1, boxX2, boxY2, borderColor); // Right
-
-        // 5. Draw Text
-        // Title (Colored)
-        context.drawText(this.client.textRenderer, this.title, tooltipX, tooltipY, borderColor, true);
+        // 3. Draw Text
+        context.drawText(this.client.textRenderer, this.title, tooltipX, tooltipY, titleColor, true);
 
         int descY = tooltipY + 12;
         for (OrderedText line : this.description) {
@@ -178,7 +144,6 @@ public class SkillWidget {
         if (state == SkillState.UNLOCKED) {
             costColor = 0x66FF55; // Green
         } else {
-            // Check points instead of levels
             int currentXp = ExperienceUtils.getPlayerTotalXp(this.client.player);
             if (currentXp >= skill.getCost()) {
                 costColor = 0xFFFF55; // Yellow
@@ -188,6 +153,105 @@ public class SkillWidget {
         context.drawText(this.client.textRenderer, costText, tooltipX, descY, costColor, true);
 
         context.getMatrices().pop();
+    }
+
+    private void drawStaticGlow(DrawContext context, int x, int y, int w, int h, int color, int glowSize) {
+        int fadeColor = color & 0x00FFFFFF;
+
+        // Sides
+        drawGlowQuad(context, x, y - glowSize, w, glowSize, fadeColor, fadeColor, color, color);
+        drawGlowQuad(context, x, y + h, w, glowSize, color, color, fadeColor, fadeColor);
+        drawGlowQuad(context, x - glowSize, y, glowSize, h, fadeColor, color, color, fadeColor);
+        drawGlowQuad(context, x + w, y, glowSize, h, color, fadeColor, fadeColor, color);
+
+        // Corners (Symmetric Logic)
+        // TL: Inner (BR) is Solid
+        drawGlowQuad(context, x - glowSize, y - glowSize, glowSize, glowSize, fadeColor, fadeColor, color, fadeColor);
+        // TR: Inner (BL) is Solid
+        drawGlowQuad(context, x + w, y - glowSize, glowSize, glowSize, fadeColor, fadeColor, fadeColor, color);
+        // BR: Inner (TL) is Solid
+        drawGlowQuad(context, x + w, y + h, glowSize, glowSize, color, fadeColor, fadeColor, fadeColor);
+        // BL: Inner (TR) is Solid
+        drawGlowQuad(context, x - glowSize, y + h, glowSize, glowSize, fadeColor, color, fadeColor, fadeColor);
+
+        // 1px Hard Border
+        context.drawBorder(x, y, w, h, color);
+    }
+
+    private void drawDynamicBorder(DrawContext context, int x, int y, int w, int h, float phase, int glowSize) {
+        int cTL = getHummingPurpleGold(phase);
+        int cTR = getHummingPurpleGold(phase + (float)(Math.PI / 2));
+        int cBR = getHummingPurpleGold(phase + (float)(Math.PI));
+        int cBL = getHummingPurpleGold(phase + (float)(Math.PI * 1.5));
+
+        int cTL_fade = cTL & 0x00FFFFFF;
+        int cTR_fade = cTR & 0x00FFFFFF;
+        int cBR_fade = cBR & 0x00FFFFFF;
+        int cBL_fade = cBL & 0x00FFFFFF;
+
+        // Sides
+        drawGlowQuad(context, x, y - glowSize, w, glowSize, cTL_fade, cTR_fade, cTR, cTL);
+        drawGlowQuad(context, x, y + h, w, glowSize, cBL, cBR, cBR_fade, cBL_fade);
+        drawGlowQuad(context, x - glowSize, y, glowSize, h, cTL_fade, cTL, cBL, cBL_fade);
+        drawGlowQuad(context, x + w, y, glowSize, h, cTR, cTR_fade, cBR_fade, cBR);
+
+        // Corners (Auto-detected smooth rendering)
+        drawGlowQuad(context, x - glowSize, y - glowSize, glowSize, glowSize, cTL_fade, cTL_fade, cTL, cTL_fade);
+        drawGlowQuad(context, x + w, y - glowSize, glowSize, glowSize, cTR_fade, cTR_fade, cTR_fade, cTR);
+        drawGlowQuad(context, x + w, y + h, glowSize, glowSize, cBR, cBR_fade, cBR_fade, cBR_fade);
+        drawGlowQuad(context, x - glowSize, y + h, glowSize, glowSize, cBL_fade, cBL, cBL_fade, cBL_fade);
+
+        // Hard Border
+        drawGlowQuad(context, x, y, w, 1, cTL, cTR, cTR, cTL);
+        drawGlowQuad(context, x + w - 1, y, 1, h, cTR, cTR, cBR, cBR);
+        drawGlowQuad(context, x, y + h - 1, w, 1, cBL, cBR, cBR, cBL);
+        drawGlowQuad(context, x, y, 1, h, cTL, cTL, cBL, cBL);
+    }
+
+    private void drawGlowQuad(DrawContext context, int x, int y, int w, int h, int cTL, int cTR, int cBR, int cBL) {
+        VertexConsumer vertexConsumer = context.getVertexConsumers().getBuffer(RenderLayer.getGui());
+        Matrix4f matrix = context.getMatrices().peek().getPositionMatrix();
+
+        // Extract Alphas first to decide triangulation
+        float aTL = (float)(cTL >> 24 & 255) / 255.0F;
+        float aTR = (float)(cTR >> 24 & 255) / 255.0F;
+        float aBR = (float)(cBR >> 24 & 255) / 255.0F;
+        float aBL = (float)(cBL >> 24 & 255) / 255.0F;
+
+        // Auto-Fix: Determine which diagonal carries the "weight" of the gradient.
+        // If the TR-BL diagonal is brighter than the TL-BR diagonal, we flip the
+        // internal triangulation (drawing TL->BR->BL->TR) to avoid a hard crease.
+        boolean flip = (aTR + aBL) > (aTL + aBR);
+
+        // Extract remaining components
+        float rTL = (float)(cTL >> 16 & 255) / 255.0F; float gTL = (float)(cTL >> 8 & 255) / 255.0F; float bTL = (float)(cTL & 255) / 255.0F;
+        float rTR = (float)(cTR >> 16 & 255) / 255.0F; float gTR = (float)(cTR >> 8 & 255) / 255.0F; float bTR = (float)(cTR & 255) / 255.0F;
+        float rBR = (float)(cBR >> 16 & 255) / 255.0F; float gBR = (float)(cBR >> 8 & 255) / 255.0F; float bBR = (float)(cBR & 255) / 255.0F;
+        float rBL = (float)(cBL >> 16 & 255) / 255.0F; float gBL = (float)(cBL >> 8 & 255) / 255.0F; float bBL = (float)(cBL & 255) / 255.0F;
+
+        if (flip) {
+            // Flipped Order: Forces the GPU to cut the quad from Top-Left to Bottom-Right
+            // This prevents the "Hard Edge" when the gradient source is TR or BL
+            vertexConsumer.vertex(matrix, x, y, 0).color(rTL, gTL, bTL, aTL).next();             // TL
+            vertexConsumer.vertex(matrix, x, y + h, 0).color(rBL, gBL, bBL, aBL).next();         // BL
+            vertexConsumer.vertex(matrix, x + w, y + h, 0).color(rBR, gBR, bBR, aBR).next();     // BR
+            vertexConsumer.vertex(matrix, x + w, y, 0).color(rTR, gTR, bTR, aTR).next();         // TR
+        } else {
+            // Standard Order: GPU cuts from Bottom-Left to Top-Right
+            vertexConsumer.vertex(matrix, x, y + h, 0).color(rBL, gBL, bBL, aBL).next();         // BL
+            vertexConsumer.vertex(matrix, x + w, y + h, 0).color(rBR, gBR, bBR, aBR).next();     // BR
+            vertexConsumer.vertex(matrix, x + w, y, 0).color(rTR, gTR, bTR, aTR).next();         // TR
+            vertexConsumer.vertex(matrix, x, y, 0).color(rTL, gTL, bTL, aTL).next();             // TL
+        }
+    }
+
+    private int getHummingPurpleGold(float phase) {
+        float t = (MathHelper.sin(phase) + 1.0f) * 0.5f;
+        int r = (int) (160 + (255 - 160) * t);
+        int g = (int) (32 + (215 - 32) * t);
+        int b = (int) (240 + (0 - 240) * t);
+        // Alpha must be 255 (0xFF) so we can bitwise AND it later to make it transparent
+        return 0xFF000000 | (r << 16) | (g << 8) | b;
     }
 
     public SkillState getState() {

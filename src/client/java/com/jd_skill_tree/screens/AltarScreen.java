@@ -33,9 +33,8 @@ public class AltarScreen extends Screen {
     private final Map<Identifier, SkillWidget> skillWidgetMap = new HashMap<>();
 
     // Layout configuration
-    private static final int RADIAL_SPACING = 50; // Distance between skill tiers
-    private static final double CHILD_ANGLE_SPREAD = Math.PI / 6; // 30 degrees spread per child
-    private static final int MIN_NODE_DISTANCE = 40; // Minimum distance between any two nodes
+    // Increased base spacing to 60 for better breathing room near center
+    private static final int RADIAL_SPACING = 60;
 
     private double panX = 0;
     private double panY = 0;
@@ -61,29 +60,18 @@ public class AltarScreen extends Screen {
         // Organize skills by their tree structure
         Map<Identifier, SkillNode> skillNodes = buildSkillTree(skillsToDisplay);
 
-        // Calculate positions for all skills
+        // Calculate positions for all skills using new weighted algorithm
         calculateCircularPositions(skillNodes);
 
         // --- CALCULATE TREE BOUNDARIES ---
         calculateTreeBounds();
 
         // --- CENTER THE INITIAL VIEW ---
-        // Calculate the absolute center of the UI window
         double screenCenterX = x + WINDOW_WIDTH / 2.0;
         double screenCenterY = y + WINDOW_HEIGHT / 2.0;
 
-        // We want the logic coordinate (0,0) to be at screenCenterX, screenCenterY.
-        // Since widgets are drawn from their top-left corner, and appear to be roughly 26x26,
-        // we offset by half the widget size (13) to make the visual center of the node
-        // land exactly on the center of the screen.
         this.panX = screenCenterX - 13;
         this.panY = screenCenterY - 9;
-
-        // IMPORTANT: Do NOT call clampPan() here.
-        // If the tree is unbalanced (e.g., only grows to the right), clampPan()
-        // would immediately detect that (0,0) is at the edge of the bounds
-        // and shove the camera over to fit the nodes, undoing your centering work.
-        // clampPan();
     }
 
     /**
@@ -91,11 +79,14 @@ public class AltarScreen extends Screen {
      */
     private static class SkillNode {
         Skill skill;
-        int depth; // Distance from root (0 for root skills)
+        int depth;
         List<SkillNode> children = new ArrayList<>();
-        List<SkillNode> parents = new ArrayList<>(); // Changed to support multiple parents
-        int x, y; // Calculated position
-        double angle; // Angle from parent (in radians)
+        List<SkillNode> parents = new ArrayList<>();
+        int x, y;
+        double angle;
+
+        // NEW: Tracks how "heavy" this branch is to allocate enough space
+        int leavesCount = 0;
 
         SkillNode(Skill skill) {
             this.skill = skill;
@@ -109,17 +100,14 @@ public class AltarScreen extends Screen {
         Map<Identifier, SkillNode> nodes = new HashMap<>();
         List<SkillNode> rootNodes = new ArrayList<>();
 
-        // Create nodes for all skills
         for (Skill skill : skills) {
             nodes.put(skill.getId(), new SkillNode(skill));
         }
 
-        // Link parents and children (now supports multiple parents)
         for (SkillNode node : nodes.values()) {
             List<Skill> requiredSkills = node.skill.getRequiredSkills();
 
             if (!requiredSkills.isEmpty()) {
-                // This skill has prerequisites
                 for (Skill requiredSkill : requiredSkills) {
                     SkillNode parent = nodes.get(requiredSkill.getId());
                     if (parent != null) {
@@ -128,27 +116,19 @@ public class AltarScreen extends Screen {
                     }
                 }
             } else {
-                // This is a root skill
                 rootNodes.add(node);
             }
         }
 
-        // Calculate depth for each node
         calculateDepths(rootNodes);
-
         return nodes;
     }
 
-    /**
-     * Calculate the depth of each node (distance from root)
-     */
     private void calculateDepths(List<SkillNode> roots) {
         Queue<SkillNode> queue = new LinkedList<>(roots);
-
         for (SkillNode root : roots) {
             root.depth = 0;
         }
-
         while (!queue.isEmpty()) {
             SkillNode current = queue.poll();
             for (SkillNode child : current.children) {
@@ -159,10 +139,10 @@ public class AltarScreen extends Screen {
     }
 
     /**
-     * Calculate circular positions for all skills
+     * REPLACED: New Subtree-Aware Layout Algorithm
      */
     private void calculateCircularPositions(Map<Identifier, SkillNode> nodes) {
-        // Find root nodes
+        // 1. Identify Root Nodes
         List<SkillNode> rootNodes = new ArrayList<>();
         for (SkillNode node : nodes.values()) {
             if (node.parents.isEmpty()) {
@@ -170,229 +150,104 @@ public class AltarScreen extends Screen {
             }
         }
 
-        // Position root nodes in a circle around the center
-        int numRoots = rootNodes.size();
-        for (int i = 0; i < numRoots; i++) {
-            SkillNode root = rootNodes.get(i);
-            double angle = (2 * Math.PI * i) / numRoots;
+        // 2. Calculate Weights
+        for (SkillNode root : rootNodes) {
+            calculateLeafCounts(root, new HashSet<>());
+        }
 
-            // Place roots at the first radius level
-            root.x = (int)(Math.cos(angle) * RADIAL_SPACING);
-            root.y = (int)(Math.sin(angle) * RADIAL_SPACING);
-            root.angle = angle;
-            root.depth = 0;
+        // 3. Assign Angles (Modified with Logarithmic Dampening)
+        double currentAngle = 0;
+        double totalWeight = 0;
 
-            // Create widget for root
-            SkillWidget widget = new SkillWidget(root.skill, root.x, root.y, this);
+        // First pass: Calculate total dampened weight
+        for (SkillNode root : rootNodes) {
+            // Logarithm flattens the curve.
+            // A tree of size 1 = 1.0 weight.
+            // A tree of size 50 = ~4.9 weight (instead of 50.0).
+            // This prevents massive gaps on the first ring.
+            double weight = Math.log(root.leavesCount) + 1.5;
+            totalWeight += weight;
+        }
+
+        for (SkillNode root : rootNodes) {
+            double weight = Math.log(root.leavesCount) + 1.5;
+
+            // Allocate wedge
+            double angleWedge = (weight / totalWeight) * (Math.PI * 2);
+
+            double startAngle = currentAngle;
+            double endAngle = currentAngle + angleWedge;
+
+            // Recursively position
+            assignNodePosition(root, startAngle, endAngle, new HashSet<>());
+
+            currentAngle += angleWedge;
+        }
+
+        // 4. Create Widgets
+        this.skillWidgets.clear();
+        for (SkillNode node : nodes.values()) {
+            SkillWidget widget = new SkillWidget(node.skill, node.x, node.y, this);
             this.skillWidgets.add(widget);
-            this.skillWidgetMap.put(root.skill.getId(), widget);
-        }
-
-        // Position all other nodes level by level
-        Set<SkillNode> positioned = new HashSet<>(rootNodes);
-        boolean changed = true;
-
-        while (changed) {
-            changed = false;
-
-            for (SkillNode node : nodes.values()) {
-                if (positioned.contains(node)) {
-                    continue;
-                }
-
-                // Check if all parents are positioned
-                boolean allParentsPositioned = true;
-                for (SkillNode parent : node.parents) {
-                    if (!positioned.contains(parent)) {
-                        allParentsPositioned = false;
-                        break;
-                    }
-                }
-
-                if (allParentsPositioned && !node.parents.isEmpty()) {
-                    positionNodeWithMultipleParents(node, positioned);
-                    positioned.add(node);
-
-                    // Create widget
-                    SkillWidget widget = new SkillWidget(node.skill, node.x, node.y, this);
-                    this.skillWidgets.add(widget);
-                    this.skillWidgetMap.put(node.skill.getId(), widget);
-
-                    changed = true;
-                }
-            }
+            this.skillWidgetMap.put(node.skill.getId(), widget);
         }
     }
 
     /**
-     * Position a node that may have multiple parents
+     * Recursive Pass 1: Count endpoints in subtree
      */
-    private void positionNodeWithMultipleParents(SkillNode node, Set<SkillNode> positioned) {
-        if (node.parents.isEmpty()) {
-            return;
-        }
+    private void calculateLeafCounts(SkillNode node, Set<SkillNode> visited) {
+        if (!visited.add(node)) return;
 
-        if (node.parents.size() == 1) {
-            // Single parent - position relative to it
-            SkillNode parent = node.parents.get(0);
-            node.depth = parent.depth + 1;
-
-            // Find all siblings (other children of the same parent that share only this parent)
-            List<SkillNode> siblings = new ArrayList<>();
-            for (SkillNode child : parent.children) {
-                if (child.parents.size() == 1) {
-                    siblings.add(child);
-                }
-            }
-
-            int siblingIndex = siblings.indexOf(node);
-            int numSiblings = siblings.size();
-
-            if (numSiblings == 1) {
-                // Only child - place directly in line
-                node.angle = parent.angle;
-            } else {
-                // Multiple siblings - spread them out
-                double depthFactor = 1.0 / Math.max(1, parent.depth * 0.5);
-                double angularSpread = CHILD_ANGLE_SPREAD * depthFactor;
-                double totalSpread = angularSpread * Math.min(numSiblings - 1, 4);
-                double offset = totalSpread * ((siblingIndex - (numSiblings - 1) / 2.0) / Math.max(1, numSiblings - 1));
-                node.angle = parent.angle + offset;
-            }
-
-            node.x = parent.x + (int)(Math.cos(node.angle) * RADIAL_SPACING);
-            node.y = parent.y + (int)(Math.sin(node.angle) * RADIAL_SPACING);
-
+        if (node.children.isEmpty()) {
+            node.leavesCount = 1;
         } else {
-            // Multiple parents - calculate position between them
-            // Find the deepest parent to determine our depth
-            int maxParentDepth = 0;
-            for (SkillNode parent : node.parents) {
-                maxParentDepth = Math.max(maxParentDepth, parent.depth);
-            }
-            node.depth = maxParentDepth + 1;
-
-            // Calculate centroid of all parents
-            double centroidX = 0;
-            double centroidY = 0;
-
-            for (SkillNode parent : node.parents) {
-                centroidX += parent.x;
-                centroidY += parent.y;
-            }
-
-            centroidX /= node.parents.size();
-            centroidY /= node.parents.size();
-
-            // Calculate angle from origin to centroid
-            double centroidAngle = Math.atan2(centroidY, centroidX);
-            node.angle = centroidAngle;
-
-            // Position the node further out from the centroid
-            // Use a multiplier to ensure it's clearly beyond the parents
-            double distanceFromCentroid = RADIAL_SPACING * 1.2;
-
-            node.x = (int)(centroidX + Math.cos(node.angle) * distanceFromCentroid);
-            node.y = (int)(centroidY + Math.sin(node.angle) * distanceFromCentroid);
-
-            // Check for overlaps and adjust if necessary
-            resolveOverlap(node, positioned);
-        }
-    }
-
-    /**
-     * Check if a node overlaps with any positioned nodes and adjust position if needed
-     */
-    private void resolveOverlap(SkillNode node, Set<SkillNode> positioned) {
-        boolean hasOverlap = true;
-        int maxAttempts = 36; // Try 36 different angles (10 degrees each)
-        int attempt = 0;
-
-        while (hasOverlap && attempt < maxAttempts) {
-            hasOverlap = false;
-
-            for (SkillNode other : positioned) {
-                double dist = Math.sqrt(Math.pow(node.x - other.x, 2) + Math.pow(node.y - other.y, 2));
-
-                if (dist < MIN_NODE_DISTANCE) {
-                    hasOverlap = true;
-
-                    // Rotate the node slightly and try again
-                    double angleAdjust = Math.PI / 18; // 10 degrees
-                    node.angle += angleAdjust;
-
-                    // Recalculate position with new angle
-                    double centroidX = 0;
-                    double centroidY = 0;
-                    for (SkillNode parent : node.parents) {
-                        centroidX += parent.x;
-                        centroidY += parent.y;
-                    }
-                    centroidX /= node.parents.size();
-                    centroidY /= node.parents.size();
-
-                    double distanceFromCentroid = RADIAL_SPACING * 1.2;
-                    node.x = (int)(centroidX + Math.cos(node.angle) * distanceFromCentroid);
-                    node.y = (int)(centroidY + Math.sin(node.angle) * distanceFromCentroid);
-
-                    attempt++;
-                    break;
-                }
+            node.leavesCount = 0;
+            for (SkillNode child : node.children) {
+                calculateLeafCounts(child, visited);
+                node.leavesCount += child.leavesCount;
             }
         }
     }
 
     /**
-     * Recursively position child nodes in a circular pattern
-     * NOTE: This is now only used internally and has been largely replaced by
-     * positionNodeWithMultipleParents for the main positioning logic
+     * Recursive Pass 2: Assign positions using Quadratic Spacing
      */
-    private void positionChildren(SkillNode parent) {
-        if (parent.children.isEmpty()) {
-            return;
-        }
+    private void assignNodePosition(SkillNode node, double startAngle, double endAngle, Set<SkillNode> visited) {
+        if (!visited.add(node)) return;
 
-        int numChildren = parent.children.size();
+        // 1. Position self in the center of the assigned wedge
+        node.angle = (startAngle + endAngle) / 2.0;
 
-        // Calculate angular span for children based on parent's angle
-        double baseAngle = parent.angle;
+        // --- FIXED RADIUS FORMULA ---
+        // 1. (node.depth + 1): Ensures Roots (Depth 0) are not at 0,0.
+        //    They now start at 1x Spacing.
+        // 2. Removed Quadratic (Math.pow): Fixes "too much spacing" at outer layers.
+        // 3. Added small linear buffer (+10 * depth): Gives just enough extra room
+        //    for outer nodes without exploding the distance.
+        double radius = ((node.depth + 1) * RADIAL_SPACING) + (node.depth * 10);
 
-        // Dynamic angular spread based on number of children and depth
-        // Deeper nodes get tighter spacing to prevent extreme spreading
-        double depthFactor = 1.0 / Math.max(1, parent.depth * 0.5);
-        double angularSpread = CHILD_ANGLE_SPREAD * depthFactor;
+        node.x = (int) (Math.cos(node.angle) * radius);
+        node.y = (int) (Math.sin(node.angle) * radius);
 
-        // If there's only one child, place it directly in line with parent
-        if (numChildren == 1) {
-            SkillNode child = parent.children.get(0);
-            child.angle = baseAngle;
-            // Position relative to parent, not origin
-            child.x = parent.x + (int)(Math.cos(child.angle) * RADIAL_SPACING);
-            child.y = parent.y + (int)(Math.sin(child.angle) * RADIAL_SPACING);
-        } else {
-            // Distribute children evenly within the angular spread
-            // Total spread increases with more children
-            double totalSpread = angularSpread * Math.min(numChildren - 1, 4);
+        // 2. Position Children
+        if (!node.children.isEmpty()) {
+            double currentChildStart = startAngle;
 
-            for (int i = 0; i < numChildren; i++) {
-                SkillNode child = parent.children.get(i);
-                // Center the spread around the parent's angle
-                double offset = totalSpread * ((i - (numChildren - 1) / 2.0) / Math.max(1, numChildren - 1));
-                child.angle = baseAngle + offset;
+            double totalChildLeaves = 0;
+            for (SkillNode child : node.children) totalChildLeaves += child.leavesCount;
 
-                // Position relative to parent, not origin
-                child.x = parent.x + (int)(Math.cos(child.angle) * RADIAL_SPACING);
-                child.y = parent.y + (int)(Math.sin(child.angle) * RADIAL_SPACING);
+            double availableArc = endAngle - startAngle;
+
+            for (SkillNode child : node.children) {
+                // Give child a percentage of the parent's wedge
+                double percent = (double) child.leavesCount / totalChildLeaves;
+                double childWedge = availableArc * percent;
+
+                assignNodePosition(child, currentChildStart, currentChildStart + childWedge, visited);
+
+                currentChildStart += childWedge;
             }
-        }
-
-        // Create widgets for children and recurse
-        for (SkillNode child : parent.children) {
-            SkillWidget widget = new SkillWidget(child.skill, child.x, child.y, this);
-            this.skillWidgets.add(widget);
-            this.skillWidgetMap.put(child.skill.getId(), widget);
-
-            positionChildren(child);
         }
     }
 
@@ -433,7 +288,6 @@ public class AltarScreen extends Screen {
 
         for (SkillWidget widget : this.skillWidgets) {
             if (widget.mouseClicked(worldMouseX, worldMouseY, button, 0, 0)) {
-                // CHANGED: Compare the skill's ID to our "reset_skills" identifier.
                 if (widget.getSkill().getId().toString().equals("jd_skill_tree:reset_skills")) {
                     if (widget.getState() == SkillWidget.SkillState.CAN_UNLOCK) {
                         sendResetRequest();
@@ -452,44 +306,36 @@ public class AltarScreen extends Screen {
         return super.mouseClicked(mouseX, mouseY, button);
     }
 
+    // Helper to ensure we don't show tooltips if the mouse is outside the main window area
+    private boolean isMouseInWindow(int mouseX, int mouseY) {
+        return mouseX >= x + 10 && mouseX <= x + WINDOW_WIDTH - 10 &&
+                mouseY >= y + 2 && mouseY <= y + WINDOW_HEIGHT - 10;
+    }
+
     @Override
-    public boolean mouseScrolled(double mouseX, double mouseY, double amount) { // In 1.20.2+ use double verticalAmount
-        // Calculate the new scale
+    public boolean mouseScrolled(double mouseX, double mouseY, double amount) {
         double newScale = this.scale + (amount * ZOOM_SENSITIVITY);
         newScale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, newScale));
 
         if (newScale != this.scale) {
-            // 1. Calculate where the mouse is in the "World" (relative to tree origin) before zooming
             double worldMouseX = (mouseX - this.panX) / this.scale;
             double worldMouseY = (mouseY - this.panY) / this.scale;
-
-            // 2. Apply the new scale
             this.scale = newScale;
-
-            // 3. Recalculate panX/Y so the mouse remains over the same "World" point
             this.panX = mouseX - (worldMouseX * this.scale);
             this.panY = mouseY - (worldMouseY * this.scale);
-
-            // Optional: Re-clamp if you want to prevent zooming the tree off-screen
-            // clampPan();
-
             return true;
         }
-        return super.mouseScrolled(mouseX, mouseY, amount); // or verticalAmount
+        return super.mouseScrolled(mouseX, mouseY, amount);
     }
 
     private void sendUnlockRequest(Skill skill) {
-        System.out.println("CLIENT: Sending unlock request for skill: " + skill.getId());
         PacketByteBuf buf = PacketByteBufs.create();
         buf.writeIdentifier(skill.getId());
-        // CORRECTED: Reference the ID from the SkillNetworking class
         ClientPlayNetworking.send(SkillNetworking.UNLOCK_SKILL_PACKET_ID, buf);
     }
 
     private void sendResetRequest() {
-        System.out.println("CLIENT: Sending skill reset request.");
         PacketByteBuf buf = PacketByteBufs.create();
-        // CORRECTED: Reference the ID from the SkillNetworking class
         ClientPlayNetworking.send(SkillNetworking.RESET_SKILLS_PACKET_ID, buf);
     }
 
@@ -529,46 +375,89 @@ public class AltarScreen extends Screen {
 
         this.drawWindow(context, x, y);
 
-        // 1. Enable Scissor (Keep the drawing inside the window)
         context.enableScissor(x + 9, y + 17, x + WINDOW_WIDTH - 9, y + WINDOW_HEIGHT - 9);
-
         this.renderBackground(context);
 
-        // --- START MATRIX TRANSFORMATION ---
         context.getMatrices().push();
-
-        // A. Translate to the Pan location (The camera position)
         context.getMatrices().translate(this.panX, this.panY, 0);
-
-        // B. Scale the view
         context.getMatrices().scale((float)this.scale, (float)this.scale, 1.0f);
 
-        // 2. Draw Lines
-        // Note: pass '0' for offset because the Matrix handles panX/panY now
-        drawSkillLines(context, 0, 0);
+        // --- 1. DETERMINE HOVERED PATH ---
+        Set<Identifier> highlightedPath = new HashSet<>();
 
-        // 3. Draw Widgets
+        // Convert mouse to world coords for detection
+        double worldMouseX = (mouseX - this.panX) / this.scale;
+        double worldMouseY = (mouseY - this.panY) / this.scale;
+
         for (SkillWidget widget : this.skillWidgets) {
-            // Transform mouse BACK to world space for hover effects inside the widget render
-            // (Only if your widget uses mouseX/Y for visual hover states during render)
-            int worldMouseX = (int)((mouseX - this.panX) / this.scale);
-            int worldMouseY = (int)((mouseY - this.panY) / this.scale);
-
-            // Pass 0,0 as x/y offset, let the Matrix translate it
-            widget.render(context, 0, 0, worldMouseX, worldMouseY, delta);
+            if (widget.isMouseOver(0, 0, (int) worldMouseX, (int) worldMouseY)) {
+                // Found the hovered skill, calculate path to root
+                getAncestors(widget.getSkill(), highlightedPath);
+                break;
+            }
         }
 
-        // --- END MATRIX TRANSFORMATION ---
-        context.getMatrices().pop();
+        // --- 2. DRAW LINES (With Highlighting) ---
+        drawSkillLines(context, 0, 0, highlightedPath);
 
-        // 4. Disable Scissor
+        // --- 3. DRAW WIDGETS ---
+        for (SkillWidget widget : this.skillWidgets) {
+            widget.render(context, 0, 0, (int)worldMouseX, (int)worldMouseY, delta);
+        }
+
+        context.getMatrices().pop();
         context.disableScissor();
 
-        // 5. Draw Tooltips (Unscaled, top layer)
         drawTooltips(context, mouseX, mouseY);
+    }
 
-        // super.render removed to prevent double rendering if you handled everything above
-        // super.render(context, mouseX, mouseY, delta);
+    // Helper to find all parents recursively
+    private void getAncestors(Skill skill, Set<Identifier> path) {
+        path.add(skill.getId());
+        for (Skill parent : skill.getRequiredSkills()) {
+            // Avoid infinite loops if circular deps exist
+            if (!path.contains(parent.getId())) {
+                getAncestors(parent, path);
+            }
+        }
+    }
+
+    private void drawSkillLines(DrawContext context, int offsetX, int offsetY, Set<Identifier> highlightedPath) {
+        // Colors
+        int colorNormal = 0xFF808080; // Gray
+        int colorFade   = 0x40404040; // Dark/Transparent Gray
+        int colorHigh   = 0xFFFFFF00; // Bright Yellow/Gold for path
+
+        for (SkillWidget widget : this.skillWidgets) {
+            List<Skill> requiredSkills = widget.getSkill().getRequiredSkills();
+            for (Skill requiredSkill : requiredSkills) {
+                SkillWidget requiredWidget = skillWidgetMap.get(requiredSkill.getId());
+                if (requiredWidget != null) {
+                    int startX = widget.getWorldX() + 13 + offsetX;
+                    int startY = widget.getWorldY() + 13 + offsetY;
+                    int endX = requiredWidget.getWorldX() + 13 + offsetX;
+                    int endY = requiredWidget.getWorldY() + 13 + offsetY;
+
+                    int color = colorNormal;
+
+                    // Logic:
+                    // 1. If nothing is highlighted, draw Normal.
+                    // 2. If something IS highlighted:
+                    //    a. If THIS connection is part of the path, draw High.
+                    //    b. Else, draw Fade.
+                    if (!highlightedPath.isEmpty()) {
+                        if (highlightedPath.contains(widget.getSkill().getId()) &&
+                                highlightedPath.contains(requiredSkill.getId())) {
+                            color = colorHigh;
+                        } else {
+                            color = colorFade;
+                        }
+                    }
+
+                    drawLine(context, startX, startY, endX, endY, color);
+                }
+            }
+        }
     }
 
     private void drawTooltips(DrawContext context, int mouseX, int mouseY) {
@@ -588,13 +477,6 @@ public class AltarScreen extends Screen {
         }
     }
 
-    // Helper to ensure we don't show tooltips if the mouse is outside the main window area
-    private boolean isMouseInWindow(int mouseX, int mouseY) {
-        return mouseX >= x + 10 && mouseX <= x + WINDOW_WIDTH - 10 &&
-                mouseY >= y + 2 && mouseY <= y + WINDOW_HEIGHT - 10;
-    }
-
-    // Change signature to accept offsets
     private void drawSkillLines(DrawContext context, int offsetX, int offsetY) {
         int lineColor = 0xFF808080;
         for (SkillWidget widget : this.skillWidgets) {
@@ -602,13 +484,10 @@ public class AltarScreen extends Screen {
             for (Skill requiredSkill : requiredSkills) {
                 SkillWidget requiredWidget = skillWidgetMap.get(requiredSkill.getId());
                 if (requiredWidget != null) {
-                    // Do NOT add this.panX here.
-                    // We rely on the passed offsetX (which is 0) and the MatrixStack.
                     int startX = widget.getWorldX() + 13 + offsetX;
                     int startY = widget.getWorldY() + 13 + offsetY;
                     int endX = requiredWidget.getWorldX() + 13 + offsetX;
                     int endY = requiredWidget.getWorldY() + 13 + offsetY;
-
                     AltarScreen.drawLine(context, startX, startY, endX, endY, lineColor);
                 }
             }
@@ -633,21 +512,14 @@ public class AltarScreen extends Screen {
     public void drawWindow(DrawContext context, int x, int y) {
         RenderSystem.enableBlend();
         context.drawTexture(WINDOW_TEXTURE, x, y, 0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
-
-        // Draw Title
         context.drawText(this.textRenderer, ALTAR_TEXT + tier, x + 8, y + 6, 4210752, false);
 
-        // --- NEW: Draw Current XP Points ---
         if (this.client != null && this.client.player != null) {
             int currentXp = ExperienceUtils.getPlayerTotalXp(this.client.player);
             String xpText = "XP: " + currentXp;
-
             int textWidth = this.textRenderer.getWidth(xpText);
-            // Position: Top right of the window, inside the border
             int xpX = x + WINDOW_WIDTH - textWidth - 10;
             int xpY = y + 6;
-
-            // Draw in a nice Experience Green color
             context.drawText(this.textRenderer, xpText, xpX, xpY, 0x80FF20, true);
         }
     }

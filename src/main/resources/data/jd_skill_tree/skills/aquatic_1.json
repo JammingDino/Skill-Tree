@@ -1,0 +1,10 @@
+{
+  "name": "Aquatic Novice",
+  "description": "You feel lighter in the water. (+5% Swim Speed)",
+  "icon": "minecraft:kelp",
+  "tier": 1,
+  "cost": 100,
+  "effects": [
+    { "type": "jd_skill_tree:swim_speed", "value": 0.05 }
+  ]
+}

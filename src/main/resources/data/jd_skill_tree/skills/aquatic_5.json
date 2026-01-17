@@ -1,0 +1,11 @@
+{
+  "name": "Deep Diver",
+  "description": "Adapted to the pressure. (+5% Swim Speed)",
+  "icon": "minecraft:prismarine_shard",
+  "tier": 4,
+  "cost": 1200,
+  "prerequisites": ["jd_skill_tree:aquatic_4"],
+  "effects": [
+    { "type": "jd_skill_tree:swim_speed", "value": 0.05 }
+  ]
+}

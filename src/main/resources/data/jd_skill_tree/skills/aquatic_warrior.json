@@ -1,0 +1,17 @@
+{
+  "name": "Tidal Force",
+  "description": "Deal +3 Attack Damage while in water or rain.",
+  "icon": "minecraft:trident",
+  "tier": 3,
+  "cost": 800,
+  "prerequisites": ["jd_skill_tree:aquatic_3"],
+  "effects": [
+    {
+      "type": "jd_skill_tree:attribute",
+      "attribute": "minecraft:generic.attack_damage",
+      "operation": "ADDITION",
+      "value": 3.0,
+      "condition": { "type": "jd_skill_tree:wetness" }
+    }
+  ]
+}
