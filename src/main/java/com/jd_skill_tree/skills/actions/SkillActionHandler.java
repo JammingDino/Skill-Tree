@@ -56,6 +56,25 @@ public class SkillActionHandler {
 
     public static void handleTimerActions(PlayerEntity player) {
         if (player.getWorld().isClient) return;
-        triggerActions(player, TriggerType.TIMER, player, player.getWorld(), player.getBlockPos());
+
+        IUnlockedSkillsData skillData = (IUnlockedSkillsData) player;
+
+        for (String skillId : skillData.getUnlockedSkills()) {
+            SkillManager.getSkill(new Identifier(skillId)).ifPresent(skill -> {
+                for (SkillAction action : skill.getActions()) {
+                    // Check Trigger Type
+                    if (action.getTrigger() == TriggerType.TIMER) {
+
+                        // CRITICAL FIX: Modulo Check
+                        int interval = Math.max(1, action.getInterval()); // Prevent div by zero
+                        if (player.age % interval == 0) {
+
+                            // Only run if it's the correct tick
+                            action.run(player, player, player.getWorld(), player.getBlockPos());
+                        }
+                    }
+                }
+            });
+        }
     }
 }

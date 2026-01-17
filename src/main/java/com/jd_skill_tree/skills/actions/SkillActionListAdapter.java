@@ -90,6 +90,14 @@ public class SkillActionListAdapter implements JsonDeserializer<List<SkillAction
             if (delayed.getNextCondition() != null) {
                 json.add("condition", SkillConditionListAdapter.serializeCondition(delayed.getNextCondition(), context));
             }
+        } else if (effect instanceof RaycastActionEffect ray) {
+            json.addProperty("type", "jd_skill_tree:raycast");
+            json.addProperty("length", ray.getLength());
+            json.addProperty("fluids", ray.isStopOnFluids());
+            json.addProperty("entities", ray.isHitEntities());
+
+            // Recursive serialization
+            json.add("effect", serializeEffect(ray.getChildEffect(), context));
         }
 
         return json;

@@ -19,7 +19,7 @@ MOD_NAME = "Skill Tree"
 HYPE_LEVEL = 3
 
 # Links
-SOURCE_URL = "https://github.com/YourRepo/Source"
+SOURCE_URL = "https://github.com/JammingDino/Skill-Tree"
 MODRINTH_URL = f"https://modrinth.com/mod/skill-tree-(fabric)"
 CURSEFORGE_URL = f"https://www.curseforge.com/minecraft/mc-mods/skill-tree-fabric"
 
