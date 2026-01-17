@@ -28,5 +28,6 @@ public record SkillActionEffectType<T extends SkillActionEffect>(Function<JsonOb
         register(new Identifier(Jd_skill_tree.MOD_ID, "delayed"), DelayedActionEffect::fromJson);
         register(new Identifier(Jd_skill_tree.MOD_ID, "heal"), HealActionEffect::fromJson);
         register(new Identifier(Jd_skill_tree.MOD_ID, "launch"), LaunchActionEffect::fromJson);
+        register(new Identifier(Jd_skill_tree.MOD_ID, "raycast"), RaycastActionEffect::fromJson);
     }
 }

@@ -8,7 +8,6 @@ import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.JsonHelper;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec2f;
-import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.World;
 
 public class CommandActionEffect implements SkillActionEffect {
@@ -18,33 +17,39 @@ public class CommandActionEffect implements SkillActionEffect {
 
     @Override
     public void execute(Entity target, World world, BlockPos pos) {
-        if (world.isClient || target == null) return;
+        if (world.isClient) return;
         MinecraftServer server = world.getServer();
         if (server == null) return;
 
-        // 1. Determine precise coordinates
-        Vec3d coords = target.getPos();
-        Vec2f rotation = target.getRotationClient();
-        String name = target.getName().getString();
+        // 1. Determine Executor Details
+        // If target is null, default to generic values
+        Vec2f rotation = (target != null) ? target.getRotationClient() : Vec2f.ZERO;
+        String name = (target != null) ? target.getName().getString() : "Server";
 
-        // 2. Construct Source using Helper Methods
-        // We start with the server's generic source, then chain modifiers to anchor it to the target.
+        // 2. Construct Source
+        // CRITICAL FIX: We use 'pos.toCenterPos()' to move execution to the passed BlockPos
         ServerCommandSource source = server.getCommandSource()
                 .withWorld((ServerWorld) world)
-                .withPosition(coords)
+                .withPosition(pos.toCenterPos()) // <--- Executes at the Raycast Hit location
                 .withRotation(rotation)
                 .withLevel(2)
-                .withSilent()
-                .withEntity(target); // This is crucial: sets the 'executor' for @s selector
+                .withSilent();
 
-        // 3. Parse explicit placeholders
+        if (target != null) {
+            source = source.withEntity(target); // @s is still the Player
+        }
+
+        // 3. Parse placeholders
         String parsed = command
                 .replace("@p", name)
                 .replace("%target%", name)
-                .replace("%uuid%", target.getUuidAsString())
-                .replace("%x%", String.valueOf(coords.x))
-                .replace("%y%", String.valueOf(coords.y))
-                .replace("%z%", String.valueOf(coords.z));
+                .replace("%x%", String.valueOf(pos.getX()))
+                .replace("%y%", String.valueOf(pos.getY()))
+                .replace("%z%", String.valueOf(pos.getZ()));
+
+        if (target != null) {
+            parsed = parsed.replace("%uuid%", target.getUuidAsString());
+        }
 
         // 4. Execute
         server.getCommandManager().executeWithPrefix(source, parsed);

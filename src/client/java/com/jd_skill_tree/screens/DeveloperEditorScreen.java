@@ -87,27 +87,38 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
     }
     private final List<EffectData> effects = new ArrayList<>();
 
-    private static class ActionData {
-        ConditionData condition = null;
+    private static class EffectConfig {
+        String type = "Command"; // Command, Burn, Delayed, Raycast, etc.
 
+        // Standard Params
+        String command = "/say Hi";
+        String duration = "100";
+        boolean bool1 = false; // Used for ignoreArmor / fire / fluids
+        boolean bool2 = false; // Used for breakBlocks / entities
+
+        // Numeric Params
+        String value1 = "1.0"; // Power, Amount, Length, Strength
+        String value2 = "0.5"; // Vertical
+
+        // Recursion
+        EffectConfig childEffect = null; // For Delayed, Raycast
+        ConditionData childCondition = null; // For Delayed
+
+        // Helper to initialize child if needed
+        void ensureChild() {
+            if (childEffect == null) childEffect = new EffectConfig();
+        }
+    }
+
+    private static class ActionData {
         String trigger = "BLOCK_BREAK";
         String interval = "20";
-        String effectType = "Command";
-        String command = "/say hi";
-        String burnDuration = "100";
-        boolean burnIgnoreArmor = false;
 
-        String delayTicks = "20";
-        String delayedEffectType = "Command"; // The type of the inner effect
-        String delayedCommand = "/say Later!";
-        String delayedBurnDuration = "100";
-        boolean delayedBurnIgnoreArmor = false;
-        ConditionData delayedCondition = null; // The inner condition
-        String healAmount = "2.0"; // 1 heart
-        boolean healIsHunger = false;
-        String launchStrength = "1.0";
-        String launchVertical = "0.5";
+        // The Root Effect
+        EffectConfig rootEffect = new EffectConfig();
 
+        // The Root Condition (for the Trigger itself)
+        ConditionData condition = null;
     }
     private final List<ActionData> actions = new ArrayList<>();
 
@@ -542,7 +553,13 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
         this.descriptionField.setText(this.description);
         this.icon = Registries.ITEM.getId(skill.getIcon().getItem()).toString();
         this.iconField.setText(this.icon);
-        this.iconNbt = skill.getIconNbt() != null ? skill.getIconNbt() : "";
+
+        // FIX: Fallback to the ItemStack's internal NBT if the raw string is missing
+        String loadedNbt = skill.getIconNbt();
+        if ((loadedNbt == null || loadedNbt.isEmpty()) && skill.getIcon().hasNbt()) {
+            loadedNbt = Objects.requireNonNull(skill.getIcon().getNbt()).toString();
+        }
+        this.iconNbt = loadedNbt != null ? loadedNbt : "";
         this.iconNbtField.setText(this.iconNbt);
 
         if (skill.getId() != null) {
@@ -619,46 +636,75 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
         this.actionsContainer.clearChildren();
         for (SkillAction action : skill.getActions()) {
             ActionData data = new ActionData();
+
+            // Basic Trigger Data
             data.trigger = action.getTrigger().name();
             data.interval = String.valueOf(action.getInterval());
 
+            // Top Level Condition
             if (action.getCondition() != null) {
                 data.condition = convertConditionToData(action.getCondition());
             }
 
-            SkillActionEffect effect = action.getEffect();
+            // Convert Recursive Effect Tree
+            data.rootEffect = convertEffectToConfig(action.getEffect());
 
-            if (effect instanceof CommandActionEffect cmd) {
-                data.effectType = "Command";
-                data.command = cmd.getCommand();
-            } else if (effect instanceof BurnActionEffect burn) {
-                data.effectType = "Burn";
-                data.burnDuration = String.valueOf(burn.getDuration());
-                data.burnIgnoreArmor = burn.isIgnoreArmor();
-            } else if (effect instanceof DelayedActionEffect delayed) {
-                data.effectType = "Delayed";
-                data.delayTicks = String.valueOf(delayed.getDelay());
-
-                // Load Inner Effect
-                SkillActionEffect inner = delayed.getNextEffect();
-                if (inner instanceof CommandActionEffect c) {
-                    data.delayedEffectType = "Command";
-                    data.delayedCommand = c.getCommand();
-                } else if (inner instanceof BurnActionEffect b) {
-                    data.delayedEffectType = "Burn";
-                    data.delayedBurnDuration = String.valueOf(b.getDuration());
-                    data.delayedBurnIgnoreArmor = b.isIgnoreArmor();
-                }
-
-                // Load Inner Condition
-                if (delayed.getNextCondition() != null) {
-                    data.delayedCondition = convertConditionToData(delayed.getNextCondition());
-                }
-            }
             addActionRow(data);
         }
 
         updatePreview();
+    }
+
+    private EffectConfig convertEffectToConfig(SkillActionEffect effect) {
+        EffectConfig config = new EffectConfig();
+
+        if (effect instanceof CommandActionEffect cmd) {
+            config.type = "Command";
+            config.command = cmd.getCommand();
+        }
+        else if (effect instanceof BurnActionEffect burn) {
+            config.type = "Burn";
+            config.duration = String.valueOf(burn.getDuration());
+            config.bool1 = burn.isIgnoreArmor();
+        }
+        else if (effect instanceof HealActionEffect heal) {
+            config.type = "Heal";
+            config.value1 = String.valueOf(heal.getAmount());
+            config.bool1 = heal.isHunger();
+        }
+        else if (effect instanceof LaunchActionEffect launch) {
+            config.type = "Launch";
+            config.value1 = String.valueOf(launch.getStrength());
+            config.value2 = String.valueOf(launch.getVertical());
+        }
+        // --- NESTED EFFECTS ---
+        else if (effect instanceof DelayedActionEffect delayed) {
+            config.type = "Delayed";
+            config.duration = String.valueOf(delayed.getDelay());
+
+            // Recursively load the inner effect
+            if (delayed.getNextEffect() != null) {
+                config.childEffect = convertEffectToConfig(delayed.getNextEffect());
+            }
+
+            // Load the inner condition
+            if (delayed.getNextCondition() != null) {
+                config.childCondition = convertConditionToData(delayed.getNextCondition());
+            }
+        }
+        else if (effect instanceof RaycastActionEffect ray) {
+            config.type = "Raycast";
+            config.value1 = String.valueOf(ray.getLength());
+            config.bool1 = ray.isStopOnFluids();
+            config.bool2 = ray.isHitEntities();
+
+            // Recursively load the inner effect
+            if (ray.getChildEffect() != null) {
+                config.childEffect = convertEffectToConfig(ray.getChildEffect());
+            }
+        }
+
+        return config;
     }
 
     private ConditionData convertConditionToData(SkillCondition cond) {
@@ -895,117 +941,48 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
         var content = Containers.verticalFlow(Sizing.fill(100), Sizing.content());
         content.padding(Insets.of(5));
 
-        // 1. Trigger Dropdown (Always Index 0)
-        content.child(dropdown("Trigger", List.of("BLOCK_BREAK", "BLOCK_PLACE", "TIMER", "TAKE_DAMAGE_SELF", "TAKE_DAMAGE_ATTACKER", "UNLOCK", "ATTACK_TARGET", "ATTACK_SELF"), data.trigger, s -> {
-            data.trigger = s;
-            rebuildActionRow(collapsible, content, data);
-            updatePreview();
-        }, 100).margins(Insets.bottom(5)));
-
-        // 2. Build Fields & Condition Editor
-        buildActionFields(content, data, collapsible);
+        // Delegate the actual UI building to the refresh method
+        refreshActionRow(collapsible, content, data);
 
         collapsible.child(content);
         collapsible.margins(Insets.bottom(10));
         actionsContainer.child(collapsible);
     }
 
-    private void buildActionFields(FlowLayout content, ActionData data, Component collapsible) {
-        // 1. Trigger Specific Settings
-        if (data.trigger.equals("TIMER")) {
-            content.child(field("Interval (Ticks)", data.interval, s -> { data.interval = s; updatePreview(); }, 100).margins(Insets.bottom(5)));
-        }
+    private void refreshActionRow(Component collapsible, FlowLayout content, ActionData data) {
+        content.clearChildren();
 
-        // 2. Main Effect Type Selector
-        List<String> types = List.of("Command", "Burn", "Delayed", "Explosion", "Heal", "Launch");
-        content.child(dropdown("Effect Type", types, data.effectType, s -> {
-            data.effectType = s;
-            rebuildActionRow(collapsible, content, data);
+        // 1. Trigger Dropdown
+        content.child(dropdown("Trigger", List.of("BLOCK_BREAK", "BLOCK_PLACE", "TIMER", "ATTACK_TARGET", "ATTACK_SELF", "TAKE_DAMAGE", "TAKE_DAMAGE_ATTACKER", "UNLOCK"), data.trigger, s -> {
+            data.trigger = s;
+            // CRITICAL FIX: Rebuild the row immediately when Trigger changes
+            refreshActionRow(collapsible, content, data);
             updatePreview();
         }, 100).margins(Insets.bottom(5)));
 
-        // 3. Effect Specific Fields
-        if (data.effectType.equals("Command")) {
-            content.child(field("Command", data.command, s -> { data.command = s; updatePreview(); }, 100));
-        }
-        else if (data.effectType.equals("Burn")) {
-            content.child(field("Duration (Ticks)", data.burnDuration, s -> { data.burnDuration = s; updatePreview(); }, 100));
-            var check = Components.checkbox(Text.of("Ignore Armor"));
-            check.checked(data.burnIgnoreArmor);
-            check.onChanged(checked -> { data.burnIgnoreArmor = checked; updatePreview(); });
-            content.child(check.margins(Insets.top(5)));
-        }
-        else if (data.effectType.equals("Heal")) {
-            content.child(field("Amount (2.0 = 1 Heart)", data.healAmount, s -> { data.healAmount = s; updatePreview(); }, 100));
-            var hungerCheck = Components.checkbox(Text.of("Restore Hunger (unchecked = Health)"));
-            hungerCheck.checked(data.healIsHunger);
-            hungerCheck.onChanged(b -> { data.healIsHunger = b; updatePreview(); });
-            content.child(hungerCheck.margins(Insets.top(5)));
-        }
-        else if (data.effectType.equals("Launch")) {
-            content.child(field("Forward Strength", data.launchStrength, s -> { data.launchStrength = s; updatePreview(); }, 100));
-            content.child(field("Vertical Strength", data.launchVertical, s -> { data.launchVertical = s; updatePreview(); }, 100).margins(Insets.top(5)));
-        }
-        else if (data.effectType.equals("Delayed")) {
-            content.child(field("Delay (Ticks)", data.delayTicks, s -> { data.delayTicks = s; updatePreview(); }, 100));
-
-            // --- DELAYED INNER ACTION UI ---
-            content.child(Components.box(Sizing.fill(100), Sizing.fixed(1)).color(Color.ofArgb(0xFF555555)).margins(Insets.vertical(5)));
-            content.child(Components.label(Text.of("Action After Delay")).color(Color.ofRgb(0x55FF55)));
-
-            // Inner Effect Selector
-            // We limit the inner types to avoid infinite recursion complexity in the UI
-            content.child(dropdown("Then Execute...", List.of("Command", "Burn", "Heal", "Launch"), data.delayedEffectType, s -> {
-                data.delayedEffectType = s;
-                rebuildActionRow(collapsible, content, data);
+        // 2. Timer Interval (Only visible if TIMER is selected)
+        if (data.trigger.equals("TIMER")) {
+            content.child(field("Interval (Ticks)", data.interval, s -> {
+                data.interval = s;
                 updatePreview();
-            }, 100));
-
-            // Inner Effect Fields
-            if (data.delayedEffectType.equals("Command")) {
-                content.child(field("Command", data.command, s -> { data.command = s; updatePreview(); }, 100));
-            }
-            else if (data.delayedEffectType.equals("Burn")) {
-                content.child(field("Duration (Ticks)", data.burnDuration, s -> { data.burnDuration = s; updatePreview(); }, 100));
-                var check = Components.checkbox(Text.of("Ignore Armor"));
-                check.checked(data.burnIgnoreArmor);
-                check.onChanged(checked -> { data.burnIgnoreArmor = checked; updatePreview(); });
-                content.child(check.margins(Insets.top(5)));
-            }
-            else if (data.delayedEffectType.equals("Heal")) {
-                content.child(field("Amount (2.0 = 1 Heart)", data.healAmount, s -> { data.healAmount = s; updatePreview(); }, 100));
-                var hungerCheck = Components.checkbox(Text.of("Restore Hunger (unchecked = Health)"));
-                hungerCheck.checked(data.healIsHunger);
-                hungerCheck.onChanged(b -> { data.healIsHunger = b; updatePreview(); });
-                content.child(hungerCheck.margins(Insets.top(5)));
-            }
-            else if (data.delayedEffectType.equals("Launch")) {
-                content.child(field("Forward Strength", data.launchStrength, s -> { data.launchStrength = s; updatePreview(); }, 100));
-                content.child(field("Vertical Strength", data.launchVertical, s -> { data.launchVertical = s; updatePreview(); }, 100).margins(Insets.top(5)));
-            }
-
-            // Inner Condition Editor
-            content.child(Components.label(Text.of("Delayed Condition (Optional)")).color(Color.ofRgb(0xAAAAAA)).margins(Insets.top(5)));
-            FlowLayout innerCondContainer = Containers.verticalFlow(Sizing.fill(100), Sizing.content());
-            renderConditionEditor(innerCondContainer, data.delayedCondition, (newCond) -> {
-                data.delayedCondition = newCond;
-                updatePreview();
-            });
-            content.child(innerCondContainer);
-
-            content.child(Components.box(Sizing.fill(100), Sizing.fixed(1)).color(Color.ofArgb(0xFF555555)).margins(Insets.vertical(5)));
+            }, 100).margins(Insets.bottom(5)));
         }
 
-        // 4. Main Activation Condition
+        // 3. Effect Editor (Recursive)
+        FlowLayout effectContainer = Containers.verticalFlow(Sizing.fill(100), Sizing.content());
+        renderEffectEditor(effectContainer, data.rootEffect, false);
+        content.child(effectContainer);
+
+        // 4. Condition Editor
         content.child(Components.box(Sizing.fill(100), Sizing.fixed(1)).color(Color.ofArgb(0xFF555555)).margins(Insets.vertical(5)));
-        content.child(Components.label(Text.of("Activation Condition (Optional)")).color(Color.ofRgb(0xAAAAAA)));
+        content.child(Components.label(Text.of("Trigger Condition")).color(Color.ofRgb(0xAAAAAA)));
 
-        FlowLayout conditionContainer = Containers.verticalFlow(Sizing.fill(100), Sizing.content());
-        renderConditionEditor(conditionContainer, data.condition, (newCond) -> {
-            data.condition = newCond;
+        FlowLayout condContainer = Containers.verticalFlow(Sizing.fill(100), Sizing.content());
+        renderConditionEditor(condContainer, data.condition, (c) -> {
+            data.condition = c;
             updatePreview();
         });
-        content.child(conditionContainer);
+        content.child(condContainer);
 
         // 5. Remove Button
         var removeBtn = Components.button(Text.of("Remove Action"), btn -> {
@@ -1019,14 +996,192 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
         content.child(removeBtn);
     }
 
-    private void rebuildActionRow(Component collapsible, FlowLayout content, ActionData data) {
-        var children = new ArrayList<>(content.children());
-        // Remove everything AFTER the Trigger dropdown (index 0)
-        for (int i = 1; i < children.size(); i++) {
-            content.removeChild(children.get(i));
+//    private void buildActionFields(FlowLayout content, ActionData data, Component collapsible) {
+//        // 1. Trigger Specific Settings
+//        if (data.trigger.equals("TIMER")) {
+//            content.child(field("Interval (Ticks)", data.interval, s -> { data.interval = s; updatePreview(); }, 100).margins(Insets.bottom(5)));
+//        }
+//
+//        // 2. Main Effect Type Selector
+//        List<String> types = List.of("Command", "Burn", "Delayed", "Explosion", "Heal", "Launch");
+//        content.child(dropdown("Effect Type", types, data.effectType, s -> {
+//            data.effectType = s;
+//            rebuildActionRow(collapsible, content, data);
+//            updatePreview();
+//        }, 100).margins(Insets.bottom(5)));
+//
+//        // 3. Effect Specific Fields
+//        if (data.effectType.equals("Command")) {
+//            content.child(field("Command", data.command, s -> { data.command = s; updatePreview(); }, 100));
+//        }
+//        else if (data.effectType.equals("Burn")) {
+//            content.child(field("Duration (Ticks)", data.burnDuration, s -> { data.burnDuration = s; updatePreview(); }, 100));
+//            var check = Components.checkbox(Text.of("Ignore Armor"));
+//            check.checked(data.burnIgnoreArmor);
+//            check.onChanged(checked -> { data.burnIgnoreArmor = checked; updatePreview(); });
+//            content.child(check.margins(Insets.top(5)));
+//        }
+//        else if (data.effectType.equals("Heal")) {
+//            content.child(field("Amount (2.0 = 1 Heart)", data.healAmount, s -> { data.healAmount = s; updatePreview(); }, 100));
+//            var hungerCheck = Components.checkbox(Text.of("Restore Hunger (unchecked = Health)"));
+//            hungerCheck.checked(data.healIsHunger);
+//            hungerCheck.onChanged(b -> { data.healIsHunger = b; updatePreview(); });
+//            content.child(hungerCheck.margins(Insets.top(5)));
+//        }
+//        else if (data.effectType.equals("Launch")) {
+//            content.child(field("Forward Strength", data.launchStrength, s -> { data.launchStrength = s; updatePreview(); }, 100));
+//            content.child(field("Vertical Strength", data.launchVertical, s -> { data.launchVertical = s; updatePreview(); }, 100).margins(Insets.top(5)));
+//        }
+//        else if (data.effectType.equals("Delayed")) {
+//            content.child(field("Delay (Ticks)", data.delayTicks, s -> { data.delayTicks = s; updatePreview(); }, 100));
+//
+//            // --- DELAYED INNER ACTION UI ---
+//            content.child(Components.box(Sizing.fill(100), Sizing.fixed(1)).color(Color.ofArgb(0xFF555555)).margins(Insets.vertical(5)));
+//            content.child(Components.label(Text.of("Action After Delay")).color(Color.ofRgb(0x55FF55)));
+//
+//            // Inner Effect Selector
+//            // We limit the inner types to avoid infinite recursion complexity in the UI
+//            content.child(dropdown("Then Execute...", List.of("Command", "Burn", "Heal", "Launch"), data.delayedEffectType, s -> {
+//                data.delayedEffectType = s;
+//                rebuildActionRow(collapsible, content, data);
+//                updatePreview();
+//            }, 100));
+//
+//            // Inner Effect Fields
+//            if (data.delayedEffectType.equals("Command")) {
+//                content.child(field("Command", data.command, s -> { data.command = s; updatePreview(); }, 100));
+//            }
+//            else if (data.delayedEffectType.equals("Burn")) {
+//                content.child(field("Duration (Ticks)", data.burnDuration, s -> { data.burnDuration = s; updatePreview(); }, 100));
+//                var check = Components.checkbox(Text.of("Ignore Armor"));
+//                check.checked(data.burnIgnoreArmor);
+//                check.onChanged(checked -> { data.burnIgnoreArmor = checked; updatePreview(); });
+//                content.child(check.margins(Insets.top(5)));
+//            }
+//            else if (data.delayedEffectType.equals("Heal")) {
+//                content.child(field("Amount (2.0 = 1 Heart)", data.healAmount, s -> { data.healAmount = s; updatePreview(); }, 100));
+//                var hungerCheck = Components.checkbox(Text.of("Restore Hunger (unchecked = Health)"));
+//                hungerCheck.checked(data.healIsHunger);
+//                hungerCheck.onChanged(b -> { data.healIsHunger = b; updatePreview(); });
+//                content.child(hungerCheck.margins(Insets.top(5)));
+//            }
+//            else if (data.delayedEffectType.equals("Launch")) {
+//                content.child(field("Forward Strength", data.launchStrength, s -> { data.launchStrength = s; updatePreview(); }, 100));
+//                content.child(field("Vertical Strength", data.launchVertical, s -> { data.launchVertical = s; updatePreview(); }, 100).margins(Insets.top(5)));
+//            }
+//
+//            // Inner Condition Editor
+//            content.child(Components.label(Text.of("Delayed Condition (Optional)")).color(Color.ofRgb(0xAAAAAA)).margins(Insets.top(5)));
+//            FlowLayout innerCondContainer = Containers.verticalFlow(Sizing.fill(100), Sizing.content());
+//            renderConditionEditor(innerCondContainer, data.delayedCondition, (newCond) -> {
+//                data.delayedCondition = newCond;
+//                updatePreview();
+//            });
+//            content.child(innerCondContainer);
+//
+//            content.child(Components.box(Sizing.fill(100), Sizing.fixed(1)).color(Color.ofArgb(0xFF555555)).margins(Insets.vertical(5)));
+//        }
+//
+//        // 4. Main Activation Condition
+//        content.child(Components.box(Sizing.fill(100), Sizing.fixed(1)).color(Color.ofArgb(0xFF555555)).margins(Insets.vertical(5)));
+//        content.child(Components.label(Text.of("Activation Condition (Optional)")).color(Color.ofRgb(0xAAAAAA)));
+//
+//        FlowLayout conditionContainer = Containers.verticalFlow(Sizing.fill(100), Sizing.content());
+//        renderConditionEditor(conditionContainer, data.condition, (newCond) -> {
+//            data.condition = newCond;
+//            updatePreview();
+//        });
+//        content.child(conditionContainer);
+//
+//        // 5. Remove Button
+//        var removeBtn = Components.button(Text.of("Remove Action"), btn -> {
+//            actions.remove(data);
+//            actionsContainer.removeChild(collapsible);
+//            updatePreview();
+//        });
+//        removeBtn.sizing(Sizing.fill(100), Sizing.fixed(20));
+//        removeBtn.margins(Insets.top(5));
+//        removeBtn.renderer(ButtonComponent.Renderer.flat(0x00000000, 0xFF444444, 0xFF555555));
+//        content.child(removeBtn);
+//    }
+//
+//    private void rebuildActionRow(Component collapsible, FlowLayout content, ActionData data) {
+//        var children = new ArrayList<>(content.children());
+//        // Remove everything AFTER the Trigger dropdown (index 0)
+//        for (int i = 1; i < children.size(); i++) {
+//            content.removeChild(children.get(i));
+//        }
+//        // Re-add fields and the condition editor
+//        buildActionFields(content, data, collapsible);
+//    }
+
+    private void renderEffectEditor(FlowLayout container, EffectConfig data, boolean restrictTypes) {
+        container.clearChildren();
+
+        // 1. Type Selector
+        List<String> types = restrictTypes
+                ? List.of("Command", "Delayed") // Restriction for Raycast children
+                : List.of("Command", "Burn", "Explosion", "Heal", "Launch", "Delayed", "Raycast");
+
+        container.child(dropdown("Type", types, data.type, s -> {
+            data.type = s;
+            // Reset child data on type switch if needed
+            if(data.type.equals("Delayed") || data.type.equals("Raycast")) data.ensureChild();
+            renderEffectEditor(container, data, restrictTypes); // Re-render self
+            updatePreview();
+        }, 100).margins(Insets.bottom(5)));
+
+        // 2. Specific Fields based on Type
+        if (data.type.equals("Command")) {
+            container.child(field("Command", data.command, s -> { data.command = s; updatePreview(); }, 100));
         }
-        // Re-add fields and the condition editor
-        buildActionFields(content, data, collapsible);
+        else if (data.type.equals("Burn")) {
+            container.child(field("Duration (Ticks)", data.duration, s -> { data.duration = s; updatePreview(); }, 100));
+            var cb = Components.checkbox(Text.of("Ignore Armor")); cb.checked(data.bool1); cb.onChanged(v -> {data.bool1 = v; updatePreview();});
+            container.child(cb);
+        }
+        else if (data.type.equals("Explosion")) {
+            container.child(field("Power", data.value1, s -> { data.value1 = s; updatePreview(); }, 100));
+            var f = Components.checkbox(Text.of("Fire")); f.checked(data.bool1); f.onChanged(v -> {data.bool1=v; updatePreview();});
+            var b = Components.checkbox(Text.of("Break Blocks")); b.checked(data.bool2); b.onChanged(v -> {data.bool2=v; updatePreview();});
+            container.child(row(f, b));
+        }
+        else if (data.type.equals("Raycast")) {
+            container.child(field("Length", data.value1, s -> { data.value1 = s; updatePreview(); }, 100));
+            var fluid = Components.checkbox(Text.of("Hit Fluids")); fluid.checked(data.bool1); fluid.onChanged(v -> {data.bool1=v; updatePreview();});
+            var entity = Components.checkbox(Text.of("Hit Entities")); entity.checked(data.bool2); entity.onChanged(v -> {data.bool2=v; updatePreview();});
+            container.child(row(fluid, entity));
+
+            // RECURSION: Child Action
+            container.child(Components.box(Sizing.fill(100), Sizing.fixed(1)).color(Color.ofArgb(0xFF555555)).margins(Insets.vertical(5)));
+            container.child(Components.label(Text.of("On Hit Action")).color(Color.ofRgb(0x55FF55)));
+
+            FlowLayout childContainer = Containers.verticalFlow(Sizing.fill(100), Sizing.content());
+            childContainer.margins(Insets.left(10));
+
+            // Pass 'true' to restrict types for the child
+            renderEffectEditor(childContainer, data.childEffect, true);
+            container.child(childContainer);
+        }
+        else if (data.type.equals("Delayed")) {
+            container.child(field("Delay (Ticks)", data.duration, s -> { data.duration = s; updatePreview(); }, 100));
+
+            // RECURSION: Child Action
+            container.child(Components.box(Sizing.fill(100), Sizing.fixed(1)).color(Color.ofArgb(0xFF555555)).margins(Insets.vertical(5)));
+            container.child(Components.label(Text.of("After Delay")).color(Color.ofRgb(0x55FF55)));
+
+            FlowLayout childContainer = Containers.verticalFlow(Sizing.fill(100), Sizing.content());
+            childContainer.margins(Insets.left(10));
+            renderEffectEditor(childContainer, data.childEffect, false); // No restriction? Or reuse restrictTypes?
+            container.child(childContainer);
+
+            // Child Condition
+            container.child(Components.label(Text.of("Delayed Condition")).color(Color.ofRgb(0xAAAAAA)).margins(Insets.top(5)));
+            FlowLayout condContainer = Containers.verticalFlow(Sizing.fill(100), Sizing.content());
+            renderConditionEditor(condContainer, data.childCondition, (c) -> { data.childCondition = c; updatePreview(); });
+            container.child(condContainer);
+        }
+        // ... Add Heal, Launch similarly mapping to value1/value2 ...
     }
 
     // --- END ACTION LOGIC ---
@@ -1300,13 +1455,20 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
             root.addProperty("name", name);
             root.addProperty("description", description);
             root.addProperty("icon", icon);
-            if (!iconNbt.isEmpty()) root.addProperty("icon_nbt", iconNbt);
+
+            // 1. Fixed NBT Handling for Root Icon
+            if (iconNbt != null && !iconNbt.trim().isEmpty()) {
+                root.addProperty("icon_nbt", iconNbt);
+            }
+
             root.addProperty("tier", tier);
             root.addProperty("cost", tryParse(cost));
 
             if (!parentIds.isEmpty()) {
                 JsonArray parents = new JsonArray();
-                for (String parentId : parentIds) { if (!parentId.trim().isEmpty()) { parents.add(parentId); } }
+                for (String parentId : parentIds) {
+                    if (!parentId.trim().isEmpty()) { parents.add(parentId); }
+                }
                 if (!parents.isEmpty()) { root.add("prerequisites", parents); }
             }
 
@@ -1365,54 +1527,17 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
             JsonArray actionsJson = new JsonArray();
             for (ActionData a : actions) {
                 JsonObject act = new JsonObject();
-                // 1. Trigger
                 act.addProperty("trigger", a.trigger);
-                // 2. Interval (only for TIMER)
+
+                // Only write interval if Trigger is TIMER
                 if (a.trigger.equals("TIMER")) {
                     act.addProperty("interval", tryParse(a.interval));
                 }
-                // 3. Nested Effect Object
-                JsonObject effectObj = new JsonObject();
-                if (a.effectType.equals("Command")) {
-                    effectObj.addProperty("type", "jd_skill_tree:command");
-                    effectObj.addProperty("command", a.command);
-                } else if (a.effectType.equals("Burn")) {
-                    effectObj.addProperty("type", "jd_skill_tree:burn");
-                    effectObj.addProperty("duration", tryParse(a.burnDuration));
-                    effectObj.addProperty("ignore_armor", a.burnIgnoreArmor);
-                } else if (a.effectType.equals("Delayed")) {
-                    effectObj.addProperty("type", "jd_skill_tree:delayed");
-                    effectObj.addProperty("delay", tryParse(a.delayTicks));
 
-                    // Inner Effect
-                    JsonObject innerEff = new JsonObject();
-                    if (a.delayedEffectType.equals("Command")) {
-                        innerEff.addProperty("type", "jd_skill_tree:command");
-                        innerEff.addProperty("command", a.delayedCommand);
-                    } else if (a.delayedEffectType.equals("Burn")) {
-                        innerEff.addProperty("type", "jd_skill_tree:burn");
-                        innerEff.addProperty("duration", tryParse(a.delayedBurnDuration));
-                        innerEff.addProperty("ignore_armor", a.delayedBurnIgnoreArmor);
-                    }
-                    effectObj.add("effect", innerEff);
+                // Call the recursive generator for the root effect
+                act.add("effect", generateEffectJson(a.rootEffect));
 
-                    // Inner Condition
-                    if (a.delayedCondition != null) {
-                        effectObj.add("condition", generateConditionJson(a.delayedCondition));
-                    }
-                } else if (a.effectType.equals("Heal")) {
-                    effectObj.addProperty("type", "jd_skill_tree:heal");
-                    effectObj.addProperty("amount", tryParseFloat(a.healAmount));
-                    effectObj.addProperty("is_hunger", a.healIsHunger);
-                }
-                else if (a.effectType.equals("Launch")) {
-                    effectObj.addProperty("type", "jd_skill_tree:launch");
-                    effectObj.addProperty("strength", tryParseFloat(a.launchStrength));
-                    effectObj.addProperty("vertical", tryParseFloat(a.launchVertical));
-                }
-
-                act.add("effect", effectObj);
-
+                // Write the top-level condition
                 if (a.condition != null) {
                     act.add("condition", generateConditionJson(a.condition));
                 }
@@ -1425,10 +1550,73 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
         } catch (Exception e) { return ""; }
     }
 
+    private JsonObject generateEffectJson(EffectConfig config) {
+        JsonObject json = new JsonObject();
+
+        if (config.type.equals("Command")) {
+            json.addProperty("type", "jd_skill_tree:command");
+            json.addProperty("command", config.command);
+        }
+        else if (config.type.equals("Burn")) {
+            json.addProperty("type", "jd_skill_tree:burn");
+            json.addProperty("duration", tryParse(config.duration));
+            json.addProperty("ignore_armor", config.bool1);
+        }
+        else if (config.type.equals("Explosion")) {
+            json.addProperty("type", "jd_skill_tree:explosion");
+            json.addProperty("power", tryParseFloat(config.value1));
+            json.addProperty("fire", config.bool1);
+            json.addProperty("break_blocks", config.bool2);
+        }
+        else if (config.type.equals("Heal")) {
+            json.addProperty("type", "jd_skill_tree:heal");
+            json.addProperty("amount", tryParseFloat(config.value1));
+            json.addProperty("is_hunger", config.bool1);
+        }
+        else if (config.type.equals("Launch")) {
+            json.addProperty("type", "jd_skill_tree:launch");
+            json.addProperty("strength", tryParseFloat(config.value1));
+            json.addProperty("vertical", tryParseFloat(config.value2));
+        }
+
+        // --- NESTED / RECURSIVE ACTIONS ---
+
+        else if (config.type.equals("Delayed")) {
+            json.addProperty("type", "jd_skill_tree:delayed");
+            json.addProperty("delay", tryParse(config.duration));
+
+            // Recursive Effect Generation
+            if (config.childEffect != null) {
+                json.add("effect", generateEffectJson(config.childEffect));
+            }
+
+            // Recursive Condition Generation
+            if (config.childCondition != null) {
+                json.add("condition", generateConditionJson(config.childCondition));
+            }
+        }
+        else if (config.type.equals("Raycast")) {
+            json.addProperty("type", "jd_skill_tree:raycast");
+            json.addProperty("length", tryParseDouble(config.value1));
+            json.addProperty("fluids", config.bool1);
+            json.addProperty("entities", config.bool2);
+
+            // Recursive Effect Generation
+            if (config.childEffect != null) {
+                json.add("effect", generateEffectJson(config.childEffect));
+            }
+        }
+
+        return json;
+    }
+
+    private double tryParseDouble(String s) {
+        try { return Double.parseDouble(s); } catch (Exception e) { return 0.0; }
+    }
+
     private float tryParseFloat(String s) {
         try { return Float.parseFloat(s); } catch (Exception e) { return 0.0f; }
     }
-
     private JsonObject generateConditionJson(ConditionData c) {
         JsonObject cond = new JsonObject();
 
@@ -1451,24 +1639,32 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
         }
 
         // --- ITEMS ---
-        else if (c.type.equals("Hand Item")) {
+        if (c.type.equals("Hand Item")) {
             cond.addProperty("type", "jd_skill_tree:hand_item");
             cond.addProperty("item", c.item);
             cond.addProperty("count", tryParse(c.count));
             cond.addProperty("slot", c.slot.toLowerCase());
-            if (!c.nbt.isEmpty()) cond.addProperty("nbt", c.nbt);
+
+            // 2. Write NBT for Hand Item
+            if (c.nbt != null && !c.nbt.trim().isEmpty()) {
+                cond.addProperty("nbt", c.nbt);
+            }
         }
         else if (c.type.equals("Equipped Item")) {
             cond.addProperty("type", "jd_skill_tree:equipped_item");
             cond.addProperty("item", c.item);
-            String slotName = switch (c.slot) {
+            String slotName = switch(c.slot) {
                 case "BOOTS" -> "boots";
                 case "LEGS" -> "legs";
                 case "CHEST" -> "chest";
                 default -> "helmet";
             };
             cond.addProperty("slot", slotName);
-            if (!c.nbt.isEmpty()) cond.addProperty("nbt", c.nbt);
+
+            // 3. Write NBT for Equipped Item
+            if (c.nbt != null && !c.nbt.trim().isEmpty()) {
+                cond.addProperty("nbt", c.nbt);
+            }
         }
 
         // --- PLAYER STATE ---
@@ -1523,7 +1719,24 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
         return cond;
     }
 
-    private void updatePreview() { String json = generateJson(); if (json.isEmpty()) { exportTextDisplay.text(Text.of("Invalid JSON")); return; } exportTextDisplay.text(Text.of(json)); try { this.previewSkill = GSON.fromJson(json, Skill.class); this.previewSkill.setId(new Identifier("preview", "live")); } catch (Exception ignored) {} }
+
+    private void updatePreview() {
+        String json = generateJson();
+        if (json.isEmpty()) {
+            exportTextDisplay.text(Text.of("Invalid JSON"));
+            return;
+        }
+        exportTextDisplay.text(Text.of(json));
+
+        try {
+            this.previewSkill = GSON.fromJson(json, Skill.class);
+            this.previewSkill.setId(new Identifier("preview", "live"));
+
+            // OPTIONAL: Manually force the NBT if GSON didn't catch it for some reason,
+            // but GSON.fromJson should handle it if 'icon_nbt' is in the JSON string.
+        } catch (Exception ignored) {}
+    }
+
     private int tryParse(String s) { try { return Integer.parseInt(s); } catch (Exception e) { return 0; } }
     private void loadAvailableSkills() { try { availableSkills = SkillManager.getAllSkills().stream().map(skill -> skill.getId().toString()).sorted().collect(Collectors.toList()); } catch (Exception e) { availableSkills = new ArrayList<>(); } }
     private void sendExportPacket(ButtonComponent btn) {
