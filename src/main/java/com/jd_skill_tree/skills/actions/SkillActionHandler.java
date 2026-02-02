@@ -77,4 +77,18 @@ public class SkillActionHandler {
             });
         }
     }
+
+    /**
+     * Triggers actions for a SPECIFIC skill only.
+     * Used by the Radial Menu to fire just the selected skill.
+     */
+    public static void triggerSpecificSkill(PlayerEntity owner, Identifier skillId, TriggerType type, Entity target, World world, BlockPos pos) {
+        SkillManager.getSkill(skillId).ifPresent(skill -> {
+            for (SkillAction action : skill.getActions()) {
+                if (action.getTrigger() == type) {
+                    action.run(owner, target, world, pos);
+                }
+            }
+        });
+    }
 }

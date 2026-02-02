@@ -35,9 +35,8 @@ public class SkillNetworking {
     public static final Identifier SKILL_SYNC_PACKET_ID = new Identifier(Jd_skill_tree.MOD_ID, "skill_sync");
     public static final Identifier RESET_SKILLS_PACKET_ID = new Identifier(Jd_skill_tree.MOD_ID, "reset_skills");
     public static final Identifier SAVE_SKILL_PACKET_ID = new Identifier(Jd_skill_tree.MOD_ID, "save_skill");
-
-    // NEW PACKET ID for syncing definitions
     public static final Identifier SKILL_REGISTRY_SYNC_PACKET_ID = new Identifier(Jd_skill_tree.MOD_ID, "skill_registry_sync");
+    public static final Identifier TRIGGER_ACTIVE_SKILL_PACKET_ID = new Identifier(Jd_skill_tree.MOD_ID, "trigger_active_skill");
 
     public static void register() {
         registerC2SPackets();
@@ -147,6 +146,26 @@ public class SkillNetworking {
                     server.getCommandManager().executeWithPrefix(server.getCommandSource(), "reload");
                 } catch (IOException e) {
                     Jd_skill_tree.LOGGER.error("Failed export", e);
+                }
+            });
+        });
+
+        ServerPlayNetworking.registerGlobalReceiver(TRIGGER_ACTIVE_SKILL_PACKET_ID, (server, player, handler, buf, responseSender) -> {
+            Identifier skillId = buf.readIdentifier();
+            server.execute(() -> {
+                com.jd_skill_tree.api.IUnlockedSkillsData data = (com.jd_skill_tree.api.IUnlockedSkillsData) player;
+
+                // Verify ownership
+                if (data.hasSkill(skillId.toString())) {
+                    // FIXED: Call the specific method
+                    com.jd_skill_tree.skills.actions.SkillActionHandler.triggerSpecificSkill(
+                            player,
+                            skillId,
+                            com.jd_skill_tree.skills.actions.TriggerType.ACTIVATED,
+                            player,
+                            player.getWorld(),
+                            player.getBlockPos()
+                    );
                 }
             });
         });

@@ -953,7 +953,7 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
         content.clearChildren();
 
         // 1. Trigger Dropdown
-        content.child(dropdown("Trigger", List.of("BLOCK_BREAK", "BLOCK_PLACE", "TIMER", "ATTACK_TARGET", "ATTACK_SELF", "TAKE_DAMAGE", "TAKE_DAMAGE_ATTACKER", "UNLOCK"), data.trigger, s -> {
+        content.child(dropdown("Trigger", List.of("BLOCK_BREAK", "BLOCK_PLACE", "TIMER", "ATTACK_TARGET", "ATTACK_SELF", "TAKE_DAMAGE", "TAKE_DAMAGE_ATTACKER", "UNLOCK", "ACTIVATED"), data.trigger, s -> {
             data.trigger = s;
             // CRITICAL FIX: Rebuild the row immediately when Trigger changes
             refreshActionRow(collapsible, content, data);
@@ -1121,7 +1121,7 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
         // 1. Type Selector
         List<String> types = restrictTypes
                 ? List.of("Command", "Delayed") // Restriction for Raycast children
-                : List.of("Command", "Burn", "Explosion", "Heal", "Launch", "Delayed", "Raycast");
+                : List.of("Command", "Burn", "Heal", "Launch", "Delayed", "Raycast");
 
         container.child(dropdown("Type", types, data.type, s -> {
             data.type = s;
@@ -1140,11 +1140,18 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
             var cb = Components.checkbox(Text.of("Ignore Armor")); cb.checked(data.bool1); cb.onChanged(v -> {data.bool1 = v; updatePreview();});
             container.child(cb);
         }
-        else if (data.type.equals("Explosion")) {
-            container.child(field("Power", data.value1, s -> { data.value1 = s; updatePreview(); }, 100));
-            var f = Components.checkbox(Text.of("Fire")); f.checked(data.bool1); f.onChanged(v -> {data.bool1=v; updatePreview();});
-            var b = Components.checkbox(Text.of("Break Blocks")); b.checked(data.bool2); b.onChanged(v -> {data.bool2=v; updatePreview();});
-            container.child(row(f, b));
+        else if (data.type.equals("Heal")) {
+            // Mapped to value1 (Amount) and bool1 (IsHunger)
+            container.child(field("Amount (2.0 = 1 Heart)", data.value1, s -> { data.value1 = s; updatePreview(); }, 100));
+            var h = Components.checkbox(Text.of("Restore Hunger"));
+            h.checked(data.bool1);
+            h.onChanged(b -> { data.bool1 = b; updatePreview(); });
+            container.child(h.margins(Insets.top(5)));
+        }
+        else if (data.type.equals("Launch")) {
+            // Mapped to value1 (Strength) and value2 (Vertical)
+            container.child(field("Forward Strength", data.value1, s -> { data.value1 = s; updatePreview(); }, 100));
+            container.child(field("Vertical Strength", data.value2, s -> { data.value2 = s; updatePreview(); }, 100).margins(Insets.top(5)));
         }
         else if (data.type.equals("Raycast")) {
             container.child(field("Length", data.value1, s -> { data.value1 = s; updatePreview(); }, 100));

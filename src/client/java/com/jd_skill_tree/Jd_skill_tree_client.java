@@ -22,6 +22,7 @@ import java.util.Set;
 public class Jd_skill_tree_client implements ClientModInitializer {
 
     public static final Logger LOGGER = LoggerFactory.getLogger(Jd_skill_tree.MOD_ID);
+    private static net.minecraft.client.option.KeyBinding activateKey;
 
     public static final EntityModelLayer BOOK_LAYER = new EntityModelLayer(
             new Identifier(Jd_skill_tree.MOD_ID, "skill_altar_book"), "main"
@@ -37,7 +38,49 @@ public class Jd_skill_tree_client implements ClientModInitializer {
         BlockEntityRendererFactories.register(ModBlockEntities.SKILL_ALTAR_ENTITY, SkillAltarBlockEntityRenderer::new);
         ClientBlockInteractionHandler.register();
 
+        activateKey = net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper.registerKeyBinding(
+                new net.minecraft.client.option.KeyBinding(
+                        "key.jd_skill_tree.activate",
+                        net.minecraft.client.util.InputUtil.Type.KEYSYM,
+                        org.lwjgl.glfw.GLFW.GLFW_KEY_R,
+                        "category.jd_skill_tree.general"
+                )
+        );
+
+        // 3. Register Tick Event to open screen
+        net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents.END_CLIENT_TICK.register(client -> {
+            // If key is pressed and no screen is open (or chat isn't open)
+            if (activateKey.wasPressed()) {
+                if (client.player != null && client.currentScreen == null) {
+                    openRadialMenu(client);
+                }
+            }
+        });
+
         LOGGER.info("Client initialization complete for JD Skill Tree Mod");
+    }
+
+    private void openRadialMenu(net.minecraft.client.MinecraftClient client) {
+        java.util.List<com.jd_skill_tree.skills.Skill> activeSkills = new java.util.ArrayList<>();
+
+        // Filter unlocked skills for ones that have ACTIVATED trigger
+        com.jd_skill_tree.skills.ClientSkillData.getUnlockedSkills().forEach(id -> {
+            com.jd_skill_tree.skills.SkillManager.getSkill(new net.minecraft.util.Identifier(id)).ifPresent(skill -> {
+                boolean hasActiveTrigger = skill.getActions().stream()
+                        .anyMatch(a -> a.getTrigger() == com.jd_skill_tree.skills.actions.TriggerType.ACTIVATED);
+
+                if (hasActiveTrigger) {
+                    activeSkills.add(skill);
+                }
+            });
+        });
+
+        if (!activeSkills.isEmpty()) {
+            // Pass the key so the screen knows when it's released
+            client.setScreen(new com.jd_skill_tree.screens.RadialSkillScreen(activeSkills, activateKey.getDefaultKey()));
+        } else {
+            client.player.sendMessage(net.minecraft.text.Text.of("§cNo active skills unlocked!"), true);
+        }
     }
 
     private void registerS2CPackets() {

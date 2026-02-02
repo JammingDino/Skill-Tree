@@ -31,4 +31,8 @@ public class ClientSkillData {
         // CORRECTED LINE: Convert the skill's Identifier to a string before checking.
         return unlockedSkills.contains(skill.getId().toString());
     }
+
+    public static Set<String> getUnlockedSkills() {
+        return unlockedSkills;
+    }
 }

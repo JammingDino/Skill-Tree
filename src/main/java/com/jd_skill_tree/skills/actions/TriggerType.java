@@ -8,5 +8,6 @@ public enum TriggerType {
     TAKE_DAMAGE_ATTACKER,
     UNLOCK,
     ATTACK_TARGET,
-    ATTACK_SELF
+    ATTACK_SELF,
+    ACTIVATED
 }
