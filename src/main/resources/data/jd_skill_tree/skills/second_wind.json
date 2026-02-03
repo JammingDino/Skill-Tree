@@ -1,0 +1,23 @@
+{
+  "name": "Second Wind",
+  "description": "Passive: When your health drops below 3 hearts, gain Regeneration III for 5 seconds. (2 min Cooldown)",
+  "icon": "minecraft:ghast_tear",
+  "tier": 5,
+  "cost": 3000,
+  "cooldown": 2400,
+  "prerequisites": [ "jd_skill_tree:vitality_6" ],
+  "actions": [
+    {
+      "trigger": "TAKE_DAMAGE",
+      "condition": {
+        "type": "jd_skill_tree:health",
+        "comparison": "LESS_THAN",
+        "amount": 6.0
+      },
+      "effect": {
+        "type": "jd_skill_tree:command",
+        "command": "/effect give @s minecraft:regeneration 5 2"
+      }
+    }
+  ]
+}

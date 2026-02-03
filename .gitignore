@@ -42,3 +42,5 @@ replay_*.log
 scripts/release_generator/.env
 scripts/release_generator/__pycache__/
 *.png
+*.jpg
+/scripts/js_release/node_modules/

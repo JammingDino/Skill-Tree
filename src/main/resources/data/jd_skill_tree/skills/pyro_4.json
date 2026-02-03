@@ -1,0 +1,14 @@
+{
+  "name": "Nether's Fortitude",
+  "description": "Exposure to the wastes has made you resilient. Immune to the Wither effect.",
+  "icon": "minecraft:wither_skeleton_skull",
+  "tier": 4,
+  "cost": 1500,
+  "prerequisites": [ "jd_skill_tree:pyro_3" ],
+  "effects": [
+    {
+      "type": "jd_skill_tree:effect_immunity",
+      "effect": "minecraft:wither"
+    }
+  ]
+}

@@ -4,9 +4,10 @@ public enum TriggerType {
     BLOCK_BREAK,
     BLOCK_PLACE,
     TIMER,
-    TAKE_DAMAGE_SELF,
+    TAKE_DAMAGE,
     TAKE_DAMAGE_ATTACKER,
     UNLOCK,
     ATTACK_TARGET,
-    ATTACK_SELF
+    ATTACK_SELF,
+    ACTIVATED
 }

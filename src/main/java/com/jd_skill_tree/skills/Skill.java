@@ -36,6 +36,9 @@ public class Skill {
     @SerializedName("actions")
     private List<SkillAction> actions = new ArrayList<>();
 
+    @SerializedName("cooldown")
+    private int cooldown = 0; // In Ticks (20 = 1 second)
+
     // --- Fields that are NOT in the JSON, but are managed by our code ---
     private transient Identifier id; // 'transient' means GSON will ignore this field
     private transient ItemStack iconStackCache; // A cache for the item stack to avoid creating it repeatedly
@@ -50,6 +53,7 @@ public class Skill {
     public String getDescription() { return this.description; }
     public int getTier() { return this.tier; }
     public int getCost() { return this.cost; }
+    public int getCooldown() { return cooldown; }
 
     /**
      * Gets the icon for this skill as an ItemStack.

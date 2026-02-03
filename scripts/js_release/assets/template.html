@@ -51,11 +51,19 @@
         /* --- CHANGELOG --- */
         .changelog-header { font-size: 60px; font-weight: 800; margin-bottom: 30px; border-bottom: 3px solid #333; padding-bottom: 20px; z-index: 1; }
         .changelog-content { width: 100%; color: #ccc; z-index: 1; flex-grow: 1; line-height: 1.5; font-size: 34px; }
+        .changelog-content {
+            display: flex;
+            flex-direction: column;
+            line-height: 1.5; /* Better readability for long commit messages */
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+        }
+
 
         .changelog-content strong { color: #e040fb; font-weight: 700; }
         .changelog-content code { background: rgba(255, 64, 129, 0.15); padding: 2px 8px; border-radius: 6px; font-family: monospace; color: #ff80ab; font-size: 0.85em; }
         .changelog-content p { margin-bottom: 0.8em; }
-        .changelog-content ul { list-style: none; margin-bottom: 0.8em; }
+        .changelog-content ul { list-style: none; margin-bottom: 10px; }
         .changelog-content li { position: relative; padding-left: 35px; margin-bottom: 12px; }
         .changelog-content li::before { content: "▸"; position: absolute; left: 0; color: #e040fb; }
 
@@ -66,86 +74,103 @@
 <div id="container"></div>
 
 <script>
-    function formatNum(num) {
-        if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
-        if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
-        return num.toString();
-    }
-
     window.renderCards = (config, stats, changelogRaw, images) => {
         const container = document.getElementById('container');
 
-        // 1. RENDER COVER CARD
-        const coverCard = document.createElement('div');
-        coverCard.className = 'project-card';
-        coverCard.innerHTML = `<div class="glow-orb"></div><div class="content-layer-center">
-            <img src="${images.main || ''}" class="main-icon">
+        // 1. Title Card (Standard)
+        const cover = document.createElement('div');
+        cover.className = 'project-card';
+        cover.innerHTML = `<div class="glow-orb"></div><div class="content-layer-center">
+            <img src="${images.main}" class="main-icon">
             <h1 class="title">${config.modName}</h1>
             <div class="version-badge">${config.version}</div>
             <div class="stats-container">
-                <div class="stat-box"><img src="${images.modrinth || ''}" class="platform-icon" width="44">
-                <div class="stat-text"><div class="stat-value">${formatNum(stats.mCount)}</div><div class="stat-label">Modrinth</div></div></div>
-                <div class="stat-box"><img src="${images.curseforge || ''}" class="platform-icon" width="44">
-                <div class="stat-text"><div class="stat-value">${formatNum(stats.cCount)}</div><div class="stat-label">CurseForge</div></div></div>
+                <div class="stat-box"><div class="stat-value">${stats.mCount}</div><div class="stat-label">Modrinth</div></div>
+                <div class="stat-box"><div class="stat-value">${stats.cCount}</div><div class="stat-label">CurseForge</div></div>
             </div></div>`;
-        container.appendChild(coverCard);
+        container.appendChild(cover);
 
-        // 2. TARGETED PAGINATION (Aiming for 2 cards)
+        // 2. Pre-process Markdown into Atomic Blocks
+        const rawHtml = marked.parse(changelogRaw);
         const tempDiv = document.createElement('div');
-        tempDiv.innerHTML = marked.parse(changelogRaw || "");
-        const rawElements = Array.from(tempDiv.children);
+        tempDiv.innerHTML = rawHtml;
 
-        // Lowered threshold to ensure a split occurs if content is substantial
-        const SPLIT_THRESHOLD = 550;
-        const pages = [[]];
-        let currentPageIdx = 0;
-        let charCount = 0;
-
-        rawElements.forEach((el) => {
-            const elChars = el.innerText ? el.innerText.length : 100;
-
-            // Trigger split if threshold reached, but don't split if it's the only element
-            if (charCount + elChars > SPLIT_THRESHOLD && pages[currentPageIdx].length > 0) {
-                // If the element is a header/bold label, split immediately before it
-                const isHeader = el.tagName.match(/^H[1-6]$/) || el.innerHTML.trim().startsWith('<strong>');
-
-                // If the PREVIOUS element was a header, move it to this new page
-                const prev = pages[currentPageIdx][pages[currentPageIdx].length - 1];
-                const prevIsHeader = prev && (prev.tagName.match(/^H[1-6]$/) || prev.innerHTML.trim().startsWith('<strong>'));
-
-                currentPageIdx++;
-                pages[currentPageIdx] = [];
-                charCount = 0;
-
-                if (prevIsHeader) {
-                    const header = pages[currentPageIdx - 1].pop();
-                    pages[currentPageIdx].push(header);
-                    charCount += header.innerText.length;
-                }
+        const blocks = [];
+        Array.from(tempDiv.children).forEach(el => {
+            if (el.tagName === 'UL') {
+                // Break lists into individual LI elements to allow splitting
+                Array.from(el.children).forEach(li => {
+                    const ulWrap = document.createElement('ul');
+                    ulWrap.appendChild(li.cloneNode(true));
+                    blocks.push(ulWrap);
+                });
+            } else {
+                blocks.push(el.cloneNode(true));
             }
-
-            pages[currentPageIdx].push(el.cloneNode(true));
-            charCount += elChars;
         });
 
-        // 3. FINAL RENDER
+        // 3. Measure and Fill Pages - Simple accumulation approach
+        const MAX_HEIGHT = 880;
+        const pages = [[]];
+        let currentPageIdx = 0;
+
+        const measurer = document.createElement('div');
+        measurer.className = 'project-card';
+        measurer.style.visibility = 'hidden';
+        measurer.style.position = 'absolute';
+        measurer.innerHTML = `
+            <div class="glow-orb"></div>
+            <h2 class="changelog-header">Update Notes ${config.version}</h2>
+            <div class="changelog-content"></div>
+            <div class="page-footer">Page 1/1</div>
+        `;
+        document.body.appendChild(measurer);
+        const mArea = measurer.querySelector('.changelog-content');
+
+        for (let i = 0; i < blocks.length; i++) {
+            const el = blocks[i];
+            const testClone = el.cloneNode(true);
+
+            // Add to test area
+            mArea.appendChild(testClone);
+
+            if (mArea.offsetHeight > MAX_HEIGHT && pages[currentPageIdx].length > 0) {
+                // Overflow - remove the element and start new page
+                mArea.removeChild(testClone);
+                currentPageIdx++;
+                pages[currentPageIdx] = [];
+
+                // Clear measurer and add just this element
+                mArea.innerHTML = '';
+                mArea.appendChild(el.cloneNode(true));
+                pages[currentPageIdx].push(el);
+            } else {
+                // Fits - keep it
+                pages[currentPageIdx].push(el);
+            }
+        }
+        document.body.removeChild(measurer);
+
+        // 4. Final Render & Proportional Scaling
         pages.forEach((items, idx) => {
             const pageEl = document.createElement('div');
             pageEl.className = 'project-card';
             pageEl.innerHTML = `
                 <div class="glow-orb"></div>
-                <h2 class="changelog-header">What's New in ${config.version}</h2>
+                <h2 class="changelog-header">Update Notes ${config.version}</h2>
                 <div class="changelog-content"></div>
                 <div class="page-footer">Page ${idx + 1}/${pages.length}</div>
             `;
             container.appendChild(pageEl);
             const content = pageEl.querySelector('.changelog-content');
-            items.forEach(item => content.appendChild(item));
+            items.forEach(item => content.appendChild(item.cloneNode(true)));
 
-            // Final Spacing Tweak: Ensure the font size fills the page nicely
-            if (pages.length === 1) content.style.fontSize = '34px';
-            else if (items.length < 3) content.style.fontSize = '40px';
-            else content.style.fontSize = '34px';
+            // Evenly fill the space:
+            // If the card is very empty, boost font. If full, keep it at base 32px.
+            const h = content.offsetHeight;
+            if (h < 400) content.style.fontSize = "40px";
+            else if (h < 600) content.style.fontSize = "36px";
+            else content.style.fontSize = "32px";
         });
     };
 </script>

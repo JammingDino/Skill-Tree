@@ -10,16 +10,25 @@ const CONFIG = {
     modrinthId: process.env.MODRINTH_PROJECT_ID || "dnC6tCcs",
     curseforgeId: process.env.CURSEFORGE_PROJECT_ID || "1397099",
     rawBody: process.env.RELEASE_BODY || `
-feat(actions): add Raycast effect and refactor editor for recursion
-**New Features:**
-- **Raycast Action:** Added \`RaycastActionEffect\`. Casts a ray from the player's eyes with configurable length, fluid collision, and entity hit detection. Passes the precise hit position to child effects.
+feat: add aquatic skills and overhaul tooltip visuals
 
-**Refactoring:**
-- **Recursive Editor:** Completely overhauled \`DeveloperEditorScreen\` internals. Replaced flat field mapping with a modular \`EffectConfig\` system. This supports infinite nesting of actions (e.g., Raycast -> Delayed -> Command) in the UI.
+Major content update and visual polish for the Skill Tree GUI.
 
-**Fixes:**
-- Fixed \`TIMER\` actions executing every tick; they now correctly respect the configured interval. #27
-- Fixed Developer Editor UI not refreshing action rows immediately when switching Trigger types.
+**New Content:**
+- **Aquatic Tree:** Added 8-tier progression path with 'Survival' (Lungs, Vision) and 'Combat' (Trident damage, regen) branches.
+
+**UI & Layout:**
+- **Layout Algorithm:** Updated \`AltarScreen\` to use logarithmic weighting. This prevents large skill trees from monopolizing space on the inner rings, resulting in a balanced radial layout.
+- **Visual Overhaul:**
+  - **Tier 5 Glow:** Implemented a dynamic, rotating Purple/Gold pulse for max-tier skills.
+  - **Tier 1-4 Glow:** Added subtle static color blooms based on tier (Green/Blue/Gold).
+  - **Rendering Fix:** Implemented \`drawGlowQuad\` with automatic triangulation flipping to ensure smooth, rounded gradient corners without hard edges.
+ 
+**feat(release): migrate image generator from Python to Node.js/Puppeteer:**
+- Replace Pillow-based rendering with HTML/CSS templates
+- Implement smart markdown pagination for changelogs
+- Integrate Puppeteer for high-fidelity card generation
+- Update GitHub Actions workflow to Node.js environment
     `
 };
 
@@ -132,26 +141,33 @@ async function postToDiscord(version, imagePaths, modName) {
         const htmlContent = fs.readFileSync(path.join(__dirname, 'assets/template.html'), 'utf-8');
         await page.setContent(htmlContent);
 
-        // Inject data and trigger the smart-pagination logic in the template
+        // 1. Set a high device scale for crisp text
+        await page.setViewport({ width: 1080, height: 1080, deviceScaleFactor: 2 });
+
         await page.evaluate((config, stats, changelog, images) => {
             window.renderCards(config, stats, changelog, images);
         }, CONFIG, stats, changelog, images);
 
-        // Wait for rendering and font scaling to finish
+        // 2. CRITICAL: Wait for fonts and layout to stabilize
+        await page.evaluateHandle('document.fonts.ready');
         await new Promise(r => setTimeout(r, 1000));
 
         const cards = await page.$$('.project-card');
         const savedPaths = [];
 
-        // Single loop to capture and store paths
         for (let i = 0; i < cards.length; i++) {
             const imagePath = `release_card_${i + 1}.png`;
-            await cards[i].screenshot({ path: imagePath });
+
+            // 3. Clip exactly to the card to prevent overflow/inconsistencies
+            const box = await cards[i].boundingBox();
+            await page.screenshot({
+                path: imagePath,
+                clip: box
+            });
+
             savedPaths.push(imagePath);
-            console.log(`Generated: ${imagePath}`);
         }
 
-        // Post to Discord with all necessary metadata
         await postToDiscord(CONFIG.version, savedPaths, CONFIG.modName);
 
         await browser.close();

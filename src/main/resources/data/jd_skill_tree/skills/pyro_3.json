@@ -1,0 +1,14 @@
+{
+  "name": "Lava Strider",
+  "description": "You move through lava as if it were air. (+200% Lava Speed)",
+  "icon": "minecraft:magma_cream",
+  "tier": 3,
+  "cost": 800,
+  "prerequisites": [ "jd_skill_tree:pyro_2" ],
+  "effects": [
+    {
+      "type": "jd_skill_tree:lava_speed",
+      "value": 1.0
+    }
+  ]
+}

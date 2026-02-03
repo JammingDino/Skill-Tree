@@ -1,0 +1,13 @@
+{
+  "name": "Fire Walker",
+  "description": "Increases movement speed in Lava by 50%.",
+  "icon": "minecraft:magma_block",
+  "tier": 2,
+  "cost": 400,
+  "effects": [
+    {
+      "type": "jd_skill_tree:lava_speed",
+      "value": 0.5
+    }
+  ]
+}
