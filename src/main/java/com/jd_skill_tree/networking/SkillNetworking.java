@@ -37,6 +37,7 @@ public class SkillNetworking {
     public static final Identifier SAVE_SKILL_PACKET_ID = new Identifier(Jd_skill_tree.MOD_ID, "save_skill");
     public static final Identifier SKILL_REGISTRY_SYNC_PACKET_ID = new Identifier(Jd_skill_tree.MOD_ID, "skill_registry_sync");
     public static final Identifier TRIGGER_ACTIVE_SKILL_PACKET_ID = new Identifier(Jd_skill_tree.MOD_ID, "trigger_active_skill");
+    public static final Identifier COOLDOWN_PACKET_ID = new Identifier(Jd_skill_tree.MOD_ID, "cooldown_sync");
 
     public static void register() {
         registerC2SPackets();
@@ -212,5 +213,12 @@ public class SkillNetworking {
             buf.writeString(skillId);
         }
         ServerPlayNetworking.send(player, SKILL_SYNC_PACKET_ID, buf);
+    }
+
+    public static void sendCooldownPacket(ServerPlayerEntity player, Identifier skillId, int ticks) {
+        PacketByteBuf buf = PacketByteBufs.create();
+        buf.writeIdentifier(skillId);
+        buf.writeInt(ticks);
+        ServerPlayNetworking.send(player, COOLDOWN_PACKET_ID, buf);
     }
 }

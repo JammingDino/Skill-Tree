@@ -134,5 +134,16 @@ public class Jd_skill_tree_client implements ClientModInitializer {
                 com.jd_skill_tree.skills.ModSkills.updateBonusMaps();
             });
         });
+
+        ClientPlayNetworking.registerGlobalReceiver(SkillNetworking.COOLDOWN_PACKET_ID, (client, handler, buf, responseSender) -> {
+            Identifier skillId = buf.readIdentifier();
+            int ticks = buf.readInt();
+
+            client.execute(() -> {
+                if (client.player != null) {
+                    ((IUnlockedSkillsData) client.player).setSkillCooldown(skillId, ticks);
+                }
+            });
+        });
     }
 }

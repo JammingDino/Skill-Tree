@@ -83,11 +83,27 @@ public class SkillActionHandler {
      * Used by the Radial Menu to fire just the selected skill.
      */
     public static void triggerSpecificSkill(PlayerEntity owner, Identifier skillId, TriggerType type, Entity target, World world, BlockPos pos) {
+        IUnlockedSkillsData data = (IUnlockedSkillsData) owner;
+
+        // 1. CHECK COOLDOWN
+        if (data.isSkillOnCooldown(skillId)) {
+            // Optional: Play a "fail" sound or message
+            return;
+        }
+
         SkillManager.getSkill(skillId).ifPresent(skill -> {
+            boolean actionsRan = false;
+
             for (SkillAction action : skill.getActions()) {
                 if (action.getTrigger() == type) {
                     action.run(owner, target, world, pos);
+                    actionsRan = true;
                 }
+            }
+
+            // 2. APPLY COOLDOWN (Only if actions actually existed and ran)
+            if (actionsRan && skill.getCooldown() > 0) {
+                data.setSkillCooldown(skillId, skill.getCooldown());
             }
         });
     }

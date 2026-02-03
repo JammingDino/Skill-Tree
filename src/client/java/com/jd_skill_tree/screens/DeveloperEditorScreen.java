@@ -48,6 +48,7 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
     // --- State ---
     private String name = "New Skill";
     private String cost = "100";
+    private String cooldown = "0";
     private String icon = "minecraft:apple";
     private String iconNbt = "";
     private String description = "Description...";
@@ -57,6 +58,7 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
     // --- Component References ---
     private TextBoxComponent nameField;
     private TextBoxComponent costField;
+    private TextBoxComponent cooldownField;
     private ButtonComponent tierButton;
     private TextBoxComponent iconField;
     private TextBoxComponent iconNbtField;
@@ -234,16 +236,19 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
         editorContent.child(Components.label(Text.of("Skill Editor")).shadow(true).margins(Insets.bottom(15)));
 
         // Row 1: Name, Cost, Tier
-        var nameLayout = field("Name", name, s -> { name = s; updatePreview(); }, 50);
+        var nameLayout = field("Name", name, s -> { name = s; updatePreview(); }, 40);
         this.nameField = (TextBoxComponent) nameLayout.children().get(1);
 
-        var costLayout = field("Cost", cost, s -> { cost = s; updatePreview(); }, 20);
+        var costLayout = field("Cost", cost, s -> { cost = s; updatePreview(); }, 19);
         this.costField = (TextBoxComponent) costLayout.children().get(1);
 
-        var tierLayout = dropdown("Tier", List.of("1", "2", "3", "4", "5"), String.valueOf(tier), s -> { tier = Integer.parseInt(s); updatePreview(); }, 30);
+        var tierLayout = dropdown("Tier", List.of("1", "2", "3", "4", "5"), String.valueOf(tier), s -> { tier = Integer.parseInt(s); updatePreview(); }, 19);
         this.tierButton = (ButtonComponent) tierLayout.children().get(1);
 
-        editorContent.child(row(nameLayout, costLayout, tierLayout));
+        var cooldownLayout = field("Cooldown (Ticks)", cooldown, s -> { cooldown = s; updatePreview(); }, 19);
+        this.cooldownField = (TextBoxComponent) cooldownLayout.children().get(1);
+
+        editorContent.child(row(nameLayout, costLayout, tierLayout, cooldownLayout));
 
         // Row 2: Icon
         List<String> itemIds = Registries.ITEM.getIds().stream().map(Identifier::toString).sorted().toList();
@@ -461,6 +466,12 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
             EditorSaveState state = new EditorSaveState();
             state.name = this.name;
             state.cost = this.cost;
+
+            // --- SAVE NEW FIELDS ---
+            state.cooldown = this.cooldown;
+            state.iconNbt = this.iconNbt;
+            // -----------------------
+
             state.icon = this.icon;
             state.description = this.description;
             state.tier = this.tier;
@@ -486,6 +497,12 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
             if (state != null) {
                 this.name = state.name;
                 this.cost = state.cost;
+
+                // --- LOAD NEW FIELDS ---
+                this.cooldown = state.cooldown != null ? state.cooldown : "0";
+                this.iconNbt = state.iconNbt != null ? state.iconNbt : "";
+                // -----------------------
+
                 this.icon = state.icon;
                 this.description = state.description;
                 this.tier = state.tier;
@@ -533,11 +550,14 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
 
     private static class EditorSaveState {
         String name, cost, icon, description, namespace, fileName;
+        // --- NEW FIELDS ---
+        String cooldown;
+        String iconNbt;
+        // ------------------
         int tier;
         List<String> parents;
         List<EffectData> effects;
         List<ActionData> actions;
-        List<ConditionData> conditions;
     }
 
     // --- LOGIC: Load Skill ---
@@ -547,6 +567,8 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
         this.nameField.setText(this.name);
         this.cost = String.valueOf(skill.getCost());
         this.costField.setText(this.cost);
+        this.cooldown = String.valueOf(skill.getCooldown());
+        this.cooldownField.setText(this.cooldown);
         this.tier = skill.getTier();
         this.tierButton.setMessage(Text.of(String.valueOf(this.tier)));
         this.description = skill.getDescription();
@@ -1470,6 +1492,10 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
 
             root.addProperty("tier", tier);
             root.addProperty("cost", tryParse(cost));
+
+            if (tryParse(cooldown) > 0) {
+                root.addProperty("cooldown", tryParse(cooldown));
+            }
 
             if (!parentIds.isEmpty()) {
                 JsonArray parents = new JsonArray();

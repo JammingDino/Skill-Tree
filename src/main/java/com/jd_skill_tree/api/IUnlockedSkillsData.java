@@ -1,5 +1,7 @@
 package com.jd_skill_tree.api;
 
+import net.minecraft.util.Identifier;
+
 import java.util.Set;
 
 public interface IUnlockedSkillsData {
@@ -32,4 +34,8 @@ public interface IUnlockedSkillsData {
      * @param skillId The ID of the skill to revoke.
      */
     void revokeSkill(String skillId);
+
+    void setSkillCooldown(Identifier skillId, int ticks);
+    boolean isSkillOnCooldown(Identifier skillId);
+    float getCooldownProgress(Identifier skillId, float partialTicks);
 }

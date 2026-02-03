@@ -22,6 +22,7 @@ import net.minecraft.util.Identifier;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.world.World;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.ModifyVariable;
@@ -32,6 +33,47 @@ import java.util.*;
 
 @Mixin(PlayerEntity.class)
 public abstract class PlayerEntityMixin extends LivingEntity implements IUnlockedSkillsData {
+
+    @Unique
+    private final Map<String, Long> skillCooldowns = new HashMap<>();
+
+    @Override
+    public void setSkillCooldown(Identifier skillId, int ticks) {
+        if (ticks <= 0) return;
+        // Store the absolute world time when it expires
+        long expiry = this.getWorld().getTime() + ticks;
+        skillCooldowns.put(skillId.toString(), expiry);
+
+        // If Server: Sync to Client
+        if (!this.getWorld().isClient() && (Object)this instanceof net.minecraft.server.network.ServerPlayerEntity serverPlayer) {
+            com.jd_skill_tree.networking.SkillNetworking.sendCooldownPacket(serverPlayer, skillId, ticks);
+        }
+    }
+
+    @Override
+    public boolean isSkillOnCooldown(Identifier skillId) {
+        return skillCooldowns.containsKey(skillId.toString()) &&
+                this.getWorld().getTime() < skillCooldowns.get(skillId.toString());
+    }
+
+    @Override
+    public float getCooldownProgress(Identifier skillId, float partialTicks) {
+        String id = skillId.toString();
+        if (!skillCooldowns.containsKey(id)) return 0.0f;
+
+        long expiry = skillCooldowns.get(id);
+        long now = this.getWorld().getTime();
+
+        if (now >= expiry) {
+            skillCooldowns.remove(id);
+            return 0.0f;
+        }
+
+        // We need the total duration to calculate percentage.
+        // For simplicity in the mixin, we calculate remaining time.
+        // The Client UI will handle the percentage math using the Skill object's max cooldown.
+        return (float)(expiry - now);
+    }
 
     // Helper method to get all active effects for the player
     private Set<SkillEffect> jd_skill_tree$getActiveEffects() {

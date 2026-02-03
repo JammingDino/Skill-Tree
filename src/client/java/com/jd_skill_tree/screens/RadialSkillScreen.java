@@ -1,5 +1,6 @@
 package com.jd_skill_tree.screens;
 
+import com.jd_skill_tree.api.IUnlockedSkillsData;
 import com.jd_skill_tree.networking.SkillNetworking;
 import com.jd_skill_tree.skills.Skill;
 import com.mojang.blaze3d.systems.RenderSystem;
@@ -93,11 +94,40 @@ public class RadialSkillScreen extends Screen {
             context.getMatrices().push();
             context.getMatrices().translate(x, y, 0);
 
-            // Pop effect when hovered
             float scale = isHovered ? 1.5f : 1.0f;
             context.getMatrices().scale(scale, scale, 1.0f);
 
-            context.drawItem(skill.getIcon(), -8, -8); // Centered on 0,0 relative to push
+            // Draw the actual Item Icon
+            context.drawItem(skill.getIcon(), -8, -8);
+
+            // --- COOLDOWN VISUALS ---
+            if (this.client != null && this.client.player != null) {
+                com.jd_skill_tree.api.IUnlockedSkillsData data = (com.jd_skill_tree.api.IUnlockedSkillsData) this.client.player;
+                float ticksLeft = data.getCooldownProgress(skill.getId(), delta);
+
+                if (ticksLeft > 0 && skill.getCooldown() > 0) {
+                    float percentage = ticksLeft / (float) skill.getCooldown();
+
+                    context.getMatrices().push();
+                    context.getMatrices().translate(0, 0, 100); // Elevate above icon
+
+                    // 1. DARKEN THE ICON: Draw a static dark circle over the whole icon
+                    // drawProceduralCircle(context, 0, 0, 10, 0xAA000000); // 66% alpha black
+
+                    // 2. CLOCK SWEEP: Draw the remaining cooldown fan
+                    drawCooldownOverlay(context, 0, 0, percentage);
+
+                    // 3. TIMER TEXT: Positioned below the icon (y = 10)
+                    context.getMatrices().scale(0.7f, 0.7f, 1.0f); // Slightly smaller for fit
+                    String timeText = String.format("%.1fs", ticksLeft / 20.0f);
+                    int txtW = this.textRenderer.getWidth(timeText);
+
+                    // x is centered (-txtW/2), y is moved down to 14
+                    context.drawTextWithShadow(this.textRenderer, timeText, -txtW / 2, 14, 0xFFFFFF);
+
+                    context.getMatrices().pop();
+                }
+            }
             context.getMatrices().pop();
         }
 
@@ -239,5 +269,37 @@ public class RadialSkillScreen extends Screen {
     // Helper needed for the center text
     private void drawCenteredTextWithShadow(DrawContext context, net.minecraft.client.font.TextRenderer textRenderer, String text, int centerX, int centerY, int color) {
         context.drawTextWithShadow(textRenderer, text, centerX - textRenderer.getWidth(text) / 2, centerY, color);
+    }
+
+    private void drawCooldownOverlay(DrawContext context, int x, int y, float progress) {
+        // progress is 0.0 (done) to 1.0 (just started)
+        if (progress <= 0) return;
+
+        RenderSystem.enableBlend();
+        RenderSystem.defaultBlendFunc();
+        RenderSystem.setShader(GameRenderer::getPositionColorProgram);
+
+        Tessellator tessellator = Tessellator.getInstance();
+        BufferBuilder buffer = tessellator.getBuffer();
+        Matrix4f matrix = context.getMatrices().peek().getPositionMatrix();
+
+        buffer.begin(VertexFormat.DrawMode.TRIANGLE_FAN, VertexFormats.POSITION_COLOR);
+
+        // Center point (Dark overlay)
+        buffer.vertex(matrix, x, y, 0).color(0.0f, 0.0f, 0.0f, 0.6f).next();
+
+        // Draw arc based on progress (360 degrees * progress)
+        // We start at -90 (Top) and go clockwise
+        float maxAngle = 360.0f * progress;
+
+        for (int i = 0; i <= maxAngle; i += 5) {
+            double rad = Math.toRadians(i - 90);
+            // 16 is approx icon radius
+            buffer.vertex(matrix, x + (float)Math.cos(rad) * 16, y + (float)Math.sin(rad) * 16, 0)
+                    .color(0.0f, 0.0f, 0.0f, 0.6f).next();
+        }
+
+        tessellator.draw();
+        RenderSystem.disableBlend();
     }
 }
