@@ -1,0 +1,16 @@
+{
+  "name": "Obsidian Skin",
+  "description": "Your skin hardens against the heat. Grants permanent Fire Resistance.",
+  "icon": "minecraft:obsidian",
+  "tier": 3,
+  "cost": 600,
+  "prerequisites": [ "jd_skill_tree:pyro_1" ],
+  "effects": [
+    {
+      "type": "jd_skill_tree:potion",
+      "effect": "minecraft:fire_resistance",
+      "amplifier": 0,
+      "hide_particles": true
+    }
+  ]
+}

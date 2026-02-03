@@ -1,0 +1,18 @@
+{
+  "name": "Infernal Strikes",
+  "description": "Your strikes carry the heat of the core. Every enemy you hit is set on fire for 5 seconds.",
+  "icon": "minecraft:blaze_rod",
+  "tier": 5,
+  "cost": 3000,
+  "prerequisites": [ "jd_skill_tree:pyro_4" ],
+  "actions": [
+    {
+      "trigger": "ATTACK_TARGET",
+      "effect": {
+        "type": "jd_skill_tree:burn",
+        "duration": 100,
+        "ignore_armor": false
+      }
+    }
+  ]
+}

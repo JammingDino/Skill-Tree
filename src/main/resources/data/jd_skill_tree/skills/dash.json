@@ -1,0 +1,19 @@
+{
+  "name": "Quick Dash",
+  "description": "Active: Launch yourself forward in the direction you are looking. (10s Cooldown)",
+  "icon": "minecraft:feather",
+  "tier": 4,
+  "cost": 1500,
+  "cooldown": 200,
+  "prerequisites": [ "jd_skill_tree:movement_speed_5" ],
+  "actions": [
+    {
+      "trigger": "ACTIVATED",
+      "effect": {
+        "type": "jd_skill_tree:launch",
+        "strength": 1.2,
+        "vertical": 0.2
+      }
+    }
+  ]
+}

@@ -332,7 +332,7 @@ public abstract class PlayerEntityMixin extends LivingEntity implements IUnlocke
                 // Target is the player (for healing, buffs, etc.)
                 com.jd_skill_tree.skills.actions.SkillActionHandler.triggerActions(
                         player,
-                        com.jd_skill_tree.skills.actions.TriggerType.TAKE_DAMAGE_SELF,
+                        com.jd_skill_tree.skills.actions.TriggerType.TAKE_DAMAGE,
                         player,
                         player.getWorld(),
                         player.getBlockPos()

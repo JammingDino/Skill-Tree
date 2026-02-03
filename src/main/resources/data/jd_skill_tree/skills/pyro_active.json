@@ -1,0 +1,25 @@
+{
+  "name": "Ignite",
+  "description": "Active: Look at an entity within 10 blocks to set them on fire. (5s Cooldown)",
+  "icon": "minecraft:flint_and_steel",
+  "tier": 4,
+  "cost": 1500,
+  "cooldown": 100,
+  "prerequisites": [ "jd_skill_tree:pyro_2" ],
+  "actions": [
+    {
+      "trigger": "ACTIVATED",
+      "effect": {
+        "type": "jd_skill_tree:raycast",
+        "length": 10.0,
+        "fluids": false,
+        "entities": true,
+        "effect": {
+          "type": "jd_skill_tree:burn",
+          "duration": 100,
+          "ignore_armor": false
+        }
+      }
+    }
+  ]
+}

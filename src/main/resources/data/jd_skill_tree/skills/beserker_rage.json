@@ -1,0 +1,37 @@
+{
+  "name": "Berserker Rage",
+  "description": "Active: Gain Strength II and Speed II for 15 seconds, but set yourself on fire for 5 seconds. (120s Cooldown)",
+  "icon": "minecraft:blaze_powder",
+  "tier": 5,
+  "cost": 2500,
+  "cooldown": 2400,
+  "prerequisites": [ "jd_skill_tree:strength_6" ],
+  "actions": [
+    {
+      "trigger": "ACTIVATED",
+      "effect": {
+        "type": "jd_skill_tree:delayed",
+        "delay": 1,
+        "effect": {
+          "type": "jd_skill_tree:burn",
+          "duration": 100,
+          "ignore_armor": true
+        }
+      }
+    },
+    {
+      "trigger": "ACTIVATED",
+      "effect": {
+        "type": "jd_skill_tree:command",
+        "command": "/effect give @s minecraft:strength 15 1"
+      }
+    },
+    {
+      "trigger": "ACTIVATED",
+      "effect": {
+        "type": "jd_skill_tree:command",
+        "command": "/effect give @s minecraft:speed 15 1"
+      }
+    }
+  ]
+}
