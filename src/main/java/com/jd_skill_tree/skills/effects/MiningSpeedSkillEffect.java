@@ -3,9 +3,9 @@ package com.jd_skill_tree.skills.effects;
 import com.google.gson.JsonObject;
 import com.jd_skill_tree.skills.conditions.SkillCondition;
 import com.jd_skill_tree.skills.conditions.SkillConditionType;
-import net.minecraft.block.BlockState;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.util.JsonHelper;
+import net.minecraft.util.GsonHelper;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.block.state.BlockState;
 
 public class MiningSpeedSkillEffect implements SkillEffect {
 
@@ -23,12 +23,12 @@ public class MiningSpeedSkillEffect implements SkillEffect {
     }
 
     @Override
-    public float modifyBreakSpeed(BlockState block, PlayerEntity player, float currentSpeed) {
+    public float modifyBreakSpeed(BlockState block, Player player, float currentSpeed) {
         return currentSpeed * (1.0f + this.multiplier);
     }
 
     public static MiningSpeedSkillEffect fromJson(JsonObject json) {
-        float value = JsonHelper.getFloat(json, "value");
+        float value = GsonHelper.getAsFloat(json, "value", 0);
 
         SkillCondition cond = null;
         if (json.has("condition")) {

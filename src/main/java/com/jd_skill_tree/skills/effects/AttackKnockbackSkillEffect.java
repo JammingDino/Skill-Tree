@@ -3,8 +3,8 @@ package com.jd_skill_tree.skills.effects;
 import com.google.gson.JsonObject;
 import com.jd_skill_tree.skills.conditions.SkillCondition;
 import com.jd_skill_tree.skills.conditions.SkillConditionType;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.util.JsonHelper;
+import net.minecraft.util.GsonHelper;
+import net.minecraft.world.entity.player.Player;
 
 public class AttackKnockbackSkillEffect implements SkillEffect {
 
@@ -22,7 +22,7 @@ public class AttackKnockbackSkillEffect implements SkillEffect {
     }
 
     @Override
-    public float modifyAttackKnockback(PlayerEntity player, float currentKnockback) {
+    public float modifyAttackKnockback(Player player, float currentKnockback) {
         return currentKnockback + this.amount;
     }
 
@@ -31,7 +31,7 @@ public class AttackKnockbackSkillEffect implements SkillEffect {
     }
 
     public static AttackKnockbackSkillEffect fromJson(JsonObject json) {
-        float val = JsonHelper.getFloat(json, "value");
+        float val = GsonHelper.getAsFloat(json, "value", 0);
 
         SkillCondition cond = null;
         if (json.has("condition")) {

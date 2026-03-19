@@ -3,7 +3,7 @@ package com.jd_skill_tree.skills.effects;
 import com.google.gson.*;
 import com.jd_skill_tree.Jd_skill_tree;
 import com.jd_skill_tree.skills.conditions.SkillConditionListAdapter;
-import net.minecraft.registry.Registries;
+import net.minecraftforge.registries.ForgeRegistries;
 
 import java.lang.reflect.Type;
 import java.util.ArrayList;
@@ -34,15 +34,13 @@ public class SkillEffectListAdapter implements JsonDeserializer<List<SkillEffect
         for (SkillEffect effect : src) {
             JsonObject obj = new JsonObject();
 
-            // --- FIXED: Use static helper ---
             if (effect.getCondition() != null) {
                 obj.add("condition", SkillConditionListAdapter.serializeCondition(effect.getCondition(), context));
             }
-            // --------------------------------
 
             if (effect instanceof AttributeSkillEffect attrEffect) {
                 obj.addProperty("type", "jd_skill_tree:attribute");
-                obj.addProperty("attribute", attrEffect.getAttribute() != null ? Objects.requireNonNull(Registries.ATTRIBUTE.getId(attrEffect.getAttribute())).toString() : "");
+                obj.addProperty("attribute", attrEffect.getAttribute() != null ? Objects.requireNonNull(ForgeRegistries.ATTRIBUTES.getKey(attrEffect.getAttribute())).toString() : "");
                 obj.addProperty("operation", attrEffect.getOperation().name());
                 obj.addProperty("value", attrEffect.getValue());
             } else if (effect instanceof MiningSpeedSkillEffect miningEffect) {
