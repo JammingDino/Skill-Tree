@@ -2,40 +2,34 @@ package com.jd_skill_tree.blocks;
 
 import com.jd_skill_tree.blocks.entity.ModBlockEntities;
 import com.jd_skill_tree.blocks.entity.SkillAltarBlockEntity;
-import net.minecraft.block.BlockRenderType;
-import net.minecraft.block.BlockState;
-import net.minecraft.block.BlockWithEntity;
-import net.minecraft.block.entity.BlockEntity;
-import net.minecraft.block.entity.BlockEntityTicker;
-import net.minecraft.block.entity.BlockEntityType;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.sound.SoundEvents;
-import net.minecraft.util.ActionResult;
-import net.minecraft.util.Hand;
-import net.minecraft.util.hit.BlockHitResult;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.shape.VoxelShape;
-import net.minecraft.util.shape.VoxelShapes;
-import net.minecraft.world.BlockView;
-import net.minecraft.world.World;
+import net.minecraft.core.BlockPos;
+import net.minecraft.sounds.SoundEvents;
+import net.minecraft.world.InteractionHand;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.BlockGetter;
+import net.minecraft.world.level.Level;
+import net.minecraft.world.level.block.BaseEntityBlock;
+import net.minecraft.world.level.block.RenderShape;
+import net.minecraft.world.level.block.entity.BlockEntity;
+import net.minecraft.world.level.block.entity.BlockEntityTicker;
+import net.minecraft.world.level.block.entity.BlockEntityType;
+import net.minecraft.world.level.block.state.BlockBehaviour;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.shapes.CollisionContext;
+import net.minecraft.world.phys.shapes.VoxelShape;
+import net.minecraft.world.phys.shapes.Shapes;
 import org.jetbrains.annotations.Nullable;
 
-// 1. Extend BlockWithEntity instead of Block
-public class SkillAltar extends BlockWithEntity {
+public class SkillAltar extends BaseEntityBlock {
 
     private final int tier;
 
-    private static final VoxelShape SHAPE = VoxelShapes.union(
-            createCuboidShape(0, 0, 0, 16, 12, 16)  // Base pedestal
-    );
+    private static final VoxelShape SHAPE = Shapes.box(0, 0, 0, 1, 0.75, 1);
 
-    @Override
-    public VoxelShape getOutlineShape(BlockState state, BlockView world, BlockPos pos, net.minecraft.block.ShapeContext context) {
-        return SHAPE;
-    }
-
-    public SkillAltar(Settings settings, int tier) {
-        super(settings);
+    public SkillAltar(BlockBehaviour.Properties properties, int tier) {
+        super(properties);
         this.tier = tier;
     }
 
@@ -43,39 +37,35 @@ public class SkillAltar extends BlockWithEntity {
         return tier;
     }
 
-    // --- Required for the enchanted table hover effect ---
+    @Override
+    public VoxelShape getShape(BlockState state, BlockGetter world, BlockPos pos, CollisionContext context) {
+        return SHAPE;
+    }
 
     @Nullable
     @Override
-    public BlockEntity createBlockEntity(BlockPos pos, BlockState state) {
+    public BlockEntity newBlockEntity(BlockPos pos, BlockState state) {
         return new SkillAltarBlockEntity(pos, state);
     }
 
     @Override
-    public BlockRenderType getRenderType(BlockState state) {
-        // This tells Minecraft to use the BlockEntityRenderer instead of a JSON model.
-        return BlockRenderType.MODEL;
+    public RenderShape getRenderShape(BlockState state) {
+        return RenderShape.MODEL;
     }
 
     @Nullable
     @Override
-    public <T extends BlockEntity> BlockEntityTicker<T> getTicker(World world, BlockState state, BlockEntityType<T> type) {
-        // This is the crucial part that links to your static tick() method.
-        // We only run this on the client because the animation logic is purely visual.
-        if (world.isClient()) {
-            return checkType(type, ModBlockEntities.SKILL_ALTAR_ENTITY, (world1, pos, state1, be) -> SkillAltarBlockEntity.tick(world1, pos, state1, (SkillAltarBlockEntity) be));
+    public <T extends BlockEntity> BlockEntityTicker<T> getTicker(Level level, BlockState state, BlockEntityType<T> type) {
+        if (level.isClientSide()) {
+            return createTickerHelper(type, ModBlockEntities.SKILL_ALTAR_ENTITY.get(),
+                    (world1, pos, state1, be) -> SkillAltarBlockEntity.tick(world1, pos, state1, be));
         }
-        return null; // No server-side ticking needed for animations.
+        return null;
     }
 
-
-    // Your existing onUse method is perfectly fine.
     @Override
-    public ActionResult onUse(BlockState state, World world, BlockPos pos, PlayerEntity player, Hand hand, BlockHitResult hit) {
-
-        // System.out.println("Skill Altar (Tier " + tier + ") clicked by: " + player.getName().getString());
-        player.playSound(SoundEvents.BLOCK_AMETHYST_BLOCK_CHIME, 2f, 0.7f);
-
-        return ActionResult.SUCCESS;
+    public InteractionResult use(BlockState state, Level level, BlockPos pos, Player player, InteractionHand hand, BlockHitResult hit) {
+        player.playSound(SoundEvents.AMETHYST_BLOCK_CHIME, 2f, 0.7f);
+        return InteractionResult.SUCCESS;
     }
 }

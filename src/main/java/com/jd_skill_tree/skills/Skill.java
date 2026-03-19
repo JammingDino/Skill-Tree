@@ -4,13 +4,13 @@ import com.google.gson.annotations.SerializedName;
 import com.jd_skill_tree.skills.actions.SkillAction;
 import com.jd_skill_tree.skills.conditions.SkillCondition;
 import com.jd_skill_tree.skills.effects.SkillEffect;
-import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.nbt.StringNbtReader;
-import net.minecraft.registry.Registries;
-import net.minecraft.util.Identifier;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.TagParser;
+import net.minecraftforge.registries.ForgeRegistries;
+import net.minecraft.resources.ResourceLocation;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -24,14 +24,14 @@ public class Skill {
     // --- Fields that will be loaded directly from JSON ---
     private String name;
     private String description;
-    private Identifier icon;
+    private ResourceLocation icon;
     @SerializedName("icon_nbt") // Matches JSON key "icon_nbt"
     private String iconNbt;     // Stores the raw NBT string (e.g. "{Enchantments:[...]}")
 
     private int tier;
     private int cost;
     @SerializedName("prerequisites") // Tells GSON to map the "prerequisites" json key to this field
-    private List<Identifier> prerequisiteIds = new ArrayList<>();
+    private List<ResourceLocation> prerequisiteIds = new ArrayList<>();
 
     @SerializedName("actions")
     private List<SkillAction> actions = new ArrayList<>();
@@ -40,7 +40,7 @@ public class Skill {
     private int cooldown = 0; // In Ticks (20 = 1 second)
 
     // --- Fields that are NOT in the JSON, but are managed by our code ---
-    private transient Identifier id; // 'transient' means GSON will ignore this field
+    private transient ResourceLocation id; // 'transient' means GSON will ignore this field
     private transient ItemStack iconStackCache; // A cache for the item stack to avoid creating it repeatedly
 
     // A default constructor is good practice for deserialization
@@ -48,7 +48,7 @@ public class Skill {
 
     // --- Getters for accessing the skill's data ---
 
-    public Identifier getId() { return this.id; }
+    public ResourceLocation getId() { return this.id; }
     public String getName() { return this.name; }
     public String getDescription() { return this.description; }
     public int getTier() { return this.tier; }
@@ -62,13 +62,13 @@ public class Skill {
     public ItemStack getIcon() {
         if (this.iconStackCache == null) {
             Optional<Item> item = Registries.ITEM.getOrEmpty(this.icon);
-            this.iconStackCache = new ItemStack(item.orElse(net.minecraft.item.Items.BARRIER));
+            this.iconStackCache = new ItemStack(item.orElse(net.minecraft.world.item.Items.BARRIER));
 
             // Apply NBT if present
             if (this.iconNbt != null && !this.iconNbt.isEmpty()) {
                 try {
-                    NbtCompound tag = StringNbtReader.parse(this.iconNbt);
-                    this.iconStackCache.setNbt(tag);
+                    CompoundTag tag = TagParser.parseTag(this.iconNbt);
+                    this.iconStackCache.setTag(tag);
                 } catch (Exception e) {
                     System.err.println("Failed to parse NBT for skill icon: " + this.iconNbt);
                 }
@@ -79,7 +79,7 @@ public class Skill {
 
     public String getIconNbt() { return iconNbt; }
 
-    public List<Identifier> getPrerequisiteIds() {
+    public List<ResourceLocation> getPrerequisiteIds() {
         return this.prerequisiteIds;
     }
 
@@ -92,7 +92,7 @@ public class Skill {
      */
     public List<Skill> getRequiredSkills() {
         List<Skill> skills = new ArrayList<>();
-        for (Identifier skillId : this.prerequisiteIds) {
+        for (ResourceLocation skillId : this.prerequisiteIds) {
             // We use the new SkillManager to look up the skill by its ID
             SkillManager.getSkill(skillId).ifPresent(skills::add);
         }
@@ -110,7 +110,7 @@ public class Skill {
      * This is called by our SkillLoader after a skill is created from JSON.
      * It sets the ID based on the file's path and namespace.
      */
-    public void setId(Identifier id) {
+    public void setId(ResourceLocation id) {
         this.id = id;
     }
 }

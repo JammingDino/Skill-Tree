@@ -1,8 +1,8 @@
 package com.jd_skill_tree.skills.conditions;
 
 import com.google.gson.JsonObject;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.util.JsonHelper;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.util.GsonHelper;
 
 public class HealthCondition implements SkillCondition {
 
@@ -21,7 +21,7 @@ public class HealthCondition implements SkillCondition {
     }
 
     @Override
-    public boolean test(PlayerEntity player) {
+    public boolean test(Player player) {
         float currentHealth = player.getHealth(); // 20.0f = 10 Hearts
         return switch (this.comparison) {
             case GREATER_THAN -> currentHealth > this.targetHealth;
@@ -34,14 +34,14 @@ public class HealthCondition implements SkillCondition {
     public float getTargetHealth() { return targetHealth; }
 
     public static HealthCondition fromJson(JsonObject json) {
-        String compStr = JsonHelper.getString(json, "comparison", "GREATER_THAN").toUpperCase();
+        String compStr = GsonHelper.getString(json, "comparison", "GREATER_THAN").toUpperCase();
         Comparison comp;
         try {
             comp = Comparison.valueOf(compStr);
         } catch (IllegalArgumentException e) {
             comp = Comparison.GREATER_THAN;
         }
-        float amount = JsonHelper.getFloat(json, "amount", 20.0f);
+        float amount = GsonHelper.getFloat(json, "amount", 20.0f);
         return new HealthCondition(comp, amount);
     }
 }

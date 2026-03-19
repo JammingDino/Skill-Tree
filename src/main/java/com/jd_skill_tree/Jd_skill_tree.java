@@ -1,41 +1,47 @@
 package com.jd_skill_tree;
 
-import com.jd_skill_tree.api.IClientSkillData;
-import com.jd_skill_tree.networking.SkillNetworking;
-import com.jd_skill_tree.utils.ModRegistries;
-import net.fabricmc.api.ModInitializer;
-import net.fabricmc.fabric.api.event.lifecycle.v1.ServerLifecycleEvents;
-import net.fabricmc.fabric.api.networking.v1.PlayerLookup;
+import com.jd_skill_tree.blocks.ModBlocks;
+import com.jd_skill_tree.blocks.entity.ModBlockEntities;
+import com.jd_skill_tree.networking.NetworkHandler;
+import com.jd_skill_tree.skills.actions.SkillActionEffectType;
+import com.jd_skill_tree.skills.conditions.SkillConditionType;
+import com.jd_skill_tree.skills.effects.SkillEffectType;
+import com.jd_skill_tree.utils.ActionScheduler;
+import net.minecraftforge.common.MinecraftForge;
+import net.minecraftforge.eventbus.api.IEventBus;
+import net.minecraftforge.fml.common.Mod;
+import net.minecraftforge.fml.event.lifecycle.FMLCommonSetupEvent;
+import net.minecraftforge.fml.javafmlmod.FMLJavaModLoadingContext;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class Jd_skill_tree implements ModInitializer {
+@Mod(Jd_skill_tree.MOD_ID)
+public class Jd_skill_tree {
 
     public static final String MOD_ID = "jd_skill_tree";
     public static final Logger LOGGER = LoggerFactory.getLogger(MOD_ID);
 
-    public static IClientSkillData CLIENT_SKILL_DATA_HANDLER = null;
+    public Jd_skill_tree() {
+        IEventBus modEventBus = FMLJavaModLoadingContext.get().getModEventBus();
 
-    @Override
-    public void onInitialize() {
-        LOGGER.info("Initializing " + MOD_ID);
+        ModBlocks.BLOCKS.register(modEventBus);
+        ModBlocks.ITEMS.register(modEventBus);
+        ModBlockEntities.BLOCK_ENTITY_TYPES.register(modEventBus);
 
-        // A single, clean call to set up all networking.
-        SkillNetworking.register();
+        modEventBus.addListener(this::commonSetup);
 
-        // All other registrations are handled here.
-        ModRegistries.registerAll();
+        MinecraftForge.EVENT_BUS.register(new ForgeEventHandlers());
+        MinecraftForge.EVENT_BUS.register(this);
 
-        ServerLifecycleEvents.END_DATA_PACK_RELOAD.register((server, resourceManager, success) -> {
-            if (success) {
-                for (net.minecraft.server.network.ServerPlayerEntity player : PlayerLookup.all(server)) {
-                    SkillNetworking.syncSkillRegistry(player);
-                    // Re-sync unlocked status too, just to be safe
-                    SkillNetworking.syncSkillsToClient(player);
-                }
-            }
-        });
+        NetworkHandler.register();
 
-        LOGGER.info(MOD_ID + " Initialized");
+        LOGGER.info(MOD_ID + " mod loading");
+    }
+
+    private void commonSetup(FMLCommonSetupEvent event) {
+        SkillEffectType.registerAll();
+        SkillActionEffectType.registerAll();
+        SkillConditionType.registerAll();
+        ActionScheduler.register();
     }
 }

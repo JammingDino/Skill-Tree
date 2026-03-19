@@ -1,6 +1,6 @@
 package com.jd_skill_tree.utils;
 
-import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.world.entity.player.Player;
 
 public class ExperienceUtils {
 
@@ -9,7 +9,7 @@ public class ExperienceUtils {
      * Minecraft stores XP as (Level) + (Progress Bar %).
      * This converts that into a single raw integer.
      */
-    public static int getPlayerTotalXp(PlayerEntity player) {
+    public static int getPlayerTotalXp(Player player) {
         int level = player.experienceLevel;
         float progress = player.experienceProgress;
 
@@ -17,7 +17,7 @@ public class ExperienceUtils {
         long baseXp = getXpForLevel(level);
 
         // 2. Calculate XP currently in the bar (Progress * XP for next level)
-        int xpToNextLevel = player.getNextLevelExperience();
+        int xpToNextLevel = player.getXpNeededForNextLevel();
         int barXp = (int) (progress * xpToNextLevel);
 
         return (int) (baseXp + barXp);

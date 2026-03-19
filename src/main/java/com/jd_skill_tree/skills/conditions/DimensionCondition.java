@@ -1,25 +1,25 @@
 package com.jd_skill_tree.skills.conditions;
 
 import com.google.gson.JsonObject;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.util.Identifier;
-import net.minecraft.util.JsonHelper;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.GsonHelper;
 
 public class DimensionCondition implements SkillCondition {
-    private final Identifier dimensionId;
+    private final ResourceLocation dimensionId;
 
-    public DimensionCondition(Identifier dimensionId) {
+    public DimensionCondition(ResourceLocation dimensionId) {
         this.dimensionId = dimensionId;
     }
 
     @Override
-    public boolean test(PlayerEntity player) {
-        return player.getWorld().getRegistryKey().getValue().equals(dimensionId);
+    public boolean test(Player player) {
+        return player.level().dimension().location().equals(dimensionId);
     }
 
     public static DimensionCondition fromJson(JsonObject json) {
-        return new DimensionCondition(new Identifier(JsonHelper.getString(json, "dimension")));
+        return new DimensionCondition(new ResourceLocation(GsonHelper.getString(json, "dimension")));
     }
 
-    public Identifier getDimensionId() { return dimensionId; }
+    public ResourceLocation getDimensionId() { return dimensionId; }
 }

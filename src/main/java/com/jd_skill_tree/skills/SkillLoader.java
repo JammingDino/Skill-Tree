@@ -13,7 +13,7 @@ import com.jd_skill_tree.skills.effects.SkillEffectListAdapter;
 import net.fabricmc.fabric.api.resource.IdentifiableResourceReloadListener;
 import net.minecraft.resource.ResourceManager;
 import net.minecraft.resource.JsonDataLoader;
-import net.minecraft.util.Identifier;
+import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.profiler.Profiler;
 
 import java.lang.reflect.Type;
@@ -29,7 +29,7 @@ public class SkillLoader extends JsonDataLoader implements IdentifiableResourceR
     public static final Gson GSON = new GsonBuilder()
             .setPrettyPrinting()
             .disableHtmlEscaping()
-            .registerTypeAdapter(Identifier.class, new IdentifierAdapter())
+            .registerTypeAdapter(ResourceLocation.class, new IdentifierAdapter())
             .registerTypeAdapter(SKILL_EFFECT_LIST_TYPE, new SkillEffectListAdapter())
             .registerTypeAdapter(SKILL_ACTION_LIST_TYPE, new SkillActionListAdapter())
             .registerTypeAdapter(SKILL_CONDITION_LIST_TYPE, new SkillConditionListAdapter())
@@ -41,12 +41,12 @@ public class SkillLoader extends JsonDataLoader implements IdentifiableResourceR
     }
 
     @Override
-    public Identifier getFabricId() {
-        return new Identifier(Jd_skill_tree.MOD_ID, "skills");
+    public ResourceLocation getFabricId() {
+        return new ResourceLocation(Jd_skill_tree.MOD_ID, "skills");
     }
 
     @Override
-    protected void apply(Map<Identifier, JsonElement> prepared, ResourceManager manager, Profiler profiler) {
+    protected void apply(Map<ResourceLocation, JsonElement> prepared, ResourceManager manager, Profiler profiler) {
         Jd_skill_tree.LOGGER.info("Loading JD Skill Tree skills...");
 
         // 1. Clear all old skills to prepare for reload

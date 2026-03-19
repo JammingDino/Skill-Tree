@@ -2,8 +2,8 @@ package com.jd_skill_tree.skills.conditions;
 
 import com.google.gson.JsonObject;
 import com.jd_skill_tree.Jd_skill_tree;
-import net.minecraft.util.Identifier;
-import net.minecraft.util.JsonHelper;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.GsonHelper;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -11,20 +11,20 @@ import java.util.function.Function;
 
 public record SkillConditionType<T extends SkillCondition>(Function<JsonObject, T> factory) {
 
-    private static final Map<Identifier, SkillConditionType<?>> REGISTRY = new HashMap<>();
+    private static final Map<ResourceLocation, SkillConditionType<?>> REGISTRY = new HashMap<>();
 
     public static SkillCondition create(JsonObject json) {
         // Validation: Ensure 'type' exists
         if (!json.has("type")) {
             throw new IllegalArgumentException("Condition JSON missing 'type' field: " + json);
         }
-        Identifier typeId = new Identifier(JsonHelper.getString(json, "type"));
+        ResourceLocation typeId = new ResourceLocation(GsonHelper.getAsString(json, "type"));
         SkillConditionType<?> type = REGISTRY.get(typeId);
         if (type == null) throw new IllegalArgumentException("Unknown skill condition type: " + typeId);
         return type.factory().apply(json);
     }
 
-    public static <T extends SkillCondition> void register(Identifier id, Function<JsonObject, T> factory) {
+    public static <T extends SkillCondition> void register(ResourceLocation id, Function<JsonObject, T> factory) {
         REGISTRY.put(id, new SkillConditionType<>(factory));
     }
 
@@ -32,27 +32,27 @@ public record SkillConditionType<T extends SkillCondition>(Function<JsonObject, 
         Jd_skill_tree.LOGGER.info("Registering skill conditions...");
 
         // LOGIC
-        register(new Identifier(Jd_skill_tree.MOD_ID, "and"), AndCondition::fromJson);
-        register(new Identifier(Jd_skill_tree.MOD_ID, "or"), OrCondition::fromJson);
-        register(new Identifier(Jd_skill_tree.MOD_ID, "not"), NotCondition::fromJson);
+        register(new ResourceLocation(Jd_skill_tree.MOD_ID, "and"), AndCondition::fromJson);
+        register(new ResourceLocation(Jd_skill_tree.MOD_ID, "or"), OrCondition::fromJson);
+        register(new ResourceLocation(Jd_skill_tree.MOD_ID, "not"), NotCondition::fromJson);
 
         // ITEMS
-        register(new Identifier(Jd_skill_tree.MOD_ID, "hand_item"), HandItemCondition::fromJson);
-        register(new Identifier(Jd_skill_tree.MOD_ID, "equipped_item"), EquippedItemCondition::fromJson);
+        register(new ResourceLocation(Jd_skill_tree.MOD_ID, "hand_item"), HandItemCondition::fromJson);
+        register(new ResourceLocation(Jd_skill_tree.MOD_ID, "equipped_item"), EquippedItemCondition::fromJson);
 
         // PLAYER STATE
-        register(new Identifier(Jd_skill_tree.MOD_ID, "health"), HealthCondition::fromJson);
-        register(new Identifier(Jd_skill_tree.MOD_ID, "hunger"), HungerCondition::fromJson);
-        register(new Identifier(Jd_skill_tree.MOD_ID, "armor"), ArmorCondition::fromJson);
-        register(new Identifier(Jd_skill_tree.MOD_ID, "sprinting"), SprintingCondition::fromJson);
-        register(new Identifier(Jd_skill_tree.MOD_ID, "crouching"), CrouchingCondition::fromJson);
-        register(new Identifier(Jd_skill_tree.MOD_ID, "wetness"), WetnessCondition::fromJson);
-        register(new Identifier(Jd_skill_tree.MOD_ID, "in_lava"), InLavaCondition::fromJson);
+        register(new ResourceLocation(Jd_skill_tree.MOD_ID, "health"), HealthCondition::fromJson);
+        register(new ResourceLocation(Jd_skill_tree.MOD_ID, "hunger"), HungerCondition::fromJson);
+        register(new ResourceLocation(Jd_skill_tree.MOD_ID, "armor"), ArmorCondition::fromJson);
+        register(new ResourceLocation(Jd_skill_tree.MOD_ID, "sprinting"), SprintingCondition::fromJson);
+        register(new ResourceLocation(Jd_skill_tree.MOD_ID, "crouching"), CrouchingCondition::fromJson);
+        register(new ResourceLocation(Jd_skill_tree.MOD_ID, "wetness"), WetnessCondition::fromJson);
+        register(new ResourceLocation(Jd_skill_tree.MOD_ID, "in_lava"), InLavaCondition::fromJson);
 
         // WORLD STATE
-        register(new Identifier(Jd_skill_tree.MOD_ID, "y_level"), YLevelCondition::fromJson);
-        register(new Identifier(Jd_skill_tree.MOD_ID, "time"), TimeOfDayCondition::fromJson);
-        register(new Identifier(Jd_skill_tree.MOD_ID, "dimension"), DimensionCondition::fromJson);
-        register(new Identifier(Jd_skill_tree.MOD_ID, "walking_on"), WalkingOnBlockCondition::fromJson);
+        register(new ResourceLocation(Jd_skill_tree.MOD_ID, "y_level"), YLevelCondition::fromJson);
+        register(new ResourceLocation(Jd_skill_tree.MOD_ID, "time"), TimeOfDayCondition::fromJson);
+        register(new ResourceLocation(Jd_skill_tree.MOD_ID, "dimension"), DimensionCondition::fromJson);
+        register(new ResourceLocation(Jd_skill_tree.MOD_ID, "walking_on"), WalkingOnBlockCondition::fromJson);
     }
 }

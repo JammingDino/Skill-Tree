@@ -1,8 +1,8 @@
 package com.jd_skill_tree.skills;
 
-import net.minecraft.item.ItemStack;
-import net.minecraft.item.Items;
-import net.minecraft.util.Identifier;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.Items;
+import net.minecraft.resources.ResourceLocation;
 
 import java.util.*;
 import java.util.stream.Collectors;
@@ -33,13 +33,13 @@ public class ModSkills {
     // DELETED: The old registerSkills() method is gone.
 
     /**
-     * REFACTORED: This now gets a skill from the SkillManager using an Identifier.
+     * REFACTORED: This now gets a skill from the SkillManager using an ResourceLocation.
      */
     public static Optional<Skill> getSkillById(String id) {
         if (id == null) {
             return Optional.empty();
         }
-        return SkillManager.getSkill(new Identifier(id));
+        return SkillManager.getSkill(new ResourceLocation(id));
     }
 
     /**

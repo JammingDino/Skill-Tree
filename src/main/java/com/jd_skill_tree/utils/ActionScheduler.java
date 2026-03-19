@@ -23,7 +23,7 @@ public class ActionScheduler {
 
             if (activeTasks.isEmpty()) return;
 
-            // 2. Use Server Ticks (monotonically increasing) instead of World Time
+            // 2. Use Server Ticks (monotonically increasing) instead of Level Time
             int currentTick = server.getTicks();
             Iterator<Task> iterator = activeTasks.iterator();
 

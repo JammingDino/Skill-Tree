@@ -1,8 +1,8 @@
 package com.jd_skill_tree.skills.conditions;
 
 import com.google.gson.JsonObject;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.util.JsonHelper;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.util.GsonHelper;
 
 public class TimeOfDayCondition implements SkillCondition {
     private final int minTime;
@@ -14,15 +14,15 @@ public class TimeOfDayCondition implements SkillCondition {
     }
 
     @Override
-    public boolean test(PlayerEntity player) {
-        long time = player.getWorld().getTimeOfDay() % 24000;
+    public boolean test(Player player) {
+        long time = player.level().getTimeOfDay() % 24000;
         return time >= minTime && time <= maxTime;
     }
 
     public static TimeOfDayCondition fromJson(JsonObject json) {
         return new TimeOfDayCondition(
-                JsonHelper.getInt(json, "min", 0),
-                JsonHelper.getInt(json, "max", 24000)
+                GsonHelper.getInt(json, "min", 0),
+                GsonHelper.getInt(json, "max", 24000)
         );
     }
 

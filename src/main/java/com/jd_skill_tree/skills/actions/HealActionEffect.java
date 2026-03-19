@@ -1,12 +1,12 @@
 package com.jd_skill_tree.skills.actions;
 
 import com.google.gson.JsonObject;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.util.JsonHelper;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.World;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.util.GsonHelper;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.level.Level;
 
 public class HealActionEffect implements SkillActionEffect {
     private final float amount;
@@ -18,16 +18,16 @@ public class HealActionEffect implements SkillActionEffect {
     }
 
     @Override
-    public void execute(Entity target, World world, BlockPos pos) {
-        if (world.isClient) return;
+    public void execute(Entity target, Level world, BlockPos pos) {
+        if (world.isClientSide) return;
 
         // Ensure target is alive
         if (!(target instanceof LivingEntity living)) return;
 
         if (isHunger) {
             // Only players have hunger mechanics
-            if (living instanceof PlayerEntity p) {
-                p.getHungerManager().add((int)amount, 0.5f);
+            if (living instanceof Player p) {
+                p.getFoodData().add((int)amount, 0.5f);
             }
         } else {
             // Any living entity can be healed
@@ -40,8 +40,8 @@ public class HealActionEffect implements SkillActionEffect {
 
     public static HealActionEffect fromJson(JsonObject json) {
         return new HealActionEffect(
-                JsonHelper.getFloat(json, "amount", 2.0f),
-                JsonHelper.getBoolean(json, "is_hunger", false)
+                GsonHelper.getFloat(json, "amount", 2.0f),
+                GsonHelper.getBoolean(json, "is_hunger", false)
         );
     }
 }

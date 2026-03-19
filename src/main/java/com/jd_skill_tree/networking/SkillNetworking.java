@@ -13,10 +13,10 @@ import net.fabricmc.fabric.api.networking.v1.PacketByteBufs;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.network.PacketByteBuf;
-import net.minecraft.server.network.ServerPlayerEntity;
-import net.minecraft.text.Text;
-import net.minecraft.util.Identifier;
-import net.minecraft.util.WorldSavePath;
+import net.minecraft.server.level.ServerPlayer;
+import net.minecraft.network.chat.Component;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.world.level.storage.LevelResource;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -31,13 +31,13 @@ import java.util.Set;
 public class SkillNetworking {
 
     // Existing IDs
-    public static final Identifier UNLOCK_SKILL_PACKET_ID = new Identifier(Jd_skill_tree.MOD_ID, "unlock_skill");
-    public static final Identifier SKILL_SYNC_PACKET_ID = new Identifier(Jd_skill_tree.MOD_ID, "skill_sync");
-    public static final Identifier RESET_SKILLS_PACKET_ID = new Identifier(Jd_skill_tree.MOD_ID, "reset_skills");
-    public static final Identifier SAVE_SKILL_PACKET_ID = new Identifier(Jd_skill_tree.MOD_ID, "save_skill");
-    public static final Identifier SKILL_REGISTRY_SYNC_PACKET_ID = new Identifier(Jd_skill_tree.MOD_ID, "skill_registry_sync");
-    public static final Identifier TRIGGER_ACTIVE_SKILL_PACKET_ID = new Identifier(Jd_skill_tree.MOD_ID, "trigger_active_skill");
-    public static final Identifier COOLDOWN_PACKET_ID = new Identifier(Jd_skill_tree.MOD_ID, "cooldown_sync");
+    public static final ResourceLocation UNLOCK_SKILL_PACKET_ID = new ResourceLocation(Jd_skill_tree.MOD_ID, "unlock_skill");
+    public static final ResourceLocation SKILL_SYNC_PACKET_ID = new ResourceLocation(Jd_skill_tree.MOD_ID, "skill_sync");
+    public static final ResourceLocation RESET_SKILLS_PACKET_ID = new ResourceLocation(Jd_skill_tree.MOD_ID, "reset_skills");
+    public static final ResourceLocation SAVE_SKILL_PACKET_ID = new ResourceLocation(Jd_skill_tree.MOD_ID, "save_skill");
+    public static final ResourceLocation SKILL_REGISTRY_SYNC_PACKET_ID = new ResourceLocation(Jd_skill_tree.MOD_ID, "skill_registry_sync");
+    public static final ResourceLocation TRIGGER_ACTIVE_SKILL_PACKET_ID = new ResourceLocation(Jd_skill_tree.MOD_ID, "trigger_active_skill");
+    public static final ResourceLocation COOLDOWN_PACKET_ID = new ResourceLocation(Jd_skill_tree.MOD_ID, "cooldown_sync");
 
     public static void register() {
         registerC2SPackets();
@@ -51,7 +51,7 @@ public class SkillNetworking {
 
         // --- PASTE YOUR EXISTING C2S CODE HERE ---
         ServerPlayNetworking.registerGlobalReceiver(UNLOCK_SKILL_PACKET_ID, (server, player, handler, buf, responseSender) -> {
-            Identifier skillId = buf.readIdentifier();
+            ResourceLocation skillId = buf.readIdentifier();
             String skillIdString = skillId.toString();
 
             server.execute(() -> {
@@ -75,22 +75,22 @@ public class SkillNetworking {
                 int cost = skillToUnlock.getCost();
 
                 if (currentTotalXp < cost) {
-                    player.sendMessage(Text.of("§cNot enough XP! Need: " + cost + " Points."), true);
+                    player.displayClientMessage(Component.literal("§cNot enough XP! Need: " + cost + " Points."), true);
                     return;
                 }
 
                 // 4. DEDUCT XP (UPDATED TO POINTS)
                 // Passing a negative number to addExperience removes raw points and handles level-down logic automatically
-                player.addExperience(-cost);
+                player.giveExperiencePoints(-cost);
 
                 // 5. Unlock
                 skillData.unlockSkill(skillIdString);
                 syncSkillsToClient(player);
-                player.sendMessage(Text.of("§aSkill Unlocked: " + skillToUnlock.getName()), false);
+                player.sendSystemMessage(Component.literal(text));
 
                 for (SkillAction action : skillToUnlock.getActions()) {
                     if (action.getTrigger() == TriggerType.UNLOCK) {
-                        action.run(player, player, player.getWorld(), player.getBlockPos());
+                        action.run(player, player, player.level(), player.blockPosition());
                     }
                 }
             });
@@ -104,16 +104,16 @@ public class SkillNetworking {
 
                 int totalRefundAmount = 0;
                 for (String skillIdString : unlockedSkills) {
-                    Optional<Skill> skillOpt = SkillManager.getSkill(new Identifier(skillIdString));
+                    Optional<Skill> skillOpt = SkillManager.getSkill(new ResourceLocation(skillIdString));
                     if (skillOpt.isPresent()) {
                         totalRefundAmount += skillOpt.get().getCost();
                     }
                 }
 
                 skillData.setUnlockedSkills(new HashSet<>());
-                player.addExperience(totalRefundAmount);
+                player.giveExperiencePoints(totalRefundAmount);
                 syncSkillsToClient(player);
-                player.sendMessage(Text.of("§eSkills have been reset. " + totalRefundAmount + " xp points refunded."), false);
+                player.sendSystemMessage(Component.literal(text));
             });
         });
 
@@ -124,9 +124,9 @@ public class SkillNetworking {
             String jsonContent = buf.readString();
 
             server.execute(() -> {
-                if (!player.hasPermissionLevel(2)) return;
+                if (!player.hasPermissions(2)) return;
                 try {
-                    Path datapackDir = server.getSavePath(WorldSavePath.DATAPACKS);
+                    Path datapackDir = server.getWorldPath(LevelResource.DATAPACK_DIR);
                     String datapackName = namespace + "_skills_datapack";
                     Path datapackPath = datapackDir.resolve(datapackName);
                     Path dataPath = datapackPath.resolve("data").resolve(namespace);
@@ -144,7 +144,7 @@ public class SkillNetworking {
 
                     Path skillFilePath = skillsPath.resolve(cleanFileName);
                     Files.writeString(skillFilePath, jsonContent, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
-                    server.getCommandManager().executeWithPrefix(server.getCommandSource(), "reload");
+                    server.getCommands().performPrefixedCommand(server.getCommandSource(), "reload");
                 } catch (IOException e) {
                     Jd_skill_tree.LOGGER.error("Failed export", e);
                 }
@@ -152,7 +152,7 @@ public class SkillNetworking {
         });
 
         ServerPlayNetworking.registerGlobalReceiver(TRIGGER_ACTIVE_SKILL_PACKET_ID, (server, player, handler, buf, responseSender) -> {
-            Identifier skillId = buf.readIdentifier();
+            ResourceLocation skillId = buf.readIdentifier();
             server.execute(() -> {
                 com.jd_skill_tree.api.IUnlockedSkillsData data = (com.jd_skill_tree.api.IUnlockedSkillsData) player;
 
@@ -164,8 +164,8 @@ public class SkillNetworking {
                             skillId,
                             com.jd_skill_tree.skills.actions.TriggerType.ACTIVATED,
                             player,
-                            player.getWorld(),
-                            player.getBlockPos()
+                            player.level(),
+                            player.blockPosition()
                     );
                 }
             });
@@ -184,7 +184,7 @@ public class SkillNetworking {
     /**
      * NEW: Sends all loaded Skill definitions to the client.
      */
-    public static void syncSkillRegistry(ServerPlayerEntity player) {
+    public static void syncSkillRegistry(ServerPlayer player) {
         Collection<Skill> allSkills = SkillManager.getAllSkills();
 
         PacketByteBuf buf = PacketByteBufs.create();
@@ -205,7 +205,7 @@ public class SkillNetworking {
         ServerPlayNetworking.send(player, SKILL_REGISTRY_SYNC_PACKET_ID, buf);
     }
 
-    public static void syncSkillsToClient(ServerPlayerEntity player) {
+    public static void syncSkillsToClient(ServerPlayer player) {
         Set<String> skills = ((IUnlockedSkillsData) player).getUnlockedSkills();
         PacketByteBuf buf = PacketByteBufs.create();
         buf.writeInt(skills.size());
@@ -215,7 +215,7 @@ public class SkillNetworking {
         ServerPlayNetworking.send(player, SKILL_SYNC_PACKET_ID, buf);
     }
 
-    public static void sendCooldownPacket(ServerPlayerEntity player, Identifier skillId, int ticks) {
+    public static void sendCooldownPacket(ServerPlayer player, ResourceLocation skillId, int ticks) {
         PacketByteBuf buf = PacketByteBufs.create();
         buf.writeIdentifier(skillId);
         buf.writeInt(ticks);

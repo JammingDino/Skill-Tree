@@ -12,11 +12,11 @@ import com.jd_skill_tree.skills.effects.ElytraSkillEffect;
 import com.jd_skill_tree.skills.effects.SkillEffectType;
 import net.fabricmc.fabric.api.entity.event.v1.EntityElytraEvents;
 import net.fabricmc.fabric.api.resource.ResourceManagerHelper;
-import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.resource.ResourceType;
 import com.jd_skill_tree.command.SkillCommand;
 import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
-import net.minecraft.util.Identifier;
+import net.minecraft.resources.ResourceLocation;
 
 /**
  * Central registry class that coordinates all mod registrations.
@@ -40,11 +40,11 @@ public class ModRegistries {
         ActionScheduler.register();
 
         EntityElytraEvents.CUSTOM.register((entity, tick) -> {
-            if (entity instanceof PlayerEntity player) {
+            if (entity instanceof Player player) {
                 IUnlockedSkillsData skillData = (IUnlockedSkillsData) player;
                 for (String skillId : skillData.getUnlockedSkills()) {
                     // We have to look up the skill to check effects/conditions
-                    var skillOpt = SkillManager.getSkill(new Identifier(skillId));
+                    var skillOpt = SkillManager.getSkill(new ResourceLocation(skillId));
                     if (skillOpt.isPresent()) {
                         for (var effect : skillOpt.get().getEffects()) {
                             if (effect instanceof ElytraSkillEffect && effect.isActive(player)) {

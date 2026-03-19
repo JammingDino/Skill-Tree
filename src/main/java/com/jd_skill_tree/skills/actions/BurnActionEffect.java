@@ -1,10 +1,10 @@
 package com.jd_skill_tree.skills.actions;
 
 import com.google.gson.JsonObject;
-import net.minecraft.entity.Entity;
-import net.minecraft.util.JsonHelper;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.World;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.util.GsonHelper;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.level.Level;
 
 public class BurnActionEffect implements SkillActionEffect {
     private final int duration; // in ticks
@@ -16,17 +16,17 @@ public class BurnActionEffect implements SkillActionEffect {
     }
 
     @Override
-    public void execute(Entity target, World world, BlockPos pos) {
-        if (world.isClient) return;
-        target.setOnFireFor(duration / 20);
+    public void execute(Entity target, Level world, BlockPos pos) {
+        if (world.isClientSide) return;
+        target.setSecondsOnFire(duration / 20);
 
         if (ignoreArmor) {
             // In 1.20, 'magic' is the standard damage source that bypasses armor.
             // We use this for the 'ignoreArmor' toggle.
-            target.damage(world.getDamageSources().magic(), 1.0f);
+            target.damage(world.damageSources().magic(), 1.0f);
         } else {
             // Standard fire damage (respects armor)
-            target.damage(world.getDamageSources().onFire(), 1.0f);
+            target.damage(world.damageSources().onFire(), 1.0f);
         }
     }
 
@@ -35,8 +35,8 @@ public class BurnActionEffect implements SkillActionEffect {
 
     public static BurnActionEffect fromJson(JsonObject json) {
         return new BurnActionEffect(
-                JsonHelper.getInt(json, "duration", 100),
-                JsonHelper.getBoolean(json, "ignore_armor", false)
+                GsonHelper.getInt(json, "duration", 100),
+                GsonHelper.getBoolean(json, "ignore_armor", false)
         );
     }
 }

@@ -1,8 +1,8 @@
 package com.jd_skill_tree.skills.conditions;
 
 import com.google.gson.JsonObject;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.util.JsonHelper;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.util.GsonHelper;
 
 public class ArmorCondition implements SkillCondition {
 
@@ -17,7 +17,7 @@ public class ArmorCondition implements SkillCondition {
     }
 
     @Override
-    public boolean test(PlayerEntity player) {
+    public boolean test(Player player) {
         int currentArmor = player.getArmor();
         return switch (this.comparison) {
             case GREATER_THAN -> currentArmor > this.targetArmor;
@@ -27,8 +27,8 @@ public class ArmorCondition implements SkillCondition {
     }
 
     public static ArmorCondition fromJson(JsonObject json) {
-        Comparison comp = Comparison.valueOf(JsonHelper.getString(json, "comparison", "GREATER_THAN").toUpperCase());
-        int amount = JsonHelper.getInt(json, "amount", 0);
+        Comparison comp = Comparison.valueOf(GsonHelper.getString(json, "comparison", "GREATER_THAN").toUpperCase());
+        int amount = GsonHelper.getInt(json, "amount", 0);
         return new ArmorCondition(comp, amount);
     }
 

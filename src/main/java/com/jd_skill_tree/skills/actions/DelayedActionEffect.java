@@ -4,11 +4,11 @@ import com.google.gson.JsonObject;
 import com.jd_skill_tree.skills.conditions.SkillCondition;
 import com.jd_skill_tree.skills.conditions.SkillConditionType;
 import com.jd_skill_tree.utils.ActionScheduler;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.util.JsonHelper;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.World;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.util.GsonHelper;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.level.Level;
 
 public class DelayedActionEffect implements SkillActionEffect {
 
@@ -23,8 +23,8 @@ public class DelayedActionEffect implements SkillActionEffect {
     }
 
     @Override
-    public void execute(Entity target, World world, BlockPos pos) {
-        if (world.isClient) return;
+    public void execute(Entity target, Level world, BlockPos pos) {
+        if (world.isClientSide) return;
 
         // We need a server reference. Try to get it from the target or the world.
         net.minecraft.server.MinecraftServer server = world.getServer();
@@ -36,7 +36,7 @@ public class DelayedActionEffect implements SkillActionEffect {
 
             // 2. Check Condition (Only works if target is a player, otherwise ignore condition)
             if (nextCondition != null) {
-                if (target instanceof PlayerEntity p) {
+                if (target instanceof Player p) {
                     if (!nextCondition.test(p)) return;
                 }
                 // If target is not a player, we technically can't check 'Player' conditions on a Zombie.
@@ -45,7 +45,7 @@ public class DelayedActionEffect implements SkillActionEffect {
 
             // 3. Execute
             // Use the target's CURRENT position
-            nextEffect.execute(target, world, target.getBlockPos());
+            nextEffect.execute(target, world, target.blockPosition());
 
         }, server);
     }
@@ -55,7 +55,7 @@ public class DelayedActionEffect implements SkillActionEffect {
     public SkillCondition getNextCondition() { return nextCondition; }
 
     public static DelayedActionEffect fromJson(JsonObject json) {
-        int delay = JsonHelper.getInt(json, "delay");
+        int delay = GsonHelper.getInt(json, "delay");
 
         JsonObject effectJson = json.getAsJsonObject("effect");
         SkillActionEffect effect = SkillActionEffectType.create(effectJson);

@@ -3,10 +3,10 @@ package com.jd_skill_tree.mixin;
 import com.jd_skill_tree.api.IUnlockedSkillsData;
 import com.jd_skill_tree.skills.SkillManager;
 import com.jd_skill_tree.skills.effects.SkillEffect;
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.effect.StatusEffectInstance;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.util.Identifier;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.effect.MobEffectInstance;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.resources.ResourceLocation;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
@@ -21,12 +21,12 @@ import java.util.Set;
 public abstract class LivingEntityMixin {
 
     @Unique
-    private Set<SkillEffect> jd_skill_tree$getActiveEffects(PlayerEntity player) {
+    private Set<SkillEffect> jd_skill_tree$getActiveEffects(Player player) {
         Set<SkillEffect> effects = new HashSet<>();
         IUnlockedSkillsData skillData = (IUnlockedSkillsData) player;
 
         for (String skillIdString : skillData.getUnlockedSkills()) {
-            SkillManager.getSkill(new Identifier(skillIdString)).ifPresent(skill -> {
+            SkillManager.getSkill(new ResourceLocation(skillIdString)).ifPresent(skill -> {
                 // FIXED: Iterate effects individually and check their specific conditions
                 for (SkillEffect effect : skill.getEffects()) {
                     if (effect.isActive(player)) {
@@ -43,9 +43,9 @@ public abstract class LivingEntityMixin {
      * The 'ordinal = 0' must be INSIDE the @At annotation.
      * We modify index 0 (the float speed).
      */
-    @ModifyArg(method = "travel", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/LivingEntity;updateVelocity(FLnet/minecraft/util/math/Vec3d;)V", ordinal = 0))
+    @ModifyArg(method = "travel", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/LivingEntity;updateVelocity(FLnet/minecraft/util/math/Vec3;)V", ordinal = 0))
     private float modifySwimSpeed(float speed) {
-        if ((Object)this instanceof PlayerEntity player) {
+        if ((Object)this instanceof Player player) {
             float newSpeed = speed;
             for (SkillEffect effect : jd_skill_tree$getActiveEffects(player)) {
                 newSpeed = effect.modifySwimSpeed(player, newSpeed);
@@ -59,9 +59,9 @@ public abstract class LivingEntityMixin {
      * Targeting the call to updateVelocity inside the Lava check block in travel().
      * This corresponds to Ordinal 1.
      */
-    @ModifyArg(method = "travel", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/LivingEntity;updateVelocity(FLnet/minecraft/util/math/Vec3d;)V", ordinal = 1))
+    @ModifyArg(method = "travel", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/LivingEntity;updateVelocity(FLnet/minecraft/util/math/Vec3;)V", ordinal = 1))
     private float modifyLavaSpeed(float speed) {
-        if ((Object)this instanceof PlayerEntity player) {
+        if ((Object)this instanceof Player player) {
             float newSpeed = speed;
             for (SkillEffect effect : jd_skill_tree$getActiveEffects(player)) {
                 newSpeed = effect.modifyLavaSpeed(player, newSpeed);
@@ -72,8 +72,8 @@ public abstract class LivingEntityMixin {
     }
 
     @Inject(method = "canHaveStatusEffect", at = @At("HEAD"), cancellable = true)
-    private void checkImmunity(StatusEffectInstance effect, CallbackInfoReturnable<Boolean> cir) {
-        if ((Object)this instanceof PlayerEntity player) {
+    private void checkImmunity(MobEffectInstance effect, CallbackInfoReturnable<Boolean> cir) {
+        if ((Object)this instanceof Player player) {
             for (SkillEffect skillEffect : jd_skill_tree$getActiveEffects(player)) {
                 // If any active skill says "prevent this effect", we cancel and return false
                 if (skillEffect.preventsEffect(effect.getEffectType())) {

@@ -1,38 +1,38 @@
 package com.jd_skill_tree.skills.conditions;
 
 import com.google.gson.JsonObject;
-import net.minecraft.entity.EquipmentSlot;
-import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.world.entity.EquipmentSlot;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.nbt.NbtHelper;
-import net.minecraft.nbt.StringNbtReader;
-import net.minecraft.registry.Registries;
-import net.minecraft.util.Identifier;
-import net.minecraft.util.JsonHelper;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.NbtUtils;
+import net.minecraft.nbt.TagParser;
+import net.minecraftforge.registries.ForgeRegistries;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.GsonHelper;
 
 public class EquippedItemCondition implements SkillCondition {
 
     private final Item targetItem;
     private final EquipmentSlot slot;
-    private final NbtCompound nbt;
+    private final CompoundTag nbt;
 
-    public EquippedItemCondition(Item targetItem, EquipmentSlot slot, NbtCompound nbt) {
+    public EquippedItemCondition(Item targetItem, EquipmentSlot slot, CompoundTag nbt) {
         this.targetItem = targetItem;
         this.slot = slot;
         this.nbt = nbt;
     }
 
     @Override
-    public boolean test(PlayerEntity player) {
-        ItemStack stack = player.getEquippedStack(this.slot);
+    public boolean test(Player player) {
+        ItemStack stack = player.getItemBySlot(this.slot);
 
         if (!stack.isOf(this.targetItem)) return false;
 
         if (this.nbt != null) {
-            if (!stack.hasNbt()) return false;
-            return NbtHelper.matches(this.nbt, stack.getNbt(), true);
+            if (!stack.hasTag()) return false;
+            return NbtUtils.matches(this.nbt, stack.getTag(), true);
         }
 
         return true;
@@ -40,13 +40,13 @@ public class EquippedItemCondition implements SkillCondition {
 
     public Item getTargetItem() { return targetItem; }
     public EquipmentSlot getSlot() { return slot; }
-    public NbtCompound getNbt() { return nbt; }
+    public CompoundTag getNbt() { return nbt; }
 
     public static EquippedItemCondition fromJson(JsonObject json) {
-        Identifier itemId = new Identifier(JsonHelper.getString(json, "item"));
-        Item item = Registries.ITEM.get(itemId);
+        ResourceLocation itemId = new ResourceLocation(GsonHelper.getString(json, "item"));
+        Item item = ForgeRegistries.ITEMS.getValue(itemId);
 
-        String slotStr = JsonHelper.getString(json, "slot", "head").toLowerCase();
+        String slotStr = GsonHelper.getString(json, "slot", "head").toLowerCase();
         EquipmentSlot slot = switch (slotStr) {
             case "feet", "boots" -> EquipmentSlot.FEET;
             case "legs", "leggings" -> EquipmentSlot.LEGS;
@@ -54,10 +54,10 @@ public class EquippedItemCondition implements SkillCondition {
             default -> EquipmentSlot.HEAD;
         };
 
-        NbtCompound nbt = null;
+        CompoundTag nbt = null;
         if (json.has("nbt")) {
             try {
-                nbt = StringNbtReader.parse(JsonHelper.getString(json, "nbt"));
+                nbt = TagParser.parseTag(GsonHelper.getString(json, "nbt"));
             } catch (Exception e) {
                 // Log error
             }

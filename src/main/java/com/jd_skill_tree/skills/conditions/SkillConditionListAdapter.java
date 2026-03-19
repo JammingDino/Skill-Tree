@@ -2,7 +2,7 @@ package com.jd_skill_tree.skills.conditions;
 
 import com.google.gson.*;
 import com.jd_skill_tree.Jd_skill_tree;
-import net.minecraft.registry.Registries;
+import net.minecraftforge.registries.ForgeRegistries;
 
 import java.lang.reflect.Type;
 import java.util.ArrayList;
@@ -56,14 +56,14 @@ public class SkillConditionListAdapter implements JsonDeserializer<List<SkillCon
         // --- ITEMS ---
         else if (condition instanceof HandItemCondition hand) {
             obj.addProperty("type", "jd_skill_tree:hand_item");
-            obj.addProperty("item", Registries.ITEM.getId(hand.getTargetItem()).toString());
+            obj.addProperty("item", ForgeRegistries.ITEMS.getKey(hand.getTargetItem()).toString());
             obj.addProperty("count", hand.getMinCount());
             obj.addProperty("slot", hand.getSlot() == HandItemCondition.HandSlot.OFFHAND ? "offhand" : "mainhand");
-            if (hand.getNbt() != null) obj.addProperty("nbt", hand.getNbt().toString());
+            if (hand.getTag() != null) obj.addProperty("nbt", hand.getTag().toString());
         }
         else if (condition instanceof EquippedItemCondition equipped) {
             obj.addProperty("type", "jd_skill_tree:equipped_item");
-            obj.addProperty("item", Registries.ITEM.getId(equipped.getTargetItem()).toString());
+            obj.addProperty("item", ForgeRegistries.ITEMS.getKey(equipped.getTargetItem()).toString());
             String slotName = switch (equipped.getSlot()) {
                 case FEET -> "boots";
                 case LEGS -> "legs";
@@ -71,7 +71,7 @@ public class SkillConditionListAdapter implements JsonDeserializer<List<SkillCon
                 default -> "helmet";
             };
             obj.addProperty("slot", slotName);
-            if (equipped.getNbt() != null) obj.addProperty("nbt", equipped.getNbt().toString());
+            if (equipped.getTag() != null) obj.addProperty("nbt", equipped.getTag().toString());
         }
 
         // --- PLAYER STATE ---
@@ -120,7 +120,7 @@ public class SkillConditionListAdapter implements JsonDeserializer<List<SkillCon
         }
         else if (condition instanceof WalkingOnBlockCondition walk) {
             obj.addProperty("type", "jd_skill_tree:walking_on");
-            obj.addProperty("block", Registries.BLOCK.getId(walk.getTargetBlock()).toString());
+            obj.addProperty("block", ForgeRegistries.BLOCKS.getKey(walk.getTargetBlock()).toString());
         }
 
         return obj;

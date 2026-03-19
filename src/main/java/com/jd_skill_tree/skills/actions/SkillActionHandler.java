@@ -4,19 +4,19 @@ import com.jd_skill_tree.api.IUnlockedSkillsData;
 import com.jd_skill_tree.skills.SkillManager;
 import net.fabricmc.fabric.api.event.player.AttackEntityCallback;
 import net.fabricmc.fabric.api.event.player.PlayerBlockBreakEvents;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.util.ActionResult;
-import net.minecraft.util.Identifier;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.world.World;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.InteractionResult;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.level.Level;
 
 public class SkillActionHandler {
 
     public static void register() {
         // Block Break
         PlayerBlockBreakEvents.AFTER.register((world, player, pos, state, blockEntity) -> {
-            if (!world.isClient) {
+            if (!world.isClientSide) {
                 // Target is Player, but Pos is Block location
                 triggerActions(player, TriggerType.BLOCK_BREAK, player, world, pos);
             }
@@ -24,27 +24,27 @@ public class SkillActionHandler {
 
         // Attack Entity
         AttackEntityCallback.EVENT.register((player, world, hand, entity, hitResult) -> {
-            if (!world.isClient && !player.isSpectator()) {
+            if (!world.isClientSide && !player.isSpectator()) {
 
                 // 1. ATTACK_TARGET:
                 // Owner = Player, Target = Zombie.
                 // Commands use Zombie as source (@s = Zombie, ~ ~ ~ = Zombie Pos)
-                triggerActions(player, TriggerType.ATTACK_TARGET, entity, world, entity.getBlockPos());
+                triggerActions(player, TriggerType.ATTACK_TARGET, entity, world, entity.blockPosition());
 
                 // 2. ATTACK_SELF:
                 // Owner = Player, Target = Player.
                 // Commands use Player as source (@s = Player, ~ ~ ~ = Player Pos)
-                triggerActions(player, TriggerType.ATTACK_SELF, player, world, player.getBlockPos());
+                triggerActions(player, TriggerType.ATTACK_SELF, player, world, player.blockPosition());
             }
-            return ActionResult.PASS;
+            return InteractionResult.PASS;
         });
     }
 
-    public static void triggerActions(PlayerEntity owner, TriggerType type, Entity target, World world, BlockPos pos) {
+    public static void triggerActions(Player owner, TriggerType type, Entity target, Level world, BlockPos pos) {
         IUnlockedSkillsData skillData = (IUnlockedSkillsData) owner;
 
         for (String skillId : skillData.getUnlockedSkills()) {
-            SkillManager.getSkill(new Identifier(skillId)).ifPresent(skill -> {
+            SkillManager.getSkill(new ResourceLocation(skillId)).ifPresent(skill -> {
                 for (SkillAction action : skill.getActions()) {
                     if (action.getTrigger() == type) {
                         action.run(owner, target, world, pos);
@@ -54,23 +54,23 @@ public class SkillActionHandler {
         }
     }
 
-    public static void handleTimerActions(PlayerEntity player) {
-        if (player.getWorld().isClient) return;
+    public static void handleTimerActions(Player player) {
+        if (player.level().isClientSide) return;
 
         IUnlockedSkillsData skillData = (IUnlockedSkillsData) player;
 
         for (String skillId : skillData.getUnlockedSkills()) {
-            SkillManager.getSkill(new Identifier(skillId)).ifPresent(skill -> {
+            SkillManager.getSkill(new ResourceLocation(skillId)).ifPresent(skill -> {
                 for (SkillAction action : skill.getActions()) {
                     // Check Trigger Type
                     if (action.getTrigger() == TriggerType.TIMER) {
 
                         // CRITICAL FIX: Modulo Check
                         int interval = Math.max(1, action.getInterval()); // Prevent div by zero
-                        if (player.age % interval == 0) {
+                        if (player.tickCount % interval == 0) {
 
                             // Only run if it's the correct tick
-                            action.run(player, player, player.getWorld(), player.getBlockPos());
+                            action.run(player, player, player.level(), player.blockPosition());
                         }
                     }
                 }
@@ -82,7 +82,7 @@ public class SkillActionHandler {
      * Triggers actions for a SPECIFIC skill only.
      * Used by the Radial Menu to fire just the selected skill.
      */
-    public static void triggerSpecificSkill(PlayerEntity owner, Identifier skillId, TriggerType type, Entity target, World world, BlockPos pos) {
+    public static void triggerSpecificSkill(Player owner, ResourceLocation skillId, TriggerType type, Entity target, Level world, BlockPos pos) {
         IUnlockedSkillsData data = (IUnlockedSkillsData) owner;
 
         // 1. CHECK COOLDOWN

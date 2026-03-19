@@ -6,21 +6,21 @@ import com.jd_skill_tree.skills.actions.SkillActionHandler;
 import com.jd_skill_tree.skills.effects.AttributeSkillEffect;
 import com.jd_skill_tree.skills.effects.SkillEffect;
 import com.jd_skill_tree.skills.effects.EnchantmentSkillEffect;
-import net.minecraft.block.BlockState;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.EntityType;
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.attribute.EntityAttribute;
-import net.minecraft.entity.attribute.EntityAttributeInstance;
-import net.minecraft.entity.attribute.EntityAttributeModifier;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.nbt.NbtList;
-import net.minecraft.nbt.NbtString;
-import net.minecraft.registry.Registries;
-import net.minecraft.util.Identifier;
-import net.minecraft.util.math.MathHelper;
-import net.minecraft.world.World;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.EntityType;
+import net.minecraft.world.entity.LivingEntity;
+import net.minecraft.world.entity.ai.attributes.Attribute;
+import net.minecraft.world.entity.ai.attributes.AttributeInstance;
+import net.minecraft.world.entity.ai.attributes.AttributeModifier;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.ListTag;
+import net.minecraft.nbt.StringTag;
+import net.minecraftforge.registries.ForgeRegistries;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.Mth;
+import net.minecraft.world.level.Level;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
@@ -31,38 +31,38 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import java.util.*;
 
-@Mixin(PlayerEntity.class)
+@Mixin(Player.class)
 public abstract class PlayerEntityMixin extends LivingEntity implements IUnlockedSkillsData {
 
     @Unique
     private final Map<String, Long> skillCooldowns = new HashMap<>();
 
     @Override
-    public void setSkillCooldown(Identifier skillId, int ticks) {
+    public void setSkillCooldown(ResourceLocation skillId, int ticks) {
         if (ticks <= 0) return;
         // Store the absolute world time when it expires
-        long expiry = this.getWorld().getTime() + ticks;
+        long expiry = this.level().getGameTime() + ticks;
         skillCooldowns.put(skillId.toString(), expiry);
 
         // If Server: Sync to Client
-        if (!this.getWorld().isClient() && (Object)this instanceof net.minecraft.server.network.ServerPlayerEntity serverPlayer) {
+        if (!this.level().isClientSide() && (Object)this instanceof net.minecraft.server.level.ServerPlayer serverPlayer) {
             com.jd_skill_tree.networking.SkillNetworking.sendCooldownPacket(serverPlayer, skillId, ticks);
         }
     }
 
     @Override
-    public boolean isSkillOnCooldown(Identifier skillId) {
+    public boolean isSkillOnCooldown(ResourceLocation skillId) {
         return skillCooldowns.containsKey(skillId.toString()) &&
-                this.getWorld().getTime() < skillCooldowns.get(skillId.toString());
+                this.level().getGameTime() < skillCooldowns.get(skillId.toString());
     }
 
     @Override
-    public float getCooldownProgress(Identifier skillId, float partialTicks) {
+    public float getCooldownProgress(ResourceLocation skillId, float partialTicks) {
         String id = skillId.toString();
         if (!skillCooldowns.containsKey(id)) return 0.0f;
 
         long expiry = skillCooldowns.get(id);
-        long now = this.getWorld().getTime();
+        long now = this.level().getGameTime();
 
         if (now >= expiry) {
             skillCooldowns.remove(id);
@@ -79,10 +79,10 @@ public abstract class PlayerEntityMixin extends LivingEntity implements IUnlocke
     private Set<SkillEffect> jd_skill_tree$getActiveEffects() {
         Set<SkillEffect> effects = new HashSet<>();
         IUnlockedSkillsData skillData = (IUnlockedSkillsData) this;
-        PlayerEntity player = (PlayerEntity) (Object) this;
+        Player player = (Player) (Object) this;
 
         for (String skillIdString : skillData.getUnlockedSkills()) {
-            SkillManager.getSkill(new Identifier(skillIdString)).ifPresent(skill -> {
+            SkillManager.getSkill(new ResourceLocation(skillIdString)).ifPresent(skill -> {
 
                 // Iterate all effects and check INDIVIDUALLY
                 for (SkillEffect effect : skill.getEffects()) {
@@ -97,8 +97,8 @@ public abstract class PlayerEntityMixin extends LivingEntity implements IUnlocke
 
     @Inject(method = "tick", at = @At("TAIL"))
     private void onTick(CallbackInfo ci) {
-        PlayerEntity player = (PlayerEntity) (Object) this;
-        if (player.getWorld().isClient()) return;
+        Player player = (Player) (Object) this;
+        if (player.level().isClientSide()) return;
 
         EnchantmentSkillEffect.updateEnchantments(player);
         SkillActionHandler.handleTimerActions(player);
@@ -106,12 +106,12 @@ public abstract class PlayerEntityMixin extends LivingEntity implements IUnlocke
         // --- ATTRIBUTE MODIFIER HANDLING ---
 
         // 1. Clean Slate: Find and remove all modifiers that were added by our mod in previous ticks.
-        for (EntityAttribute attribute : SkillManager.getAffectedAttributes()) {
-            EntityAttributeInstance instance = player.getAttributeInstance(attribute);
+        for (Attribute attribute : SkillManager.getAffectedAttributes()) {
+            AttributeInstance instance = player.getAttributeInstance(attribute);
             if (instance != null) {
                 // We must collect the modifiers to remove first to avoid modifying a list while iterating over it.
-                List<EntityAttributeModifier> modifiersToRemove = new ArrayList<>();
-                for (EntityAttributeModifier modifier : instance.getModifiers()) {
+                List<AttributeModifier> modifiersToRemove = new ArrayList<>();
+                for (AttributeModifier modifier : instance.getModifiers()) {
                     // Identify our modifiers by the name we gave them when we created them.
                     if (AttributeSkillEffect.MODIFIER_NAME.equals(modifier.getName())) {
                         modifiersToRemove.add(modifier);
@@ -124,24 +124,24 @@ public abstract class PlayerEntityMixin extends LivingEntity implements IUnlocke
 
         // 2. Aggregate: Calculate the total bonus from all currently active skills.
         // (This part of the logic was correct and remains the same)
-        Map<EntityAttribute, Map<EntityAttributeModifier.Operation, Double>> modifiersToApply = new HashMap<>();
+        Map<Attribute, Map<AttributeModifier.Operation, Double>> modifiersToApply = new HashMap<>();
         Set<SkillEffect> activeEffects = jd_skill_tree$getActiveEffects();
         activeEffects.stream()
                 .filter(effect -> effect instanceof AttributeSkillEffect)
                 .map(effect -> (AttributeSkillEffect) effect)
                 .forEach(effect -> {
-                    Map<EntityAttributeModifier.Operation, Double> operationMap = modifiersToApply.computeIfAbsent(effect.getAttribute(), k -> new HashMap<>());
+                    Map<AttributeModifier.Operation, Double> operationMap = modifiersToApply.computeIfAbsent(effect.getAttribute(), k -> new HashMap<>());
                     operationMap.merge(effect.getOperation(), effect.getValue(), Double::sum);
                 });
 
         // 3. Re-apply: Add one new, combined modifier for each aggregated bonus.
         // (This part of the logic was correct and remains the same)
         modifiersToApply.forEach((attribute, operationMap) -> {
-            EntityAttributeInstance instance = player.getAttributeInstance(attribute);
+            AttributeInstance instance = player.getAttributeInstance(attribute);
             if (instance != null) {
                 operationMap.forEach((operation, value) -> {
-                    UUID modifierUuid = UUID.nameUUIDFromBytes((Registries.ATTRIBUTE.getId(attribute).toString() + operation.toString()).getBytes());
-                    instance.addPersistentModifier(new EntityAttributeModifier(
+                    UUID modifierUuid = UUID.nameUUIDFromBytes((ForgeRegistries.ATTRIBUTES.getKey(attribute).toString() + operation.toString()).getBytes());
+                    instance.addPersistentModifier(new AttributeModifier(
                             modifierUuid,
                             AttributeSkillEffect.MODIFIER_NAME, // Apply with our special name
                             value,
@@ -179,7 +179,7 @@ public abstract class PlayerEntityMixin extends LivingEntity implements IUnlocke
                 if (!canFly) {
                     player.getAbilities().flying = false; // Stop flying immediately if skill lost
                 }
-                player.sendAbilitiesUpdate(); // Sync to client
+                player.onUpdateAbilities(); // Sync to client
             }
         }
     }
@@ -190,7 +190,7 @@ public abstract class PlayerEntityMixin extends LivingEntity implements IUnlocke
 
         // Generic loop that applies all mining speed effects
         for (SkillEffect effect : jd_skill_tree$getActiveEffects()) {
-            speed = effect.modifyBreakSpeed(block, (PlayerEntity) (Object) this, speed);
+            speed = effect.modifyBreakSpeed(block, (Player) (Object) this, speed);
         }
 
         cir.setReturnValue(speed);
@@ -207,7 +207,7 @@ public abstract class PlayerEntityMixin extends LivingEntity implements IUnlocke
 
         // Loop through all skills and apply modifiers
         for (SkillEffect effect : jd_skill_tree$getActiveEffects()) {
-            newKnockback = effect.modifyAttackKnockback((PlayerEntity)(Object)this, newKnockback);
+            newKnockback = effect.modifyAttackKnockback((Player)(Object)this, newKnockback);
         }
 
         // Handle "Pull" (Negative Knockback)
@@ -215,20 +215,20 @@ public abstract class PlayerEntityMixin extends LivingEntity implements IUnlocke
             float strength = -newKnockback; // Make strength positive for the physics method
 
             // Standard Vanilla vectors based on player rotation
-            float yaw = this.getYaw() * 0.017453292F;
-            float sin = MathHelper.sin(yaw);
-            float cos = MathHelper.cos(yaw);
+            float yaw = this.getYRot() * 0.017453292F;
+            float sin = Mth.sin(yaw);
+            float cos = Mth.cos(yaw);
 
             if (target instanceof LivingEntity livingTarget) {
                 // Vanilla 'takeKnockback' ignores values <= 0.
                 // FIX: Pass POSITIVE strength, but INVERT the direction vectors (-sin, -(-cos)) -> (-sin, +cos)
                 // Standard Push: (strength, sin, -cos)
                 // Pull:          (strength, -sin, cos)
-                livingTarget.takeKnockback(strength * 0.5F, -sin, cos);
+                livingTarget.knockback(strength * 0.5F, -sin, cos);
             } else {
                 // For non-living entities, we can just do raw velocity math.
                 // Logic: -(-sin) becomes +sin, etc. forcing it backwards relative to look direction.
-                target.addVelocity(
+                target.push(
                         sin * strength * 0.5F,
                         0.1D,
                         -cos * strength * 0.5F
@@ -255,7 +255,7 @@ public abstract class PlayerEntityMixin extends LivingEntity implements IUnlocke
         int newXp = experience;
 
         for (SkillEffect effect : jd_skill_tree$getActiveEffects()) {
-            newXp = effect.modifyExperience((PlayerEntity)(Object)this, newXp);
+            newXp = effect.modifyExperience((Player)(Object)this, newXp);
         }
 
         return newXp;
@@ -266,7 +266,7 @@ public abstract class PlayerEntityMixin extends LivingEntity implements IUnlocke
 
     private final Set<String> unlockedSkills = new HashSet<>();
 
-    protected PlayerEntityMixin(EntityType<? extends LivingEntity> entityType, World world) {
+    protected PlayerEntityMixin(EntityType<? extends LivingEntity> entityType, Level world) {
         super(entityType, world);
     }
 
@@ -292,23 +292,23 @@ public abstract class PlayerEntityMixin extends LivingEntity implements IUnlocke
     }
 
     @Inject(method = "writeCustomDataToNbt", at = @At("HEAD"))
-    public void onWriteCustomDataToNbt(NbtCompound nbt, CallbackInfo ci) {
-        NbtList skillList = new NbtList();
+    public void onWriteCustomDataToNbt(CompoundTag nbt, CallbackInfo ci) {
+        ListTag skillList = new ListTag();
         for (String skillId : this.unlockedSkills) {
-            skillList.add(NbtString.of(skillId));
+            skillList.add(StringTag.valueOf(skillId));
         }
-        NbtCompound skillsData = new NbtCompound();
+        CompoundTag skillsData = new CompoundTag();
         skillsData.put("unlockedSkills", skillList);
         nbt.put("jd_skill_tree_data", skillsData);
     }
 
     @Inject(method = "readCustomDataFromNbt", at = @At("HEAD"))
-    public void onReadCustomDataFromNbt(NbtCompound nbt, CallbackInfo ci) {
+    public void onReadCustomDataFromNbt(CompoundTag nbt, CallbackInfo ci) {
         this.unlockedSkills.clear();
         if (nbt.contains("jd_skill_tree_data")) {
-            NbtCompound skillsData = nbt.getCompound("jd_skill_tree_data");
+            CompoundTag skillsData = nbt.getCompound("jd_skill_tree_data");
             if (skillsData.contains("unlockedSkills", 9)) {
-                NbtList skillList = skillsData.getList("unlockedSkills", 8);
+                ListTag skillList = skillsData.getList("unlockedSkills", 8);
                 for (int i = 0; i < skillList.size(); i++) {
                     this.unlockedSkills.add(skillList.getString(i));
                 }
@@ -322,11 +322,11 @@ public abstract class PlayerEntityMixin extends LivingEntity implements IUnlocke
     }
 
     @Inject(method = "damage", at = @At("RETURN"))
-    private void onDamageTaken(net.minecraft.entity.damage.DamageSource source, float amount, CallbackInfoReturnable<Boolean> cir) {
+    private void onDamageTaken(net.minecraft.world.damagesource.DamageSource source, float amount, CallbackInfoReturnable<Boolean> cir) {
         // If damage was successful (returnValue is true)
         if (cir.getReturnValue()) {
-            PlayerEntity player = (PlayerEntity) (Object) this;
-            if (!player.getWorld().isClient) {
+            Player player = (Player) (Object) this;
+            if (!player.level().isClientSide) {
 
                 // 1. Trigger "On Take Damage (Self)"
                 // Target is the player (for healing, buffs, etc.)
@@ -334,20 +334,20 @@ public abstract class PlayerEntityMixin extends LivingEntity implements IUnlocke
                         player,
                         com.jd_skill_tree.skills.actions.TriggerType.TAKE_DAMAGE,
                         player,
-                        player.getWorld(),
-                        player.getBlockPos()
+                        player.level(),
+                        player.blockPosition()
                 );
 
                 // 2. Trigger "On Take Damage (Attacker)" - Thorns logic
                 // Check if there is an actual attacker entity (Skeleton, Zombie, Player)
-                net.minecraft.entity.Entity attacker = source.getAttacker();
+                net.minecraft.world.entity.Entity attacker = source.getAttacker();
                 if (attacker != null) {
                     com.jd_skill_tree.skills.actions.SkillActionHandler.triggerActions(
                             player, // Owner of the skill is still the victim
                             com.jd_skill_tree.skills.actions.TriggerType.TAKE_DAMAGE_ATTACKER,
                             attacker, // Target is the enemy
-                            player.getWorld(),
-                            attacker.getBlockPos()
+                            player.level(),
+                            attacker.blockPosition()
                     );
                 }
             }
