@@ -3,8 +3,8 @@ package com.jd_skill_tree.skills.effects;
 import com.google.gson.JsonObject;
 import com.jd_skill_tree.skills.conditions.SkillCondition;
 import com.jd_skill_tree.skills.conditions.SkillConditionType;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.util.JsonHelper;
+import net.minecraft.util.GsonHelper;
+import net.minecraft.world.entity.player.Player;
 
 public class LavaSpeedSkillEffect implements SkillEffect {
 
@@ -22,7 +22,7 @@ public class LavaSpeedSkillEffect implements SkillEffect {
     }
 
     @Override
-    public float modifyLavaSpeed(PlayerEntity player, float currentSpeed) {
+    public float modifyLavaSpeed(Player player, float currentSpeed) {
         return currentSpeed * (1.0f + this.multiplier);
     }
 
@@ -31,7 +31,7 @@ public class LavaSpeedSkillEffect implements SkillEffect {
     }
 
     public static LavaSpeedSkillEffect fromJson(JsonObject json) {
-        float val = JsonHelper.getFloat(json, "value");
+        float val = GsonHelper.getAsFloat(json, "value", 0);
 
         SkillCondition cond = null;
         if (json.has("condition")) {

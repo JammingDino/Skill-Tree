@@ -1,11 +1,11 @@
 package com.jd_skill_tree.skills.conditions;
 
 import com.google.gson.JsonObject;
-import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.world.entity.player.Player;
 
 public class SprintingCondition implements SkillCondition {
     @Override
-    public boolean test(PlayerEntity player) {
+    public boolean test(Player player) {
         return player.isSprinting();
     }
 

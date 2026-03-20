@@ -1,16 +1,16 @@
 package com.jd_skill_tree.skills.actions;
 
 import com.google.gson.JsonObject;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.projectile.ProjectileUtil;
-import net.minecraft.util.JsonHelper;
-import net.minecraft.util.hit.BlockHitResult;
-import net.minecraft.util.hit.EntityHitResult;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Box;
-import net.minecraft.util.math.Vec3d;
-import net.minecraft.world.RaycastContext;
-import net.minecraft.world.World;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.world.entity.projectile.ProjectileUtil;
+import net.minecraft.util.GsonHelper;
+import net.minecraft.world.phys.BlockHitResult;
+import net.minecraft.world.phys.EntityHitResult;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.phys.AABB;
+import net.minecraft.world.phys.Vec3;
+import net.minecraft.world.level.ClipContext;
+import net.minecraft.world.level.Level;
 
 public class RaycastActionEffect implements SkillActionEffect {
 
@@ -27,29 +27,29 @@ public class RaycastActionEffect implements SkillActionEffect {
     }
 
     @Override
-    public void execute(Entity source, World world, BlockPos pos) {
+    public void execute(Entity source, Level world, BlockPos pos) {
         if (childEffect == null) return;
 
-        Vec3d start = source.getEyePos();
-        Vec3d rotation = source.getRotationVector();
-        Vec3d end = start.add(rotation.multiply(length));
+        Vec3 start = source.getEyePosition();
+        Vec3 rotation = source.getLookAngle();
+        Vec3 end = start.add(rotation.multiply(length));
 
         // 1. Raycast Blocks
-        RaycastContext.FluidHandling fluidMode = stopOnFluids ? RaycastContext.FluidHandling.ANY : RaycastContext.FluidHandling.NONE;
-        BlockHitResult blockHit = world.raycast(new RaycastContext(start, end, RaycastContext.ShapeType.COLLIDER, fluidMode, source));
+        ClipContext.FluidHandling fluidMode = stopOnFluids ? ClipContext.Fluid.ANY : ClipContext.Fluid.NONE;
+        BlockHitResult blockHit = level.clip(new ClipContext(start, end, ClipContext.Block.COLLIDER, fluidMode, source));
 
-        BlockPos hitPos = blockHit.getBlockPos();
+        BlockPos hitPos = blockHit.blockPosition();
         Entity hitEntity = null;
 
         // 2. Raycast Entities (Check if closer)
         if (hitEntities) {
             double blockDistSq = blockHit.getPos().squaredDistanceTo(start);
-            Box box = source.getBoundingBox().stretch(rotation.multiply(length)).expand(1.0D);
-            EntityHitResult entityHit = ProjectileUtil.raycast(source, start, end, box, (e) -> !e.isSpectator() && e.canHit(), blockDistSq);
+            AABB box = source.getBoundingBox().stretch(rotation.multiply(length)).expand(1.0D);
+            EntityHitResult entityHit = ProjectileUtil.getEntityHitResult(source, start, end, box, (e) -> !e.isSpectator() && e.isPickable(), blockDistSq);
 
             if (entityHit != null) {
                 hitEntity = entityHit.getEntity();
-                hitPos = entityHit.getEntity().getBlockPos(); // Update hit pos to entity location
+                hitPos = entityHit.getEntity().blockPosition(); // Update hit pos to entity location
             }
         }
 
@@ -68,9 +68,9 @@ public class RaycastActionEffect implements SkillActionEffect {
     public SkillActionEffect getChildEffect() { return childEffect; }
 
     public static RaycastActionEffect fromJson(JsonObject json) {
-        double len = JsonHelper.getDouble(json, "length", 5.0);
-        boolean fluids = JsonHelper.getBoolean(json, "fluids", false);
-        boolean entities = JsonHelper.getBoolean(json, "entities", true);
+        double len = GsonHelper.getDouble(json, "length", 5.0);
+        boolean fluids = GsonHelper.getBoolean(json, "fluids", false);
+        boolean entities = GsonHelper.getBoolean(json, "entities", true);
 
         JsonObject effectJson = json.getAsJsonObject("effect");
         SkillActionEffect child = SkillActionEffectType.create(effectJson);

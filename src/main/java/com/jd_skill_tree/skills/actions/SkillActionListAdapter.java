@@ -4,7 +4,7 @@ import com.google.gson.*;
 import com.jd_skill_tree.skills.conditions.SkillCondition;
 import com.jd_skill_tree.skills.conditions.SkillConditionListAdapter;
 import com.jd_skill_tree.skills.conditions.SkillConditionType;
-import net.minecraft.util.JsonHelper;
+import net.minecraft.util.GsonHelper;
 
 import java.lang.reflect.Type;
 import java.util.ArrayList;
@@ -18,8 +18,8 @@ public class SkillActionListAdapter implements JsonDeserializer<List<SkillAction
         if (json.isJsonArray()) {
             for (JsonElement element : json.getAsJsonArray()) {
                 JsonObject obj = element.getAsJsonObject();
-                TriggerType trigger = TriggerType.valueOf(JsonHelper.getString(obj, "trigger").toUpperCase());
-                int interval = JsonHelper.getInt(obj, "interval", 20);
+                TriggerType trigger = TriggerType.valueOf(GsonHelper.getString(obj, "trigger").toUpperCase());
+                int interval = GsonHelper.getInt(obj, "interval", 20);
 
                 // Nested effect parsing
                 SkillActionEffect effect = SkillActionEffectType.create(obj.getAsJsonObject("effect"));

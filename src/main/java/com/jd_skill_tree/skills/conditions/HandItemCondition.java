@@ -1,15 +1,15 @@
 package com.jd_skill_tree.skills.conditions;
 
 import com.google.gson.JsonObject;
-import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.world.entity.player.Player;
 import net.minecraft.item.Item;
-import net.minecraft.item.ItemStack;
-import net.minecraft.nbt.NbtCompound;
-import net.minecraft.nbt.NbtHelper;
-import net.minecraft.nbt.StringNbtReader;
-import net.minecraft.registry.Registries;
-import net.minecraft.util.Identifier;
-import net.minecraft.util.JsonHelper;
+import net.minecraft.world.item.ItemStack;
+import net.minecraft.nbt.CompoundTag;
+import net.minecraft.nbt.NbtUtils;
+import net.minecraft.nbt.TagParser;
+import net.minecraftforge.registries.ForgeRegistries;
+import net.minecraft.resources.ResourceLocation;
+import net.minecraft.util.GsonHelper;
 
 public class HandItemCondition implements SkillCondition {
 
@@ -18,9 +18,9 @@ public class HandItemCondition implements SkillCondition {
     private final Item targetItem;
     private final int minCount;
     private final HandSlot slot;
-    private final NbtCompound nbt; // The required NBT data
+    private final CompoundTag nbt; // The required NBT data
 
-    public HandItemCondition(Item targetItem, int minCount, HandSlot slot, NbtCompound nbt) {
+    public HandItemCondition(Item targetItem, int minCount, HandSlot slot, CompoundTag nbt) {
         this.targetItem = targetItem;
         this.minCount = minCount;
         this.slot = slot;
@@ -28,8 +28,8 @@ public class HandItemCondition implements SkillCondition {
     }
 
     @Override
-    public boolean test(PlayerEntity player) {
-        ItemStack stack = (this.slot == HandSlot.MAINHAND) ? player.getMainHandStack() : player.getOffHandStack();
+    public boolean test(Player player) {
+        ItemStack stack = (this.slot == HandSlot.MAINHAND) ? player.getMainHandItem() : player.getOffhandItem();
 
         // 1. Check Item
         if (!stack.isOf(this.targetItem)) return false;
@@ -39,11 +39,11 @@ public class HandItemCondition implements SkillCondition {
 
         // 3. Check NBT (if specified)
         if (this.nbt != null) {
-            if (!stack.hasNbt()) return false;
-            // 'true' means strict matching for list order? actually in NbtHelper.matches:
-            // The boolean is "ignoreExtra" for lists? No, NbtHelper.matches(required, current, ignoreExtra)
+            if (!stack.hasTag()) return false;
+            // 'true' means strict matching for list order? actually in NbtUtils.matches:
+            // The boolean is "ignoreExtra" for lists? No, NbtUtils.matches(required, current, ignoreExtra)
             // usually you want to ensure the item has the required tags.
-            return NbtHelper.matches(this.nbt, stack.getNbt(), true);
+            return NbtUtils.matches(this.nbt, stack.getTag(), true);
         }
 
         return true;
@@ -52,20 +52,20 @@ public class HandItemCondition implements SkillCondition {
     public Item getTargetItem() { return targetItem; }
     public int getMinCount() { return minCount; }
     public HandSlot getSlot() { return slot; }
-    public NbtCompound getNbt() { return nbt; }
+    public CompoundTag getNbt() { return nbt; }
 
     public static HandItemCondition fromJson(JsonObject json) {
-        Identifier itemId = new Identifier(JsonHelper.getString(json, "item"));
-        Item item = Registries.ITEM.get(itemId);
-        int count = JsonHelper.getInt(json, "count", 1);
-        String slotStr = JsonHelper.getString(json, "slot", "mainhand").toUpperCase();
+        ResourceLocation itemId = new ResourceLocation(GsonHelper.getString(json, "item"));
+        Item item = ForgeRegistries.ITEMS.getValue(itemId);
+        int count = GsonHelper.getInt(json, "count", 1);
+        String slotStr = GsonHelper.getString(json, "slot", "mainhand").toUpperCase();
         HandSlot slot = "OFFHAND".equals(slotStr) ? HandSlot.OFFHAND : HandSlot.MAINHAND;
 
         // Load NBT string
-        NbtCompound nbt = null;
+        CompoundTag nbt = null;
         if (json.has("nbt")) {
             try {
-                nbt = StringNbtReader.parse(JsonHelper.getString(json, "nbt"));
+                nbt = TagParser.parseTag(GsonHelper.getString(json, "nbt"));
             } catch (Exception e) {
                 // Log error
             }

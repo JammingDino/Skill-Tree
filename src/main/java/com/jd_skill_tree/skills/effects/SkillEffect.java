@@ -1,8 +1,9 @@
 package com.jd_skill_tree.skills.effects;
 
 import com.jd_skill_tree.skills.conditions.SkillCondition;
-import net.minecraft.block.BlockState;
-import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.world.effect.MobEffect;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.world.level.block.state.BlockState;
 
 /**
  * The base interface for all skill effects.
@@ -16,7 +17,7 @@ public interface SkillEffect {
      * Called every tick for a player who has the skill unlocked.
      * Ideal for continuous effects like attribute modifiers or particle effects.
      */
-    default void onTick(PlayerEntity player) {
+    default void onTick(Player player) {
         // Do nothing by default
     }
 
@@ -29,7 +30,7 @@ public interface SkillEffect {
      * @param currentSpeed The breaking speed *after* all previous effects have been applied.
      * @return The new, modified breaking speed.
      */
-    default float modifyBreakSpeed(BlockState block, PlayerEntity player, float currentSpeed) {
+    default float modifyBreakSpeed(BlockState block, Player player, float currentSpeed) {
         // Return the speed unchanged by default
         return currentSpeed;
     }
@@ -40,7 +41,7 @@ public interface SkillEffect {
      * @param currentKnockback The current knockback strength (vanilla calculation).
      * @return The new knockback strength.
      */
-    default float modifyAttackKnockback(PlayerEntity player, float currentKnockback) {
+    default float modifyAttackKnockback(Player player, float currentKnockback) {
         return currentKnockback;
     }
 
@@ -50,7 +51,7 @@ public interface SkillEffect {
      * @param experience The amount of xp being gained.
      * @return The modified amount of xp.
      */
-    default int modifyExperience(PlayerEntity player, int experience) {
+    default int modifyExperience(Player player, int experience) {
         return experience;
     }
 
@@ -60,7 +61,7 @@ public interface SkillEffect {
      * @param currentSpeed The vanilla calculated speed (including Depth Strider).
      * @return The new speed.
      */
-    default float modifySwimSpeed(PlayerEntity player, float currentSpeed) {
+    default float modifySwimSpeed(Player player, float currentSpeed) {
         return currentSpeed;
     }
 
@@ -70,25 +71,25 @@ public interface SkillEffect {
      * @param currentSpeed The vanilla calculated speed.
      * @return The new speed.
      */
-    default float modifyLavaSpeed(PlayerEntity player, float currentSpeed) {
+    default float modifyLavaSpeed(Player player, float currentSpeed) {
         return currentSpeed;
     }
 
     /**
      * Helper to check if the effect is active for the player.
      */
-    default boolean isActive(PlayerEntity player) {
+    default boolean isActive(Player player) {
         return getCondition() == null || getCondition().test(player);
     }
 
     /**
-     * Checks if this skill effect prevents a specific status effect from being applied.
+     * Checks if this skill effect prevents a specific mob effect from being applied.
      */
-    default boolean preventsEffect(net.minecraft.entity.effect.StatusEffect effect) {
+    default boolean preventsEffect(MobEffect effect) {
         return false;
     }
 
     // In the future, we can add more methods here, e.g.:
-    // default void onDamage(PlayerEntity player, DamageSource source, float amount) {}
-    // default void onJump(PlayerEntity player) {}
+    // default void onDamage(Player player, DamageSource source, float amount) {}
+    // default void onJump(Player player) {}
 }

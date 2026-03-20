@@ -1,6 +1,6 @@
 package com.jd_skill_tree.api;
 
-import net.minecraft.util.Identifier;
+import net.minecraft.resources.ResourceLocation;
 
 import java.util.Set;
 
@@ -35,7 +35,7 @@ public interface IUnlockedSkillsData {
      */
     void revokeSkill(String skillId);
 
-    void setSkillCooldown(Identifier skillId, int ticks);
-    boolean isSkillOnCooldown(Identifier skillId);
-    float getCooldownProgress(Identifier skillId, float partialTicks);
+    void setSkillCooldown(ResourceLocation skillId, int ticks);
+    boolean isSkillOnCooldown(ResourceLocation skillId);
+    float getCooldownProgress(ResourceLocation skillId, float partialTicks);
 }

@@ -1,16 +1,16 @@
 package com.jd_skill_tree.skills;
 
 import com.jd_skill_tree.skills.effects.AttributeSkillEffect;
-import net.minecraft.entity.attribute.EntityAttribute;
-import net.minecraft.util.Identifier;
+import net.minecraft.world.entity.ai.attributes.Attribute;
+import net.minecraft.resources.ResourceLocation;
 
 import java.util.*;
 import java.util.stream.Collectors;
 
 public class SkillManager {
-    private static final Map<Identifier, Skill> SKILLS = new HashMap<>();
+    private static final Map<ResourceLocation, Skill> SKILLS = new HashMap<>();
     // NEW: A cache of every single AttributeSkillEffect from all loaded skills.
-    private static final Set<EntityAttribute> AFFECTED_ATTRIBUTES = new HashSet<>();
+    private static final Set<Attribute> AFFECTED_ATTRIBUTES = new HashSet<>();
 
     public static void clearSkills() {
         SKILLS.clear();
@@ -29,12 +29,12 @@ public class SkillManager {
         }
     }
 
-    public static Set<EntityAttribute> getAffectedAttributes() {
+    public static Set<Attribute> getAffectedAttributes() {
         return AFFECTED_ATTRIBUTES;
     }
 
 
-    public static Optional<Skill> getSkill(Identifier id) {
+    public static Optional<Skill> getSkill(ResourceLocation id) {
         return Optional.ofNullable(SKILLS.get(id));
     }
 

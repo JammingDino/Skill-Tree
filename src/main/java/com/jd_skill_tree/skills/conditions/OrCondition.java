@@ -3,7 +3,7 @@ package com.jd_skill_tree.skills.conditions;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.world.entity.player.Player;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -15,7 +15,7 @@ public class OrCondition implements SkillCondition {
     }
 
     @Override
-    public boolean test(PlayerEntity player) {
+    public boolean test(Player player) {
         // Only one needs to be true
         for (SkillCondition condition : conditions) {
             if (condition.test(player)) return true;

@@ -1,8 +1,8 @@
 package com.jd_skill_tree.skills.conditions;
 
 import com.google.gson.JsonObject;
-import net.minecraft.entity.player.PlayerEntity;
-import net.minecraft.util.JsonHelper;
+import net.minecraft.world.entity.player.Player;
+import net.minecraft.util.GsonHelper;
 
 public class HungerCondition implements SkillCondition {
 
@@ -17,8 +17,8 @@ public class HungerCondition implements SkillCondition {
     }
 
     @Override
-    public boolean test(PlayerEntity player) {
-        int currentHunger = player.getHungerManager().getFoodLevel();
+    public boolean test(Player player) {
+        int currentHunger = player.getFoodData().getFoodLevel();
         return switch (this.comparison) {
             case GREATER_THAN -> currentHunger > this.targetHunger;
             case LESS_THAN -> currentHunger < this.targetHunger;
@@ -27,8 +27,8 @@ public class HungerCondition implements SkillCondition {
     }
 
     public static HungerCondition fromJson(JsonObject json) {
-        Comparison comp = Comparison.valueOf(JsonHelper.getString(json, "comparison", "GREATER_THAN").toUpperCase());
-        int amount = JsonHelper.getInt(json, "amount", 20);
+        Comparison comp = Comparison.valueOf(GsonHelper.getString(json, "comparison", "GREATER_THAN").toUpperCase());
+        int amount = GsonHelper.getInt(json, "amount", 20);
         return new HungerCondition(comp, amount);
     }
 

@@ -1,11 +1,11 @@
 package com.jd_skill_tree.skills.actions;
 
 import com.google.gson.JsonObject;
-import net.minecraft.entity.Entity;
-import net.minecraft.util.JsonHelper;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Vec3d;
-import net.minecraft.world.World;
+import net.minecraft.world.entity.Entity;
+import net.minecraft.util.GsonHelper;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.phys.Vec3;
+import net.minecraft.world.level.Level;
 
 public class LaunchActionEffect implements SkillActionEffect {
     private final float strength;
@@ -17,11 +17,11 @@ public class LaunchActionEffect implements SkillActionEffect {
     }
 
     @Override
-    public void execute(Entity target, World world, BlockPos pos) {
+    public void execute(Entity target, Level world, BlockPos pos) {
         // Velocity must be applied to the target entity
-        Vec3d look = target.getRotationVector();
+        Vec3 look = target.getLookAngle();
 
-        target.addVelocity(
+        target.push(
                 look.x * strength,
                 vertical,
                 look.z * strength
@@ -36,8 +36,8 @@ public class LaunchActionEffect implements SkillActionEffect {
 
     public static LaunchActionEffect fromJson(JsonObject json) {
         return new LaunchActionEffect(
-                JsonHelper.getFloat(json, "strength", 1.0f),
-                JsonHelper.getFloat(json, "vertical", 0.5f)
+                GsonHelper.getFloat(json, "strength", 1.0f),
+                GsonHelper.getFloat(json, "vertical", 0.5f)
         );
     }
 }
