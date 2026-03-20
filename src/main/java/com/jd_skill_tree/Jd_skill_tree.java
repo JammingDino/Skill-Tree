@@ -2,7 +2,7 @@ package com.jd_skill_tree;
 
 import com.jd_skill_tree.blocks.ModBlocks;
 import com.jd_skill_tree.blocks.entity.ModBlockEntities;
-import com.jd_skill_tree.networking.NetworkHandler;
+import com.jd_skill_tree.networking.SkillNetworking;
 import com.jd_skill_tree.skills.actions.SkillActionEffectType;
 import com.jd_skill_tree.skills.conditions.SkillConditionType;
 import com.jd_skill_tree.skills.effects.SkillEffectType;
@@ -30,10 +30,9 @@ public class Jd_skill_tree {
 
         modEventBus.addListener(this::commonSetup);
 
-        MinecraftForge.EVENT_BUS.register(new ForgeEventHandlers());
         MinecraftForge.EVENT_BUS.register(this);
 
-        NetworkHandler.register();
+        SkillNetworking.register();
 
         LOGGER.info(MOD_ID + " mod loading");
     }
