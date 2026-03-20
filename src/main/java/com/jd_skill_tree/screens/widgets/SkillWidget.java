@@ -195,7 +195,7 @@ public class SkillWidget {
             buffer.vertex(matrix, x + w, y, 0).color(rTR, gTR, bTR, aTR).endVertex();
             buffer.vertex(matrix, x, y, 0).color(rTL, gTL, bTL, aTL).endVertex();
         }
-        tesselator.end();
+        BufferUploader.drawWithShader(buffer.end());
         RenderSystem.disableBlend();
     }
 

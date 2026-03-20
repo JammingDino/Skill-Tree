@@ -5,7 +5,7 @@ import com.jd_skill_tree.skills.actions.SkillAction;
 import com.jd_skill_tree.skills.conditions.SkillCondition;
 import com.jd_skill_tree.skills.effects.SkillEffect;
 import net.minecraft.world.entity.player.Player;
-import net.minecraft.item.Item;
+import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.nbt.CompoundTag;
 import net.minecraft.nbt.TagParser;
@@ -14,7 +14,7 @@ import net.minecraft.resources.ResourceLocation;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
+
 
 /**
  * Represents a skill that has been loaded from a JSON file.
@@ -61,8 +61,8 @@ public class Skill {
      */
     public ItemStack getIcon() {
         if (this.iconStackCache == null) {
-            Optional<Item> item = Registries.ITEM.getOrEmpty(this.icon);
-            this.iconStackCache = new ItemStack(item.orElse(net.minecraft.world.item.Items.BARRIER));
+            Item item = ForgeRegistries.ITEMS.getValue(this.icon);
+            this.iconStackCache = new ItemStack(item != null ? item : net.minecraft.world.item.Items.BARRIER);
 
             // Apply NBT if present
             if (this.iconNbt != null && !this.iconNbt.isEmpty()) {

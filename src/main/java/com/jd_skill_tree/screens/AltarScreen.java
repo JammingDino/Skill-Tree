@@ -156,10 +156,10 @@ public class AltarScreen extends Screen {
         this.treeMaxX = skillWidgets.get(0).getWorldX() + 26;
         this.treeMaxY = skillWidgets.get(0).getWorldY() + 26;
         for (SkillWidget widget : skillWidgets) {
-            this.treeMinX = Math.max(this.treeMinX, widget.getWorldX());
-            this.treeMinY = Math.max(this.treeMinY, widget.getWorldY());
-            this.treeMaxX = Math.min(this.treeMaxX, widget.getWorldX() + 26);
-            this.treeMaxY = Math.min(this.treeMaxY, widget.getWorldY() + 26);
+            this.treeMinX = Math.min(this.treeMinX, widget.getWorldX());
+            this.treeMinY = Math.min(this.treeMinY, widget.getWorldY());
+            this.treeMaxX = Math.max(this.treeMaxX, widget.getWorldX() + 26);
+            this.treeMaxY = Math.max(this.treeMaxY, widget.getWorldY() + 26);
         }
     }
 

@@ -168,7 +168,7 @@ public class RadialSkillScreen extends Screen {
             buffer.vertex(matrix, cx + cos1 * rInner, cy + sin1 * rInner, 0).color(r, g, b, a).endVertex();
             buffer.vertex(matrix, cx + cos1 * rOuter, cy + sin1 * rOuter, 0).color(r, g, b, a).endVertex();
         }
-        tesselator.end();
+        BufferUploader.drawWithShader(buffer.end());
         RenderSystem.disableBlend();
     }
 
@@ -194,7 +194,7 @@ public class RadialSkillScreen extends Screen {
         buffer.begin(VertexFormat.Mode.DEBUG_LINES, DefaultVertexFormat.POSITION_COLOR);
         buffer.vertex(matrix, startX, startY, 0).color(r, g, b, a).endVertex();
         buffer.vertex(matrix, endX, endY, 0).color(r, g, b, a).endVertex();
-        tesselator.end();
+        BufferUploader.drawWithShader(buffer.end());
         RenderSystem.disableBlend();
     }
 
@@ -210,11 +210,11 @@ public class RadialSkillScreen extends Screen {
         buffer.vertex(matrix, x, y, 0).color(0.0f, 0.0f, 0.0f, 0.6f).endVertex();
         float maxAngle = 360.0f * progress;
         for (int i = 0; i <= (int)maxAngle; i += 5) {
-            double rad = Math.toRadians(i - 90);
-            buffer.vertex(matrix, x + (float)Math.cos(rad) * 16, y + (float)Math.sin(rad) * 16, 0)
+            double radAngle = Math.toRadians(i - 90);
+            buffer.vertex(matrix, x + (float)Math.cos(radAngle) * 16, y + (float)Math.sin(radAngle) * 16, 0)
                     .color(0.0f, 0.0f, 0.0f, 0.6f).endVertex();
         }
-        tesselator.end();
+        BufferUploader.drawWithShader(buffer.end());
         RenderSystem.disableBlend();
     }
 }
