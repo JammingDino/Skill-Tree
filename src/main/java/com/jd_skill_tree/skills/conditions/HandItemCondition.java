@@ -43,7 +43,7 @@ public class HandItemCondition implements SkillCondition {
         // so we compare against custom_data only — vanilla-strict component predicates
         // are NOT supported in this legacy-style condition (reported to Levi).
         if (this.nbt != null) {
-            net.minecraft.component.type.CustomData custom = stack.get(net.minecraft.component.DataComponentTypes.CUSTOM_DATA);
+            net.minecraft.component.type.NbtComponent custom = stack.get(net.minecraft.component.DataComponentTypes.CUSTOM_DATA);
             if (custom == null) return false;
             return NbtHelper.matches(this.nbt, custom.copyNbt(), true);
         }

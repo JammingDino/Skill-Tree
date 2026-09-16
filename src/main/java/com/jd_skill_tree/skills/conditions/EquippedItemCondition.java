@@ -33,7 +33,7 @@ public class EquippedItemCondition implements SkillCondition {
         // 1.20.5+: item NBT became data components. Extra custom data lives in the
         // custom_data component now; see the note in HandItemCondition.test().
         if (this.nbt != null) {
-            net.minecraft.component.type.CustomData custom = stack.get(net.minecraft.component.DataComponentTypes.CUSTOM_DATA);
+            net.minecraft.component.type.NbtComponent custom = stack.get(net.minecraft.component.DataComponentTypes.CUSTOM_DATA);
             if (custom == null) return false;
             return NbtHelper.matches(this.nbt, custom.copyNbt(), true);
         }

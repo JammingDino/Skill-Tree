@@ -59,7 +59,7 @@ public class SkillNetworking {
     }
 
     private static void send(ServerPlayerEntity player, Identifier id, RegistryByteBuf buf) {
-        ServerPlayNetworking.send(player, new CustomPayloadS2CPacket(new OpaquePayload(id, buf)));
+        ServerPlayNetworking.send(player, new OpaquePayload(id, buf));
     }
 
     public static void register() {

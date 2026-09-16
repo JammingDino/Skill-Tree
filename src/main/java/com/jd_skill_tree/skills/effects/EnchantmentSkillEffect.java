@@ -6,7 +6,7 @@ import com.jd_skill_tree.skills.SkillManager;
 import com.jd_skill_tree.skills.conditions.SkillCondition;
 import com.jd_skill_tree.skills.conditions.SkillConditionType;
 import net.minecraft.component.DataComponentTypes;
-import net.minecraft.component.type.CustomData;
+import net.minecraft.component.type.NbtComponent;
 import net.minecraft.component.type.ItemEnchantmentsComponent;
 import net.minecraft.enchantment.Enchantment;
 import net.minecraft.entity.EquipmentSlot;
@@ -45,12 +45,21 @@ public class EnchantmentSkillEffect implements SkillEffect {
 
     // --- HELPERS (1.20.5+ data-component port) ---
 
-    private static RegistryEntry<Enchantment> lookupEnchantment(Identifier id) {
-        return Registries.ENCHANTMENT.getEntry(id).orElse(null);
+    // --- HELPERS (1.20.5+ data-component port) ---
+
+    private static RegistryEntry<Enchantment> lookupEnchantment(net.minecraft.world.World world, Identifier id) {
+        // 1.21: enchantments are data-driven; access them via the world's dynamic registry
+        // manager instead of the (removed) static Registries.ENCHANTMENT.
+        return world.getRegistryManager()
+                .getOrThrow(net.minecraft.registry.RegistryKeys.ENCHANTMENT)
+                .getEntry(id)
+                .orElse(null);
     }
 
     private static Identifier enchantmentId(RegistryEntry<Enchantment> entry) {
-        return entry.getKey().map(RegistryKey::getValue).orElse(null);
+        return entry.getKey().isPresent()
+                ? entry.getKey().get().getValue()
+                : null;
     }
 
     /**
@@ -58,26 +67,26 @@ public class EnchantmentSkillEffect implements SkillEffect {
      * replacing the 1.20 root-tag trick (which cannot exist under 1.20.5+ components).
      */
     private static NbtCompound getBonusTag(ItemStack stack) {
-        CustomData custom = stack.get(DataComponentTypes.CUSTOM_DATA);
+        NbtComponent custom = stack.get(DataComponentTypes.CUSTOM_DATA);
         if (custom == null) return new NbtCompound();
         NbtCompound nbt = custom.copyNbt();
         return nbt.getCompound("jd_skill_bonus");
     }
 
     private static void putBonusTag(ItemStack stack, NbtCompound bonusTag) {
-        CustomData custom = stack.get(DataComponentTypes.CUSTOM_DATA);
+        NbtComponent custom = stack.get(DataComponentTypes.CUSTOM_DATA);
         NbtCompound nbt = custom != null ? custom.copyNbt() : new NbtCompound();
         nbt.put("jd_skill_bonus", bonusTag);
-        stack.set(DataComponentTypes.CUSTOM_DATA, CustomData.of(nbt));
+        stack.set(DataComponentTypes.CUSTOM_DATA, NbtComponent.of(nbt));
     }
 
     private static void removeBonusTag(ItemStack stack) {
-        CustomData custom = stack.get(DataComponentTypes.CUSTOM_DATA);
+        NbtComponent custom = stack.get(DataComponentTypes.CUSTOM_DATA);
         if (custom == null) return;
         NbtCompound nbt = custom.copyNbt();
         if (!nbt.contains("jd_skill_bonus")) return;
         nbt.remove("jd_skill_bonus");
-        stack.set(DataComponentTypes.CUSTOM_DATA, CustomData.of(nbt));
+        stack.set(DataComponentTypes.CUSTOM_DATA, NbtComponent.of(nbt));
     }
 
     // --- LOGIC HANDLER ---
@@ -91,7 +100,7 @@ public class EnchantmentSkillEffect implements SkillEffect {
             if (stack.isEmpty()) continue;
 
             // 1. Clean up previous bonuses first
-            cleanStack(stack);
+            cleanStack(player, stack);
 
             // 2. CHECK: Ensure the item is valid gear
             if (!isValidGear(stack)) {
@@ -111,7 +120,7 @@ public class EnchantmentSkillEffect implements SkillEffect {
                     // Check slot match AND the specific Condition for this effect
                     .filter(effect -> effect.targetSlot == slot && effect.isActive(player))
                     .forEach(effect -> {
-                        RegistryEntry<Enchantment> ench = lookupEnchantment(effect.enchantmentId);
+                        RegistryEntry<Enchantment> ench = lookupEnchantment(player.getWorld(), effect.enchantmentId);
                         if (ench != null) {
                             if (!effect.allowOverEnchanting && !ench.value().isAcceptableItem(stack)) {
                                 return;
@@ -145,8 +154,8 @@ public class EnchantmentSkillEffect implements SkillEffect {
         return false;
     }
 
-    private static void cleanStack(ItemStack stack) {
-        CustomData custom = stack.get(DataComponentTypes.CUSTOM_DATA);
+    private static void cleanStack(net.minecraft.entity.player.PlayerEntity player, ItemStack stack) {
+        NbtComponent custom = stack.get(DataComponentTypes.CUSTOM_DATA);
         if (custom == null) return;
         NbtCompound bonusTag = custom.copyNbt().getCompound("jd_skill_bonus");
         if (bonusTag.getSize() == 0) return;
@@ -156,7 +165,7 @@ public class EnchantmentSkillEffect implements SkillEffect {
 
         for (String key : bonusTag.getKeys()) {
             Identifier enchId = Identifier.of(key);
-            RegistryEntry<Enchantment> ench = lookupEnchantment(enchId);
+            RegistryEntry<Enchantment> ench = lookupEnchantment(player.getWorld(), enchId);
             if (ench != null) {
                 int bonusLevel = bonusTag.getInt(key);
                 int at = current.getLevel(ench);

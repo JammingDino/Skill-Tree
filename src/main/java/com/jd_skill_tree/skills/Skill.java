@@ -5,7 +5,6 @@ import com.jd_skill_tree.skills.actions.SkillAction;
 import com.jd_skill_tree.skills.conditions.SkillCondition;
 import com.jd_skill_tree.skills.effects.SkillEffect;
 import net.minecraft.component.DataComponentTypes;
-import net.minecraft.component.type.CustomModelDataComponent;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
@@ -73,18 +72,9 @@ public class Skill {
             // JSON is never lost.
             if (this.iconNbt != null && !this.iconNbt.isEmpty()) {
                 try {
-                    net.minecraft.nbt.NbtCompound tag = StringNbtReader.parse(this.iconNbt);
-                    java.util.List<String> keys = new ArrayList<>(tag.getKeys());
-                    if (keys.size() == 1 && keys.get(0).equals("custom_data")) {
-                        this.iconStackCache.set(DataComponentTypes.CUSTOM_DATA,
-                                net.minecraft.component.type.CustomData.of(tag.getCompound("custom_data")));
-                    } else if (keys.size() == 1 && keys.get(0).equals("custom_model_data")) {
-                        this.iconStackCache.set(DataComponentTypes.CUSTOM_MODEL_DATA,
-                                CustomModelDataComponent.of(tag.getInt("custom_model_data")));
-                    } else {
-                        this.iconStackCache.set(DataComponentTypes.CUSTOM_DATA,
-                                net.minecraft.component.type.CustomData.of(tag));
-                    }
+                    NbtCompound tag = StringNbtReader.parse(this.iconNbt);
+                    this.iconStackCache.set(DataComponentTypes.CUSTOM_DATA,
+                            net.minecraft.component.type.NbtComponent.of(tag));
                 } catch (Exception e) {
                     System.err.println("Failed to parse icon data for skill: " + this.iconNbt);
                 }

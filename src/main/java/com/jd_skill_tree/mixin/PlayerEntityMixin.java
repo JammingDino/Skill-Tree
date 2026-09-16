@@ -115,7 +115,9 @@ public abstract class PlayerEntityMixin extends LivingEntity implements IUnlocke
                 // from the attribute id + operation name, the same way it is built below.
                 List<EntityAttributeModifier> modifiersToRemove = new ArrayList<>();
                 for (EntityAttributeModifier modifier : instance.getModifiers()) {
-                    if (AttributeSkillEffect.MODIFIER_NAME.equals(modifier.name())) {
+                    // 1.20.5+: the modifier is a record(Identifier, value, Operation) — no display
+                    // name. Identify ours by its Identifier namespace, which is how we build them.
+                    if (AttributeSkillEffect.MODIFIER_ID_NAMESPACE.equals(modifier.id().getNamespace())) {
                         modifiersToRemove.add(modifier);
                     }
                 }
@@ -139,7 +141,7 @@ public abstract class PlayerEntityMixin extends LivingEntity implements IUnlocke
         // 3. Re-apply: Add one new, combined modifier for each aggregated bonus.
         // (This part of the logic was correct and remains the same)
         modifiersToApply.forEach((attribute, operationMap) -> {
-            EntityAttributeInstance instance = player.getAttributeInstance(attribute);
+            EntityAttributeInstance instance = player.getAttributeInstance(SkillManager.getAttributeEntry(attribute));
             if (instance != null) {
                 operationMap.forEach((operation, value) -> {
                     // 1.20.5+: EntityAttributeModifier is a record(Identifier, double, Operation);

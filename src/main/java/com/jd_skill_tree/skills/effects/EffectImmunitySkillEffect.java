@@ -27,10 +27,10 @@ public class EffectImmunitySkillEffect implements SkillEffect {
     // 1.20.5+: status effects are RegistryEntry<StatusEffect> in status effect instances.
     @Override
     public boolean preventsEffect(RegistryEntry<StatusEffect> effect) {
-        Identifier targetId = effect.getKey().map(RegistryEntry.Reference::registryKey)
-                .map(net.minecraft.registry.RegistryKey::getValue)
-                .orElse(null);
-        if (targetId == null) {
+        Identifier targetId = null;
+        if (effect instanceof RegistryEntry.Reference<StatusEffect> ref) {
+            targetId = ref.registryKey().getValue();
+        } else {
             // Directly-held value (dynamic entry): fall back to registry lookup
             targetId = Registries.STATUS_EFFECT.getId(effect.value());
         }

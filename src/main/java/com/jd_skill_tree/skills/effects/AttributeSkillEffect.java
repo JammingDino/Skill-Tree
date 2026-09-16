@@ -13,6 +13,8 @@ import net.minecraft.util.JsonHelper;
 public class AttributeSkillEffect implements SkillEffect {
 
     public static final String MODIFIER_NAME = "JD Skill Tree Bonus";
+    // 1.20.5+: modifiers are Identifier-keyed; everything in this namespace is ours.
+    public static final String MODIFIER_ID_NAMESPACE = "jd_skill_tree";
 
     private final EntityAttribute attribute;
     private final EntityAttributeModifier.Operation operation;

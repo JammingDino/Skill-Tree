@@ -6,6 +6,7 @@ import com.mojang.serialization.MapCodec;
 import net.minecraft.block.BlockRenderType;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.BlockWithEntity;
+import net.minecraft.block.ShapeContext;
 import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.block.entity.BlockEntityTicker;
 import net.minecraft.block.entity.BlockEntityType;
@@ -35,12 +36,7 @@ public class SkillAltar extends BlockWithEntity {
     );
 
     @Override
-    public VoxelShape getOutlineShape(BlockState state, BlockView world, BlockPos pos, net.minecraft.block.ShapeContext context) {
-        return SHAPE;
-    }
-
-    @Override
-    public VoxelShape getOutlineShape(BlockState state, BlockView world, BlockPos pos, net.minecraft.block.ShapeContext context) {
+    public VoxelShape getOutlineShape(BlockState state, BlockView world, BlockPos pos, ShapeContext context) {
         return SHAPE;
     }
 
@@ -78,7 +74,8 @@ public class SkillAltar extends BlockWithEntity {
         // This is the crucial part that links to your static tick() method.
         // We only run this on the client because the animation logic is purely visual.
         if (world.isClient()) {
-            return checkType(type, ModBlockEntities.SKILL_ALTAR_ENTITY, (world1, pos, state1, be) -> SkillAltarBlockEntity.tick(world1, pos, state1, (SkillAltarBlockEntity) be));
+            // 1.21.4: checkType was renamed validateTicker
+            return validateTicker(type, ModBlockEntities.SKILL_ALTAR_ENTITY, (world1, pos, state1, be) -> SkillAltarBlockEntity.tick(world1, pos, state1, (SkillAltarBlockEntity) be));
         }
         return null; // No server-side ticking needed for animations.
     }

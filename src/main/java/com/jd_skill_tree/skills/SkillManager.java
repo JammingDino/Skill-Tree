@@ -37,6 +37,12 @@ public class SkillManager {
         return AFFECTED_ATTRIBUTES;
     }
 
+    // 1.20.5+: attribute consumer APIs (AttributeInstance etc.) take RegistryEntry;
+    // this resolves a raw attribute value into its registry entry.
+    public static RegistryEntry<EntityAttribute> getAttributeEntry(EntityAttribute attribute) {
+        return Registries.ATTRIBUTE.getEntry(attribute);
+    }
+
 
     public static Optional<Skill> getSkill(Identifier id) {
         return Optional.ofNullable(SKILLS.get(id));
