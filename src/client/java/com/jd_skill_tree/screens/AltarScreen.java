@@ -331,14 +331,14 @@ public class AltarScreen extends Screen {
     }
 
     private void sendUnlockRequest(Skill skill) {
-        PacketByteBuf buf = PacketByteBufs.create();
-        buf.writeIdentifier(skill.getId());
-        ClientPlayNetworking.send(new com.jd_skill_tree.networking.SkillNetworking.OpaquePayload(SkillNetworking.UNLOCK_SKILL_PACKET_ID, (net.minecraft.network.RegistryByteBuf) buf));;
+        net.minecraft.network.RegistryByteBuf payloadBuf = com.jd_skill_tree.networking.SkillBufs.create();
+        payloadBuf.writeIdentifier(skill.getId());
+        ClientPlayNetworking.send(new com.jd_skill_tree.networking.SkillNetworking.OpaquePayload(SkillNetworking.UNLOCK_SKILL_PACKET_ID, payloadBuf));
     }
 
     private void sendResetRequest() {
-        PacketByteBuf buf = PacketByteBufs.create();
-        ClientPlayNetworking.send(new com.jd_skill_tree.networking.SkillNetworking.OpaquePayload(SkillNetworking.RESET_SKILLS_PACKET_ID, (net.minecraft.network.RegistryByteBuf) buf));;
+        net.minecraft.network.RegistryByteBuf payloadBuf = com.jd_skill_tree.networking.SkillBufs.create();
+        ClientPlayNetworking.send(new com.jd_skill_tree.networking.SkillNetworking.OpaquePayload(SkillNetworking.RESET_SKILLS_PACKET_ID, payloadBuf));
     }
 
     private void clampPan() {

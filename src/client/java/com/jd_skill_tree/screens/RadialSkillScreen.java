@@ -183,9 +183,9 @@ public class RadialSkillScreen extends Screen {
         if (hoveredIndex != -1 && hoveredIndex < activeSkills.size()) {
             Skill selected = activeSkills.get(hoveredIndex);
 
-            PacketByteBuf buf = PacketByteBufs.create();
+            net.minecraft.network.RegistryByteBuf buf = com.jd_skill_tree.networking.SkillBufs.create();
             buf.writeIdentifier(selected.getId());
-            ClientPlayNetworking.send(new com.jd_skill_tree.networking.SkillNetworking.OpaquePayload(SkillNetworking.TRIGGER_ACTIVE_SKILL_PACKET_ID, (net.minecraft.network.RegistryByteBuf) buf));;
+            ClientPlayNetworking.send(new com.jd_skill_tree.networking.SkillNetworking.OpaquePayload(SkillNetworking.TRIGGER_ACTIVE_SKILL_PACKET_ID, buf));
 
             actionTriggered = true;
         }

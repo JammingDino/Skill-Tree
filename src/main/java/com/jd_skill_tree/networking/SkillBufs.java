@@ -1,6 +1,7 @@
 package com.jd_skill_tree.networking;
 
 import net.minecraft.network.RegistryByteBuf;
+import net.minecraft.registry.DynamicRegistryManager;
 import io.netty.buffer.Unpooled;
 
 /**
@@ -17,4 +18,12 @@ public final class SkillBufs {
         // written through this buffer (none of our payloads use them).
         return new RegistryByteBuf(Unpooled.buffer(), null);
     }
-}
+
+    /**
+     * Rebuilds a buffer over an already-decoded payload blob (decode side of the opaque
+     * codec). The bytes are owned by the payload from here on, so they must not point back
+     * into the netty packet buffer.
+     */
+    public static RegistryByteBuf wrap(byte[] bytes, DynamicRegistryManager registryManager) {
+        return new RegistryByteBuf(Unpooled.wrappedBuffer(bytes), registryManager);
+    }}

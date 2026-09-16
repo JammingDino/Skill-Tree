@@ -62,19 +62,43 @@ public class SkillNetworking {
                 SAVE_SKILL_PACKET_ID, SKILL_REGISTRY_SYNC_PACKET_ID,
                 TRIGGER_ACTIVE_SKILL_PACKET_ID, COOLDOWN_PACKET_ID}) {
             CustomPayload.Id<OpaquePayload> typeId = new CustomPayload.Id<>(id);
-            // Byte-passthrough codec: copy raw bytes both ways, payload id travels with it.
-            PacketCodec<RegistryByteBuf, OpaquePayload> codec = PacketCodec.of(
-                    (payload, buf) -> {
-                        RegistryByteBuf src = payload.data();
-                        int idx = src.readerIndex();
-                        buf.writeBytes(src.readBytes(src.readableBytes()));
-                        src.readerIndex(idx);
-                    },
-                    buf -> new OpaquePayload(id, buf)
-            );
-            PayloadTypeRegistry.playC2S().register(typeId, codec);
-            PayloadTypeRegistry.playS2C().register(typeId, codec);
+            PayloadTypeRegistry.playC2S().register(typeId, codecFor(id));
+            PayloadTypeRegistry.playS2C().register(typeId, codecFor(id));
         }
+    }
+
+    /**
+     * Byte-passthrough codec for the opaque skill channels.
+     *
+     * The payload id itself is written by the vanilla dispatch codec
+     * (CustomPayloadS2CPacket / CustomPayloadC2SPacket), which writes getId() and then
+     * hands the rest of the frame to the codec registered here. So the codec must consume
+     * exactly the payload region of the frame: 1.21's netty PacketDecoder throws
+     * "was larger than I expected, found N bytes extra whilst reading packet" if any bytes
+     * are left unread after decode.
+     *
+     * Round 5 shipped a decoder of `buf -> new OpaquePayload(id, buf)` which read nothing at
+     * all, so every custom_payload skill packet was rejected with the whole payload counted
+     * as extra bytes (observed: 29767 bytes extra on skill_registry_sync, client kicked on join).
+     *
+     * Fix: length-prefix the payload blob (writeByteArray/readByteArray) so decode consumes
+     * the exact frame and rebuilds an independent buffer positioned at index 0.
+     */
+    private static PacketCodec<RegistryByteBuf, OpaquePayload> codecFor(Identifier id) {
+        return PacketCodec.of(
+                (payload, out) -> {
+                    RegistryByteBuf src = payload.data();
+                    int idx = src.readerIndex();
+                    byte[] bytes = new byte[src.readableBytes()];
+                    src.readBytes(bytes);
+                    src.readerIndex(idx);          // keep the source buf reusable
+                    out.writeByteArray(bytes);     // varint length + bytes = one exact frame
+                },
+                in -> {
+                    byte[] bytes = in.readByteArray();   // consumes exactly the payload frame
+                    return new OpaquePayload(id, SkillBufs.wrap(bytes, in.getRegistryManager()));
+                }
+        );
     }
 
     private static void ensureChannel(Identifier id) {

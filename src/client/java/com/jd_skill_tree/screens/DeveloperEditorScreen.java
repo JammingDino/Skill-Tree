@@ -1776,11 +1776,11 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
     private void sendExportPacket(ButtonComponent btn) {
         String json = generateJson();
         if (json.isEmpty()) { return; }
-        PacketByteBuf buf = PacketByteBufs.create();
+        net.minecraft.network.RegistryByteBuf buf = com.jd_skill_tree.networking.SkillBufs.create();
         buf.writeString(exportNamespace);
         buf.writeString(exportFileName);
         buf.writeString(json, 262144);
-        ClientPlayNetworking.send(new com.jd_skill_tree.networking.SkillNetworking.OpaquePayload(SkillNetworking.SAVE_SKILL_PACKET_ID, (net.minecraft.network.RegistryByteBuf) buf));;
+        ClientPlayNetworking.send(new com.jd_skill_tree.networking.SkillNetworking.OpaquePayload(SkillNetworking.SAVE_SKILL_PACKET_ID, buf));
         btn.setMessage(Text.of("Request Sent"));
         new Thread(() -> { try { Thread.sleep(2000); MinecraftClient.getInstance().execute(() -> btn.setMessage(Text.of("Export to Server"))); } catch (InterruptedException ignored) {} }).start();
     }
