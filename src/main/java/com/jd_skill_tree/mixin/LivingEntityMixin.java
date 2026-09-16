@@ -43,7 +43,7 @@ public abstract class LivingEntityMixin {
      * The 'ordinal = 0' must be INSIDE the @At annotation.
      * We modify index 0 (the float speed).
      */
-    @ModifyArg(method = "travel", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/LivingEntity;updateVelocity(FLnet/minecraft/util/math/Vec3d;)V", ordinal = 0))
+    @ModifyArg(method = "travelInFluid", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/LivingEntity;updateVelocity(FLnet/minecraft/util/math/Vec3d;)V", ordinal = 0))
     private float modifySwimSpeed(float speed) {
         if ((Object)this instanceof PlayerEntity player) {
             float newSpeed = speed;
@@ -59,7 +59,7 @@ public abstract class LivingEntityMixin {
      * Targeting the call to updateVelocity inside the Lava check block in travel().
      * This corresponds to Ordinal 1.
      */
-    @ModifyArg(method = "travel", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/LivingEntity;updateVelocity(FLnet/minecraft/util/math/Vec3d;)V", ordinal = 1))
+    @ModifyArg(method = "travelInFluid", at = @At(value = "INVOKE", target = "Lnet/minecraft/entity/LivingEntity;updateVelocity(FLnet/minecraft/util/math/Vec3d;)V", ordinal = 1))
     private float modifyLavaSpeed(float speed) {
         if ((Object)this instanceof PlayerEntity player) {
             float newSpeed = speed;

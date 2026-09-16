@@ -9,6 +9,7 @@ import com.mojang.blaze3d.systems.RenderSystem;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.networking.v1.PacketByteBufs;
 import net.minecraft.client.gui.DrawContext;
+import net.minecraft.client.render.RenderLayer;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.sound.PositionedSoundInstance;
 import net.minecraft.network.PacketByteBuf;
@@ -313,7 +314,8 @@ public class AltarScreen extends Screen {
     }
 
     @Override
-    public boolean mouseScrolled(double mouseX, double mouseY, double amount) {
+    public boolean mouseScrolled(double mouseX, double mouseY, double horizontalAmount, double verticalAmount) {
+        double amount = verticalAmount;
         double newScale = this.scale + (amount * ZOOM_SENSITIVITY);
         newScale = Math.max(MIN_SCALE, Math.min(MAX_SCALE, newScale));
 
@@ -325,18 +327,18 @@ public class AltarScreen extends Screen {
             this.panY = mouseY - (worldMouseY * this.scale);
             return true;
         }
-        return super.mouseScrolled(mouseX, mouseY, amount);
+        return super.mouseScrolled(mouseX, mouseY, horizontalAmount, verticalAmount);
     }
 
     private void sendUnlockRequest(Skill skill) {
         PacketByteBuf buf = PacketByteBufs.create();
         buf.writeIdentifier(skill.getId());
-        ClientPlayNetworking.send(SkillNetworking.UNLOCK_SKILL_PACKET_ID, buf);
+        ClientPlayNetworking.send(new com.jd_skill_tree.networking.SkillNetworking.OpaquePayload(SkillNetworking.UNLOCK_SKILL_PACKET_ID, (net.minecraft.network.RegistryByteBuf) buf));;
     }
 
     private void sendResetRequest() {
         PacketByteBuf buf = PacketByteBufs.create();
-        ClientPlayNetworking.send(SkillNetworking.RESET_SKILLS_PACKET_ID, buf);
+        ClientPlayNetworking.send(new com.jd_skill_tree.networking.SkillNetworking.OpaquePayload(SkillNetworking.RESET_SKILLS_PACKET_ID, (net.minecraft.network.RegistryByteBuf) buf));;
     }
 
     private void clampPan() {
@@ -376,7 +378,7 @@ public class AltarScreen extends Screen {
         this.drawWindow(context, x, y);
 
         context.enableScissor(x + 9, y + 17, x + WINDOW_WIDTH - 9, y + WINDOW_HEIGHT - 9);
-        this.renderBackground(context);
+        this.renderBackground(context, mouseX, mouseY, delta);
 
         context.getMatrices().push();
         context.getMatrices().translate(this.panX, this.panY, 0);
@@ -511,7 +513,8 @@ public class AltarScreen extends Screen {
 
     public void drawWindow(DrawContext context, int x, int y) {
         RenderSystem.enableBlend();
-        context.drawTexture(WINDOW_TEXTURE, x, y, 0, 0, WINDOW_WIDTH, WINDOW_HEIGHT);
+        // 1.21.4: drawTexture requires a RenderLayer supplier per texture.
+        context.drawTexture(RenderLayer::getGuiTextured, WINDOW_TEXTURE, x, y, 0.0f, 0.0f, WINDOW_WIDTH, WINDOW_HEIGHT, WINDOW_WIDTH, WINDOW_HEIGHT);
         context.drawText(this.textRenderer, ALTAR_TEXT + tier, x + 8, y + 6, 4210752, false);
 
         if (this.client != null && this.client.player != null) {
@@ -525,12 +528,14 @@ public class AltarScreen extends Screen {
     }
 
     @Override
-    public void renderBackground(DrawContext context) {
+    public void renderBackground(DrawContext context, int mouseX, int mouseY, float delta) {
         assert this.client != null;
         if (this.client.world != null) {
-            context.fillGradient(0, 0, this.width, this.height, -1072689136, -804253680);
+            // 1.21.4: renderBackground carries mouse + delta and must delegate to super
+            // for the blurred behind-settings look; old code drew a plain gradient.
+            super.renderBackground(context, mouseX, mouseY, delta);
         } else {
-            this.renderBackgroundTexture(context);
+            Screen.renderBackgroundTexture(context, Screen.MENU_BACKGROUND_TEXTURE, this.width, this.height, 0.0f, 0.0f, 32, 32);
         }
     }
 

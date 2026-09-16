@@ -9,6 +9,7 @@ import com.jd_skill_tree.skills.SkillManager;
 import com.jd_skill_tree.skills.actions.SkillAction;
 import com.jd_skill_tree.skills.actions.TriggerType;
 import com.jd_skill_tree.utils.ExperienceUtils;
+import net.fabricmc.fabric.api.networking.v1.PayloadTypeRegistry;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayConnectionEvents;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
 import net.minecraft.network.RegistryByteBuf;
@@ -45,8 +46,9 @@ public class SkillNetworking {
     public static final Identifier COOLDOWN_PACKET_ID = Identifier.of(Jd_skill_tree.MOD_ID, "cooldown_sync");
 
     // 1.20.5+/1.21.x: Fabric networking v1 raw-buf receivers are gone; moved to payloads.
-    // Since all payloads here are opaque bufs (read on the side that receives them), one
-    // generic payload type per channel keeps the port minimal.
+    // All payloads here are opaque buf blobs (decoded on the receiving side), so every
+    // channel gets its own identifier but shares one byte-passthrough payload class.
+    // Each channel id must be registered via PayloadTypeRegistry before receivers/senders use it.
     public record OpaquePayload(Identifier id, RegistryByteBuf data) implements CustomPayload {
         @Override
         public Id<? extends CustomPayload> getId() {
@@ -54,15 +56,46 @@ public class SkillNetworking {
         }
     }
 
-    private static void registerReceiver(Identifier id, ServerPlayNetworking.PlayPayloadHandler<OpaquePayload> handler) {
-        ServerPlayNetworking.registerGlobalReceiver(new CustomPayload.Id<>(id), handler);
+    private static void registerChannels() {
+        for (Identifier id : new Identifier[]{
+                UNLOCK_SKILL_PACKET_ID, SKILL_SYNC_PACKET_ID, RESET_SKILLS_PACKET_ID,
+                SAVE_SKILL_PACKET_ID, SKILL_REGISTRY_SYNC_PACKET_ID,
+                TRIGGER_ACTIVE_SKILL_PACKET_ID, COOLDOWN_PACKET_ID}) {
+            CustomPayload.Id<OpaquePayload> typeId = new CustomPayload.Id<>(id);
+            // Byte-passthrough codec: copy raw bytes both ways, payload id travels with it.
+            PacketCodec<RegistryByteBuf, OpaquePayload> codec = PacketCodec.of(
+                    (payload, buf) -> {
+                        RegistryByteBuf src = payload.data();
+                        int idx = src.readerIndex();
+                        buf.writeBytes(src.readBytes(src.readableBytes()));
+                        src.readerIndex(idx);
+                    },
+                    buf -> new OpaquePayload(id, buf)
+            );
+            PayloadTypeRegistry.playC2S().register(typeId, codec);
+            PayloadTypeRegistry.playS2C().register(typeId, codec);
+        }
+    }
+
+    private static void ensureChannel(Identifier id) {
+        // Sending side only needs the id type to be present in the registry; both
+        // directions were registered above in registerChannels().
+    }
+
+    private static CustomPayload.Id<OpaquePayload> payloadId(Identifier id) {
+        return new CustomPayload.Id<>(id);
     }
 
     private static void send(ServerPlayerEntity player, Identifier id, RegistryByteBuf buf) {
         ServerPlayNetworking.send(player, new OpaquePayload(id, buf));
     }
 
+    private static void registerReceiver(Identifier id, ServerPlayNetworking.PlayPayloadHandler<OpaquePayload> handler) {
+        ServerPlayNetworking.registerGlobalReceiver(payloadId(id), handler);
+    }
+
     public static void register() {
+        registerChannels();
         registerC2SPackets();
         registerServerEvents();
     }

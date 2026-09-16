@@ -66,8 +66,9 @@ public class SkillAltarBlockEntityRenderer implements BlockEntityRenderer<SkillA
         // Get the correct vertex consumer from the texture and render layer
         VertexConsumer vertexConsumer = BOOK_TEXTURE.getVertexConsumer(vertexConsumerProvider, RenderLayer::getEntitySolid);
 
-        // Render the book model
-        this.bookModel.renderBook(matrixStack, vertexConsumer, light, overlay, 1.0F, 1.0F, 1.0F, 1.0F);
+        // Render the book model.
+        // 1.21.x: BookModel.renderBook was folded into Model.render(MatrixStack, VertexConsumer, light, overlay).
+        this.bookModel.render(matrixStack, vertexConsumer, light, overlay);
 
         matrixStack.pop();
     }

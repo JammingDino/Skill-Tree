@@ -578,8 +578,9 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
 
         // FIX: Fallback to the ItemStack's internal NBT if the raw string is missing
         String loadedNbt = skill.getIconNbt();
-        if ((loadedNbt == null || loadedNbt.isEmpty()) && skill.getIcon().hasNbt()) {
-            loadedNbt = Objects.requireNonNull(skill.getIcon().getNbt()).toString();
+        net.minecraft.component.type.NbtComponent customData = skill.getIcon().get(net.minecraft.component.DataComponentTypes.CUSTOM_DATA);
+        if ((loadedNbt == null || loadedNbt.isEmpty()) && customData != null && !customData.isEmpty()) {
+            loadedNbt = customData.getNbt().toString();
         }
         this.iconNbt = loadedNbt != null ? loadedNbt : "";
         this.iconNbtField.setText(this.iconNbt);
@@ -835,7 +836,7 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
         box.verticalSizing(Sizing.fixed(20));
         box.setMaxLength(Integer.MAX_VALUE);
         box.setText(value);
-        box.setCursorToStart();
+        box.setCursorToStart(true);
         box.onChanged().subscribe(onChange::accept);
         layout.child(box);
         return layout;
@@ -849,7 +850,7 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
         box.verticalSizing(Sizing.fixed(20));
         box.setMaxLength(Integer.MAX_VALUE);
         box.setText(value);
-        box.setCursorToStart();
+        box.setCursorToStart(true);
         Consumer<String> selectItem = (match) -> { box.setText(match); onChange.accept(match); closeOverlay(); };
         box.onChanged().subscribe(text -> {
             onChange.accept(text);
@@ -1427,7 +1428,7 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
             content.child(checkbox);
         }
         else if (data.type.equals("Enchantment")) {
-            List<String> enchIds = Registries.ENCHANTMENT.getIds().stream().map(Identifier::toString).sorted().toList();
+            List<String> enchIds = net.minecraft.client.MinecraftClient.getInstance().world.getRegistryManager().getOrThrow(net.minecraft.registry.RegistryKeys.ENCHANTMENT).getIds().stream().map(Identifier::toString).sorted().toList();
             content.child(autocompleteField("Enchantment ID", data.enchId, enchIds, s -> { data.enchId = s; updatePreview(); }, 100));
             content.child(field("Level Added", data.enchLevel, s -> { data.enchLevel = s; updatePreview(); }, 100).margins(Insets.top(5)));
             content.child(dropdown("Slot", List.of("mainhand", "offhand", "helmet", "chest", "legs", "boots"), data.enchSlot, s -> {
@@ -1779,7 +1780,7 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
         buf.writeString(exportNamespace);
         buf.writeString(exportFileName);
         buf.writeString(json, 262144);
-        ClientPlayNetworking.send(SkillNetworking.SAVE_SKILL_PACKET_ID, buf);
+        ClientPlayNetworking.send(new com.jd_skill_tree.networking.SkillNetworking.OpaquePayload(SkillNetworking.SAVE_SKILL_PACKET_ID, (net.minecraft.network.RegistryByteBuf) buf));;
         btn.setMessage(Text.of("Request Sent"));
         new Thread(() -> { try { Thread.sleep(2000); MinecraftClient.getInstance().execute(() -> btn.setMessage(Text.of("Export to Server"))); } catch (InterruptedException ignored) {} }).start();
     }

@@ -65,7 +65,7 @@ public class Jd_skill_tree_client implements ClientModInitializer {
 
         // Filter unlocked skills for ones that have ACTIVATED trigger
         com.jd_skill_tree.skills.ClientSkillData.getUnlockedSkills().forEach(id -> {
-            com.jd_skill_tree.skills.SkillManager.getSkill(new net.minecraft.util.Identifier(id)).ifPresent(skill -> {
+            com.jd_skill_tree.skills.SkillManager.getSkill(net.minecraft.util.Identifier.of(id)).ifPresent(skill -> {
                 boolean hasActiveTrigger = skill.getActions().stream()
                         .anyMatch(a -> a.getTrigger() == com.jd_skill_tree.skills.actions.TriggerType.ACTIVATED);
 
@@ -86,7 +86,7 @@ public class Jd_skill_tree_client implements ClientModInitializer {
     private void registerS2CPackets() {
         // 1. Existing: Sync Unlocked Status
         ClientPlayNetworking.registerGlobalReceiver(new net.minecraft.network.packet.CustomPayload.Id<>(SkillNetworking.SKILL_SYNC_PACKET_ID), (payload, context) -> {
-            var buf = payload.data();
+            var buf = ((com.jd_skill_tree.networking.SkillNetworking.OpaquePayload) payload).data();
             var client = context.client();
             int size = buf.readInt();
             Set<String> unlockedSkills = new HashSet<>();
@@ -104,7 +104,7 @@ public class Jd_skill_tree_client implements ClientModInitializer {
 
         // 2. NEW: Sync Registry (Definitions)
         ClientPlayNetworking.registerGlobalReceiver(new net.minecraft.network.packet.CustomPayload.Id<>(SkillNetworking.SKILL_REGISTRY_SYNC_PACKET_ID), (payload, context) -> {
-            var buf = payload.data();
+            var buf = ((com.jd_skill_tree.networking.SkillNetworking.OpaquePayload) payload).data();
             var client = context.client();
             // We read the data into a temporary list first to avoid threading issues
             int count = buf.readInt();
@@ -140,7 +140,7 @@ public class Jd_skill_tree_client implements ClientModInitializer {
         });
 
         ClientPlayNetworking.registerGlobalReceiver(new net.minecraft.network.packet.CustomPayload.Id<>(SkillNetworking.COOLDOWN_PACKET_ID), (payload, context) -> {
-            var buf = payload.data();
+            var buf = ((com.jd_skill_tree.networking.SkillNetworking.OpaquePayload) payload).data();
             var client = context.client();
             Identifier skillId = buf.readIdentifier();
             int ticks = buf.readInt();

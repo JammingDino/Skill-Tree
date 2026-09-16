@@ -13,6 +13,9 @@ import net.minecraft.util.Identifier;
 import java.util.List;
 import net.minecraft.client.render.RenderLayer;
 import net.minecraft.client.render.VertexConsumer;
+import net.minecraft.client.render.VertexConsumerProvider;
+import net.minecraft.client.util.BufferAllocator;
+import net.minecraft.client.render.VertexConsumerProvider;
 import net.minecraft.util.math.MathHelper;
 import org.joml.Matrix4f;
 import com.mojang.blaze3d.systems.RenderSystem;
@@ -72,7 +75,7 @@ public class SkillWidget {
             }
         }
 
-        context.drawTexture(WIDGETS_TEXTURE, screenX, screenY, 0, v, 26, 26, 78, 104);
+        context.drawTexture(net.minecraft.client.render.RenderLayer::getGuiTextured, WIDGETS_TEXTURE, screenX, screenY, 0.0f, (float) v, 26, 26, 78, 104);
         context.drawItem(skill.getIcon(), screenX + 5, screenY + 5);
     }
 
@@ -209,7 +212,7 @@ public class SkillWidget {
     }
 
     private void drawGlowQuad(DrawContext context, int x, int y, int w, int h, int cTL, int cTR, int cBR, int cBL) {
-        VertexConsumer vertexConsumer = context.getVertexConsumers().getBuffer(RenderLayer.getGui());
+        VertexConsumer vertexConsumer = VertexConsumerProvider.immediate(new BufferAllocator(1024)).getBuffer(RenderLayer.getGui());
         Matrix4f matrix = context.getMatrices().peek().getPositionMatrix();
 
         // Extract Alphas first to decide triangulation
@@ -232,16 +235,16 @@ public class SkillWidget {
         if (flip) {
             // Flipped Order: Forces the GPU to cut the quad from Top-Left to Bottom-Right
             // This prevents the "Hard Edge" when the gradient source is TR or BL
-            vertexConsumer.vertex(matrix, x, y, 0).color(rTL, gTL, bTL, aTL).next();             // TL
-            vertexConsumer.vertex(matrix, x, y + h, 0).color(rBL, gBL, bBL, aBL).next();         // BL
-            vertexConsumer.vertex(matrix, x + w, y + h, 0).color(rBR, gBR, bBR, aBR).next();     // BR
-            vertexConsumer.vertex(matrix, x + w, y, 0).color(rTR, gTR, bTR, aTR).next();         // TR
+            vertexConsumer.vertex(matrix, x, y, 0).color(rTL, gTL, bTL, aTL);             // TL
+            vertexConsumer.vertex(matrix, x, y + h, 0).color(rBL, gBL, bBL, aBL);         // BL
+            vertexConsumer.vertex(matrix, x + w, y + h, 0).color(rBR, gBR, bBR, aBR);     // BR
+            vertexConsumer.vertex(matrix, x + w, y, 0).color(rTR, gTR, bTR, aTR);         // TR
         } else {
             // Standard Order: GPU cuts from Bottom-Left to Top-Right
-            vertexConsumer.vertex(matrix, x, y + h, 0).color(rBL, gBL, bBL, aBL).next();         // BL
-            vertexConsumer.vertex(matrix, x + w, y + h, 0).color(rBR, gBR, bBR, aBR).next();     // BR
-            vertexConsumer.vertex(matrix, x + w, y, 0).color(rTR, gTR, bTR, aTR).next();         // TR
-            vertexConsumer.vertex(matrix, x, y, 0).color(rTL, gTL, bTL, aTL).next();             // TL
+            vertexConsumer.vertex(matrix, x, y + h, 0).color(rBL, gBL, bBL, aBL);         // BL
+            vertexConsumer.vertex(matrix, x + w, y + h, 0).color(rBR, gBR, bBR, aBR);     // BR
+            vertexConsumer.vertex(matrix, x + w, y, 0).color(rTR, gTR, bTR, aTR);         // TR
+            vertexConsumer.vertex(matrix, x, y, 0).color(rTL, gTL, bTL, aTL);             // TL
         }
     }
 

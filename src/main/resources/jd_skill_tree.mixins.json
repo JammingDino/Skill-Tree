@@ -9,6 +9,9 @@
     "PlayerEntityMixin",
     "ServerPlayerEntityMixin"
   ],
+  "client": [
+    "ElytraFeatureRendererMixin"
+  ],
   "injectors": {
     "defaultRequire": 1
   }

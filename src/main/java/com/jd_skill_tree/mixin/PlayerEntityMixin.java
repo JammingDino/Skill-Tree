@@ -330,7 +330,7 @@ public abstract class PlayerEntityMixin extends LivingEntity implements IUnlocke
     }
 
     @Inject(method = "damage", at = @At("RETURN"))
-    private void onDamageTaken(net.minecraft.entity.damage.DamageSource source, float amount, CallbackInfoReturnable<Boolean> cir) {
+    private void onDamageTaken(net.minecraft.server.world.ServerWorld world, net.minecraft.entity.damage.DamageSource source, float amount, CallbackInfoReturnable<Boolean> cir) {
         // If damage was successful (returnValue is true)
         if (cir.getReturnValue()) {
             PlayerEntity player = (PlayerEntity) (Object) this;

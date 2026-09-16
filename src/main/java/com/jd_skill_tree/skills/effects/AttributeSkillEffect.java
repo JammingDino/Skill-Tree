@@ -51,6 +51,14 @@ public class AttributeSkillEffect implements SkillEffect {
         }
 
         String operationName = JsonHelper.getString(json, "operation", "addition").toUpperCase();
+        // 1.21.x renamed the enum constants (ADDITION->ADD_VALUE, MULTIPLY_TOTAL->ADD_MULTIPLIED_TOTAL);
+        // map the legacy datapack names onto the new ones so existing skill JSON keeps working.
+        operationName = switch (operationName) {
+            case "ADDITION" -> "ADD_VALUE";
+            case "MULTIPLY_BASE" -> "ADD_MULTIPLIED_BASE";
+            case "MULTIPLY_TOTAL" -> "ADD_MULTIPLIED_TOTAL";
+            default -> operationName;
+        };
         EntityAttributeModifier.Operation operation = EntityAttributeModifier.Operation.valueOf(operationName);
 
         double value = JsonHelper.getDouble(json, "value");

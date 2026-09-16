@@ -6,6 +6,7 @@ import com.jd_skill_tree.skills.Skill;
 import com.mojang.blaze3d.systems.RenderSystem;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.fabric.api.networking.v1.PacketByteBufs;
+import net.minecraft.client.gl.ShaderProgramKeys;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.render.*;
@@ -184,7 +185,7 @@ public class RadialSkillScreen extends Screen {
 
             PacketByteBuf buf = PacketByteBufs.create();
             buf.writeIdentifier(selected.getId());
-            ClientPlayNetworking.send(SkillNetworking.TRIGGER_ACTIVE_SKILL_PACKET_ID, buf);
+            ClientPlayNetworking.send(new com.jd_skill_tree.networking.SkillNetworking.OpaquePayload(SkillNetworking.TRIGGER_ACTIVE_SKILL_PACKET_ID, (net.minecraft.network.RegistryByteBuf) buf));;
 
             actionTriggered = true;
         }
@@ -201,12 +202,10 @@ public class RadialSkillScreen extends Screen {
 
         RenderSystem.enableBlend();
         RenderSystem.defaultBlendFunc();
-        RenderSystem.setShader(GameRenderer::getPositionColorProgram);
+        RenderSystem.setShader(ShaderProgramKeys.POSITION_COLOR);
 
         Tessellator tessellator = Tessellator.getInstance();
-        BufferBuilder buffer = tessellator.getBuffer();
-
-        buffer.begin(VertexFormat.DrawMode.QUADS, VertexFormats.POSITION_COLOR);
+        BufferBuilder buffer = tessellator.begin(VertexFormat.DrawMode.QUADS, VertexFormats.POSITION_COLOR);
 
         // Draw segments to form the arc
         float step = 5.0f; // Resolution
@@ -223,13 +222,13 @@ public class RadialSkillScreen extends Screen {
             float sin2 = (float)Math.sin(rad2);
 
             // Quad vertices (Outer 1, Inner 1, Inner 2, Outer 2)
-            buffer.vertex(matrix, cx + cos2 * rOuter, cy + sin2 * rOuter, 0).color(r, g, b, a).next();
-            buffer.vertex(matrix, cx + cos2 * rInner, cy + sin2 * rInner, 0).color(r, g, b, a).next();
-            buffer.vertex(matrix, cx + cos1 * rInner, cy + sin1 * rInner, 0).color(r, g, b, a).next();
-            buffer.vertex(matrix, cx + cos1 * rOuter, cy + sin1 * rOuter, 0).color(r, g, b, a).next();
+            buffer.vertex(matrix, cx + cos2 * rOuter, cy + sin2 * rOuter, 0).color(r, g, b, a);
+            buffer.vertex(matrix, cx + cos2 * rInner, cy + sin2 * rInner, 0).color(r, g, b, a);
+            buffer.vertex(matrix, cx + cos1 * rInner, cy + sin1 * rInner, 0).color(r, g, b, a);
+            buffer.vertex(matrix, cx + cos1 * rOuter, cy + sin1 * rOuter, 0).color(r, g, b, a);
         }
 
-        tessellator.draw();
+        BufferRenderer.drawWithGlobalProgram(buffer.end());
         RenderSystem.disableBlend();
     }
 
@@ -251,19 +250,18 @@ public class RadialSkillScreen extends Screen {
         // ... (Omitting complex line width math for brevity, sticking to simple GL lines for dividers)
 
         RenderSystem.enableBlend();
-        RenderSystem.setShader(GameRenderer::getPositionColorProgram);
+        RenderSystem.setShader(ShaderProgramKeys.POSITION_COLOR);
         RenderSystem.lineWidth(width);
 
         Tessellator t = Tessellator.getInstance();
-        BufferBuilder b = t.getBuffer();
         Matrix4f m = context.getMatrices().peek().getPositionMatrix();
 
         float a = (float)(color >> 24 & 255) / 255.0F;
 
-        b.begin(VertexFormat.DrawMode.DEBUG_LINES, VertexFormats.POSITION_COLOR);
-        b.vertex(m, startX, startY, 0).color(0f,0f,0f, a).next();
-        b.vertex(m, endX, endY, 0).color(0f,0f,0f, a).next();
-        t.draw();
+        BufferBuilder b = t.begin(VertexFormat.DrawMode.DEBUG_LINES, VertexFormats.POSITION_COLOR);
+        b.vertex(m, startX, startY, 0).color(0f,0f,0f, a);
+        b.vertex(m, endX, endY, 0).color(0f,0f,0f, a);
+        BufferRenderer.drawWithGlobalProgram(b.end());
     }
 
     // Helper needed for the center text
@@ -277,16 +275,15 @@ public class RadialSkillScreen extends Screen {
 
         RenderSystem.enableBlend();
         RenderSystem.defaultBlendFunc();
-        RenderSystem.setShader(GameRenderer::getPositionColorProgram);
+        RenderSystem.setShader(ShaderProgramKeys.POSITION_COLOR);
 
         Tessellator tessellator = Tessellator.getInstance();
-        BufferBuilder buffer = tessellator.getBuffer();
         Matrix4f matrix = context.getMatrices().peek().getPositionMatrix();
 
-        buffer.begin(VertexFormat.DrawMode.TRIANGLE_FAN, VertexFormats.POSITION_COLOR);
+        BufferBuilder buffer = tessellator.begin(VertexFormat.DrawMode.TRIANGLE_FAN, VertexFormats.POSITION_COLOR);
 
         // Center point (Dark overlay)
-        buffer.vertex(matrix, x, y, 0).color(0.0f, 0.0f, 0.0f, 0.6f).next();
+        buffer.vertex(matrix, x, y, 0).color(0.0f, 0.0f, 0.0f, 0.6f);
 
         // Draw arc based on progress (360 degrees * progress)
         // We start at -90 (Top) and go clockwise
@@ -296,10 +293,10 @@ public class RadialSkillScreen extends Screen {
             double rad = Math.toRadians(i - 90);
             // 16 is approx icon radius
             buffer.vertex(matrix, x + (float)Math.cos(rad) * 16, y + (float)Math.sin(rad) * 16, 0)
-                    .color(0.0f, 0.0f, 0.0f, 0.6f).next();
+                    .color(0.0f, 0.0f, 0.0f, 0.6f);
         }
 
-        tessellator.draw();
+        BufferRenderer.drawWithGlobalProgram(buffer.end());
         RenderSystem.disableBlend();
     }
 }

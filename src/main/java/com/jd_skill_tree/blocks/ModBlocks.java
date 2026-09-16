@@ -8,6 +8,8 @@ import net.minecraft.item.Item;
 import net.minecraft.item.ItemGroups;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.Registry;
+import net.minecraft.registry.RegistryKey;
+import net.minecraft.registry.RegistryKeys;
 import net.minecraft.sound.BlockSoundGroup;
 import net.minecraft.util.Identifier;
 
@@ -15,75 +17,74 @@ public class ModBlocks {
 
     // Define all skill altar tiers
     public static final Block SKILL_ALTAR = registerBlock("skill_altar",
-            new SkillAltar(Block.Settings.create()
+            Block.Settings.create()
                     .strength(3.0f, 6.0f)
                     .sounds(BlockSoundGroup.STONE)
                     .requiresTool()
                     .luminance(state -> 5),
-                    1 // Tier 1
-            )
+            1 // Tier 1
     );
 
     public static final Block IRON_SKILL_ALTAR = registerBlock("iron_skill_altar",
-            new SkillAltar(Block.Settings.create()
+            Block.Settings.create()
                     .strength(4.0f, 8.0f)
                     .sounds(BlockSoundGroup.METAL)
                     .requiresTool()
                     .luminance(state -> 7),
-                    2 // Tier 2
-            )
+            2 // Tier 2
     );
 
     public static final Block DIAMOND_SKILL_ALTAR = registerBlock("diamond_skill_altar",
-            new SkillAltar(Block.Settings.create()
+            Block.Settings.create()
                     .strength(5.0f, 10.0f)
                     .sounds(BlockSoundGroup.METAL)
                     .requiresTool()
                     .luminance(state -> 9),
-                    3 // Tier 3
-            )
+            3 // Tier 3
     );
 
     public static final Block EMERALD_SKILL_ALTAR = registerBlock("emerald_skill_altar",
-            new SkillAltar(Block.Settings.create()
+            Block.Settings.create()
                     .strength(5.0f, 10.0f)
                     .sounds(BlockSoundGroup.METAL)
                     .requiresTool()
                     .luminance(state -> 10),
-                    4 // Tier 4
-            )
+            4 // Tier 4
     );
 
     public static final Block OBSIDIAN_SKILL_ALTAR = registerBlock("obsidian_skill_altar",
-            new SkillAltar(Block.Settings.create()
+            Block.Settings.create()
                     .strength(5.0f, 15.0f)
                     .sounds(BlockSoundGroup.METAL)
                     .requiresTool()
                     .luminance(state -> 11),
-                    5 // Tier 4
-            )
+            5 // Tier 4
     );
 
     public static final Block DEVELOPER_SKILL_ALTAR = registerBlock("developer_skill_altar",
-            new SkillAltar(Block.Settings.create()
+            Block.Settings.create()
                     .strength(-1.0f, 3600000.0f) // Unbreakable (like bedrock) or just very hard
                     .sounds(BlockSoundGroup.AMETHYST_BLOCK)
                     .requiresTool()
                     .luminance(state -> 15), // Glowing bright
-                    99 // Special Tier ID for logic check
-            )
+            99 // Special Tier ID for logic check
     );
 
-    // Helper method to register a block
-    private static Block registerBlock(String name, Block block) {
+    // Helper method to register a block.
+    // 1.21.x note: Block id must be set on Settings before construction
+    // (getLootTableKey() NPEs otherwise) — so blocks are built inline here.
+    private static Block registerBlock(String name, net.minecraft.block.AbstractBlock.Settings settings, int tier) {
+        Identifier id = Identifier.of(Jd_skill_tree.MOD_ID, name);
+        Block block = new SkillAltar(settings.registryKey(RegistryKey.of(RegistryKeys.BLOCK, id)), tier);
         registerBlockItem(name, block);
-        return Registry.register(Registries.BLOCK, Identifier.of(Jd_skill_tree.MOD_ID, name), block);
+        return Registry.register(Registries.BLOCK, id, block);
     }
 
-    // Helper method to register the block's item form
+    // Helper method to register the block's item form.
+    // 1.21.x note: Item id must be set on the Item Settings before construction.
     private static Item registerBlockItem(String name, Block block) {
         return Registry.register(Registries.ITEM, Identifier.of(Jd_skill_tree.MOD_ID, name),
-                new BlockItem(block, new Item.Settings()));
+                new BlockItem(block, new Item.Settings().registryKey(RegistryKey.of(RegistryKeys.ITEM, Identifier.of(Jd_skill_tree.MOD_ID, name)))));
     }
 
     // Call this method in your main mod initializer

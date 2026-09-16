@@ -1,4 +1,4 @@
-{
+﻿{
   "name": "Movement Speed V",
   "description": "Increases your movement speed by 3% (multiplicatively)",
   "icon": "minecraft:diamond_boots",
@@ -10,7 +10,7 @@
   "effects": [
     {
       "type": "jd_skill_tree:attribute",
-      "attribute": "minecraft:generic.movement_speed",
+      "attribute": "minecraft:movement_speed",
       "operation": "MULTIPLY_TOTAL",
       "value": 0.03
     }

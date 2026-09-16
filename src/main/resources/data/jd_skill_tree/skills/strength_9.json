@@ -1,4 +1,4 @@
-{
+﻿{
   "name": "Strength IX",
   "description": "Increases your attack damage by 3% (multiplicatively)",
   "icon": "minecraft:netherite_sword",
@@ -9,7 +9,7 @@
   "effects": [
     {
       "type": "jd_skill_tree:attribute",
-      "attribute": "minecraft:generic.attack_damage",
+      "attribute": "minecraft:attack_damage",
       "operation": "MULTIPLY_TOTAL",
       "value": 0.03
     }

@@ -1,4 +1,4 @@
-{
+﻿{
   "name": "Vitality V",
   "description": "Increases your maximum life by 2 hearts.",
   "icon": "minecraft:golden_carrot",
@@ -10,7 +10,7 @@
   "effects": [
     {
       "type": "jd_skill_tree:attribute",
-      "attribute": "minecraft:generic.max_health",
+      "attribute": "minecraft:max_health",
       "operation": "ADDITION",
       "value": 2.0
     }
