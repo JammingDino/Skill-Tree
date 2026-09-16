@@ -27,7 +27,7 @@ public class SkillManager {
             // NEW: When a skill is added, find any attribute effects and add them to our master list.
             skill.getEffects().stream()
                     .filter(effect -> effect instanceof AttributeSkillEffect)
-                    .map(effect -> ((AttributeSkillEffect) effect).getAttribute())
+                    .map(effect -> (AttributeSkillEffect) effect)
                     .map(AttributeSkillEffect::getAttributeEntry)
                     .forEach(AFFECTED_ATTRIBUTES::add);
         }

@@ -82,8 +82,9 @@ public class SkillAltar extends BlockWithEntity {
 
 
     // Your existing onUse method is perfectly fine.
+    // 1.21.4: onUse becomes protected and drops the Hand parameter.
     @Override
-    public ActionResult onUse(BlockState state, World world, BlockPos pos, PlayerEntity player, Hand hand, BlockHitResult hit) {
+    protected ActionResult onUse(BlockState state, World world, BlockPos pos, PlayerEntity player, BlockHitResult hit) {
 
         // System.out.println("Skill Altar (Tier " + tier + ") clicked by: " + player.getName().getString());
         player.playSound(SoundEvents.BLOCK_AMETHYST_BLOCK_CHIME, 2f, 0.7f);
