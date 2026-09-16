@@ -3,156 +3,28 @@
 Fabric Loom: 1.12.7
 
 > Task :compileJava FAILED
-.\gradlew.bat : C:\Users\levip\Documents\Development\Minecraft\repos\Skill-Tree\src\main\java\com\jd_skill_tree\blocks\
-SkillAltar.java:43: error: method getOutlineShape(BlockState,BlockView,BlockPos,ShapeContext) is already defined in 
-class SkillAltar
+.\gradlew.bat : C:\Users\levip\Documents\Development\Minecraft\repos\Skill-Tree\src\main\java\com\jd_skill_tree\network
+ing\SkillBufs.java:5: error: cannot find symbol
 At line:1 char:1
 + .\gradlew.bat build --console=plain 2>&1 | Out-File -FilePath build_l ...
 + ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-    + CategoryInfo          : NotSpecified: (C:\Users\levip\...lass SkillAltar:String) [], RemoteException
+    + CategoryInfo          : NotSpecified: (C:\Users\levip\...not find symbol:String) [], RemoteException
     + FullyQualifiedErrorId : NativeCommandError
  
-    public VoxelShape getOutlineShape(BlockState state, BlockView world, BlockPos pos, 
-net.minecraft.block.ShapeContext context) {
-                      ^
-C:\Users\levip\Documents\Development\Minecraft\repos\Skill-Tree\src\main\java\com\jd_skill_tree\networking\SkillBufs.ja
-va:5: error: cannot find symbol
 import net.minecraft.network.PacketByteBufs;
                             ^
   symbol:   class PacketByteBufs
   location: package net.minecraft.network
-C:\Users\levip\Documents\Development\Minecraft\repos\Skill-Tree\src\main\java\com\jd_skill_tree\skills\effects\Enchantm
-entSkillEffect.java:9: error: cannot find symbol
-import net.minecraft.component.type.CustomData;
-                                   ^
-  symbol:   class CustomData
-  location: package net.minecraft.component.type
-C:\Users\levip\Documents\Development\Minecraft\repos\Skill-Tree\src\main\java\com\jd_skill_tree\skills\Skill.java:80: 
-error: cannot find symbol
-                                net.minecraft.component.type.CustomData.of(tag.getCompound("custom_data")));
-                                                            ^
-  symbol:   class CustomData
-  location: package net.minecraft.component.type
-C:\Users\levip\Documents\Development\Minecraft\repos\Skill-Tree\src\main\java\com\jd_skill_tree\skills\Skill.java:83: 
-error: cannot find symbol
-                                CustomModelDataComponent.of(tag.getInt("custom_model_data")));
-                                                        ^
-  symbol:   method of(int)
-  location: class CustomModelDataComponent
-C:\Users\levip\Documents\Development\Minecraft\repos\Skill-Tree\src\main\java\com\jd_skill_tree\skills\Skill.java:86: 
-error: cannot find symbol
-                                net.minecraft.component.type.CustomData.of(tag));
-                                                            ^
-  symbol:   class CustomData
-  location: package net.minecraft.component.type
 C:\Users\levip\Documents\Development\Minecraft\repos\Skill-Tree\src\main\java\com\jd_skill_tree\blocks\SkillAltar.java:
-81: error: cannot find symbol
-            return checkType(type, ModBlockEntities.SKILL_ALTAR_ENTITY, (world1, pos, state1, be) -> 
-SkillAltarBlockEntity.tick(world1, pos, state1, (SkillAltarBlockEntity) be));
-                   ^
-  symbol:   method checkType(BlockEntityType<T>,BlockEntityType<SkillAltarBlockEntity>,(world1,po[...]y)be))
-  location: class SkillAltar
-  where T is a type-variable:
-    T extends BlockEntity declared in method <T>getTicker(World,BlockState,BlockEntityType<T>)
-C:\Users\levip\Documents\Development\Minecraft\repos\Skill-Tree\src\main\java\com\jd_skill_tree\blocks\SkillAltar.java:
-88: error: method does not override or implement a method from a supertype
+85: error: method does not override or implement a method from a supertype
     @Override
     ^
-C:\Users\levip\Documents\Development\Minecraft\repos\Skill-Tree\src\main\java\com\jd_skill_tree\mixin\PlayerEntityMixin
-.java:118: error: cannot find symbol
-                    if (AttributeSkillEffect.MODIFIER_NAME.equals(modifier.name())) {
-                                                                          ^
-  symbol:   method name()
-  location: variable modifier of type EntityAttributeModifier
-C:\Users\levip\Documents\Development\Minecraft\repos\Skill-Tree\src\main\java\com\jd_skill_tree\mixin\PlayerEntityMixin
-.java:142: error: incompatible types: EntityAttribute cannot be converted to RegistryEntry<EntityAttribute>
-            EntityAttributeInstance instance = player.getAttributeInstance(attribute);
-                                                                           ^
 C:\Users\levip\Documents\Development\Minecraft\repos\Skill-Tree\src\main\java\com\jd_skill_tree\networking\SkillBufs.ja
 va:17: error: cannot find symbol
         return new RegistryByteBuf(PacketByteBufs.create(), null);
                                    ^
   symbol:   variable PacketByteBufs
   location: class SkillBufs
-C:\Users\levip\Documents\Development\Minecraft\repos\Skill-Tree\src\main\java\com\jd_skill_tree\networking\SkillNetwork
-ing.java:62: error: incompatible types: CustomPayloadS2CPacket cannot be converted to CustomPayload
-        ServerPlayNetworking.send(player, new CustomPayloadS2CPacket(new OpaquePayload(id, buf)));
-                                          ^
-C:\Users\levip\Documents\Development\Minecraft\repos\Skill-Tree\src\main\java\com\jd_skill_tree\skills\conditions\Equip
-pedItemCondition.java:36: error: cannot find symbol
-            net.minecraft.component.type.CustomData custom = 
-stack.get(net.minecraft.component.DataComponentTypes.CUSTOM_DATA);
-                                        ^
-  symbol:   class CustomData
-  location: package net.minecraft.component.type
-C:\Users\levip\Documents\Development\Minecraft\repos\Skill-Tree\src\main\java\com\jd_skill_tree\skills\conditions\HandI
-temCondition.java:46: error: cannot find symbol
-            net.minecraft.component.type.CustomData custom = 
-stack.get(net.minecraft.component.DataComponentTypes.CUSTOM_DATA);
-                                        ^
-  symbol:   class CustomData
-  location: package net.minecraft.component.type
-C:\Users\levip\Documents\Development\Minecraft\repos\Skill-Tree\src\main\java\com\jd_skill_tree\skills\effects\EffectIm
-munitySkillEffect.java:30: error: incompatible types: cannot infer type-variable(s) U
-        Identifier targetId = effect.getKey().map(RegistryEntry.Reference::registryKey)
-                                                 ^
-    (argument mismatch; invalid method reference
-      method registryKey in class Reference<T#2> cannot be applied to given types
-        required: no arguments
-        found:    RegistryKey<StatusEffect>
-        reason: actual and formal argument lists differ in length)
-  where U,T#1,T#2 are type-variables:
-    U extends Object declared in method <U>map(Function<? super T#1,? extends U>)
-    T#1 extends Object declared in class Optional
-    T#2 extends Object declared in class Reference
-C:\Users\levip\Documents\Development\Minecraft\repos\Skill-Tree\src\main\java\com\jd_skill_tree\skills\effects\Enchantm
-entSkillEffect.java:49: error: cannot find symbol
-        return Registries.ENCHANTMENT.getEntry(id).orElse(null);
-                         ^
-  symbol:   variable ENCHANTMENT
-  location: class Registries
-C:\Users\levip\Documents\Development\Minecraft\repos\Skill-Tree\src\main\java\com\jd_skill_tree\skills\effects\Enchantm
-entSkillEffect.java:53: error: cannot find symbol
-        return entry.getKey().map(RegistryKey::getValue).orElse(null);
-                                  ^
-  symbol:   variable RegistryKey
-  location: class EnchantmentSkillEffect
-C:\Users\levip\Documents\Development\Minecraft\repos\Skill-Tree\src\main\java\com\jd_skill_tree\skills\effects\Enchantm
-entSkillEffect.java:61: error: cannot find symbol
-        CustomData custom = stack.get(DataComponentTypes.CUSTOM_DATA);
-        ^
-  symbol:   class CustomData
-  location: class EnchantmentSkillEffect
-C:\Users\levip\Documents\Development\Minecraft\repos\Skill-Tree\src\main\java\com\jd_skill_tree\skills\effects\Enchantm
-entSkillEffect.java:68: error: cannot find symbol
-        CustomData custom = stack.get(DataComponentTypes.CUSTOM_DATA);
-        ^
-  symbol:   class CustomData
-  location: class EnchantmentSkillEffect
-C:\Users\levip\Documents\Development\Minecraft\repos\Skill-Tree\src\main\java\com\jd_skill_tree\skills\effects\Enchantm
-entSkillEffect.java:71: error: cannot find symbol
-        stack.set(DataComponentTypes.CUSTOM_DATA, CustomData.of(nbt));
-                                                  ^
-  symbol:   variable CustomData
-  location: class EnchantmentSkillEffect
-C:\Users\levip\Documents\Development\Minecraft\repos\Skill-Tree\src\main\java\com\jd_skill_tree\skills\effects\Enchantm
-entSkillEffect.java:75: error: cannot find symbol
-        CustomData custom = stack.get(DataComponentTypes.CUSTOM_DATA);
-        ^
-  symbol:   class CustomData
-  location: class EnchantmentSkillEffect
-C:\Users\levip\Documents\Development\Minecraft\repos\Skill-Tree\src\main\java\com\jd_skill_tree\skills\effects\Enchantm
-entSkillEffect.java:80: error: cannot find symbol
-        stack.set(DataComponentTypes.CUSTOM_DATA, CustomData.of(nbt));
-                                                  ^
-  symbol:   variable CustomData
-  location: class EnchantmentSkillEffect
-C:\Users\levip\Documents\Development\Minecraft\repos\Skill-Tree\src\main\java\com\jd_skill_tree\skills\effects\Enchantm
-entSkillEffect.java:149: error: cannot find symbol
-        CustomData custom = stack.get(DataComponentTypes.CUSTOM_DATA);
-        ^
-  symbol:   class CustomData
-  location: class EnchantmentSkillEffect
 C:\Users\levip\Documents\Development\Minecraft\repos\Skill-Tree\src\main\java\com\jd_skill_tree\skills\SkillLoader.java
 :23: error: SkillLoader is not abstract and does not override abstract method apply(Object,ResourceManager,Profiler) 
 in SinglePreparationResourceReloader
@@ -172,8 +44,6 @@ a:31: error: incompatible types: invalid method reference
                          ^
     method getAttributeEntry in class AttributeSkillEffect cannot be applied to given types
       required: no arguments
-
-[Incubating] Problems report is available at: file:///C:/Users/levip/Documents/Development/Minecraft/repos/Skill-Tree/build/reports/problems/problems-report.html
       found:    EntityAttribute
       reason: actual and formal argument lists differ in length
 Note: C:\Users\levip\Documents\Development\Minecraft\repos\Skill-Tree\src\main\java\com\jd_skill_tree\skills\effects\En
@@ -183,7 +53,9 @@ Note: C:\Users\levip\Documents\Development\Minecraft\repos\Skill-Tree\src\main\j
 r.java uses unchecked or unsafe operations.
 Note: Recompile with -Xlint:unchecked for details.
 Note: Some messages have been simplified; recompile with -Xdiags:verbose to get full output
-27 errors
+7 errors
+
+[Incubating] Problems report is available at: file:///C:/Users/levip/Documents/Development/Minecraft/repos/Skill-Tree/build/reports/problems/problems-report.html
 
 FAILURE: Build failed with an exception.
 
@@ -193,32 +65,6 @@ Execution failed for task ':compileJava'.
   Note: C:\Users\levip\Documents\Development\Minecraft\repos\Skill-Tree\src\main\java\com\jd_skill_tree\skills\effects\
 EnchantmentSkillEffect.java uses or overrides a deprecated API.
   Note: Recompile with -Xlint:deprecation for details.
-  C:\Users\levip\Documents\Development\Minecraft\repos\Skill-Tree\src\main\java\com\jd_skill_tree\skills\SkillLoader.ja
-va:23: error: SkillLoader is not abstract and does not override abstract method apply(Object,ResourceManager,Profiler) 
-in SinglePreparationResourceReloader
-  public class SkillLoader extends JsonDataLoader implements IdentifiableResourceReloadListener {
-         ^
-  C:\Users\levip\Documents\Development\Minecraft\repos\Skill-Tree\src\main\java\com\jd_skill_tree\mixin\PlayerEntityMix
-in.java:142: error: incompatible types: EntityAttribute cannot be converted to RegistryEntry<EntityAttribute>
-              EntityAttributeInstance instance = player.getAttributeInstance(attribute);
-                                                                             ^
-  C:\Users\levip\Documents\Development\Minecraft\repos\Skill-Tree\src\main\java\com\jd_skill_tree\networking\SkillNetwo
-rking.java:62: error: incompatible types: CustomPayloadS2CPacket cannot be converted to CustomPayload
-          ServerPlayNetworking.send(player, new CustomPayloadS2CPacket(new OpaquePayload(id, buf)));
-                                            ^
-  C:\Users\levip\Documents\Development\Minecraft\repos\Skill-Tree\src\main\java\com\jd_skill_tree\skills\effects\Effect
-ImmunitySkillEffect.java:30: error: incompatible types: cannot infer type-variable(s) U
-          Identifier targetId = effect.getKey().map(RegistryEntry.Reference::registryKey)
-                                                   ^
-      (argument mismatch; invalid method reference
-        method registryKey in class Reference<T#2> cannot be applied to given types
-          required: no arguments
-          found:    RegistryKey<StatusEffect>
-          reason: actual and formal argument lists differ in length)
-    where U,T#1,T#2 are type-variables:
-      U extends Object declared in method <U>map(Function<? super T#1,? extends U>)
-      T#1 extends Object declared in class Optional
-      T#2 extends Object declared in class Reference
   C:\Users\levip\Documents\Development\Minecraft\repos\Skill-Tree\src\main\java\com\jd_skill_tree\skills\SkillLoader.ja
 va:40: error: incompatible types: Gson cannot be converted to Codec
           super(GSON, "skills");
@@ -231,81 +77,16 @@ ava:31: error: incompatible types: invalid method reference
         required: no arguments
         found:    EntityAttribute
         reason: actual and formal argument lists differ in length
+  C:\Users\levip\Documents\Development\Minecraft\repos\Skill-Tree\src\main\java\com\jd_skill_tree\skills\SkillLoader.ja
+va:23: error: SkillLoader is not abstract and does not override abstract method apply(Object,ResourceManager,Profiler) 
+in SinglePreparationResourceReloader
+  public class SkillLoader extends JsonDataLoader implements IdentifiableResourceReloadListener {
+         ^
   Note: C:\Users\levip\Documents\Development\Minecraft\repos\Skill-Tree\src\main\java\com\jd_skill_tree\skills\SkillLoa
 der.java uses unchecked or unsafe operations.
   C:\Users\levip\Documents\Development\Minecraft\repos\Skill-Tree\src\main\java\com\jd_skill_tree\networking\SkillBufs.
 java:5: error: cannot find symbol
   import net.minecraft.network.PacketByteBufs;
-                              ^
-    symbol:   class PacketByteBufs
-    location: package net.minecraft.network
-  C:\Users\levip\Documents\Development\Minecraft\repos\Skill-Tree\src\main\java\com\jd_skill_tree\skills\effects\Enchan
-tmentSkillEffect.java:9: error: cannot find symbol
-  import net.minecraft.component.type.CustomData;
-                                     ^
-    symbol:   class CustomData
-    location: package net.minecraft.component.type
-  
-C:\Users\levip\Documents\Development\Minecraft\repos\Skill-Tree\src\main\java\com\jd_skill_tree\skills\Skill.java:80: 
-error: cannot find symbol
-                                  net.minecraft.component.type.CustomData.of(tag.getCompound("custom_data")));
-                                                              ^
-    symbol:   class CustomData
-    location: package net.minecraft.component.type
-  
-C:\Users\levip\Documents\Development\Minecraft\repos\Skill-Tree\src\main\java\com\jd_skill_tree\skills\Skill.java:86: 
-error: cannot find symbol
-                                  net.minecraft.component.type.CustomData.of(tag));
-                                                              ^
-    symbol:   class CustomData
-    location: package net.minecraft.component.type
-  C:\Users\levip\Documents\Development\Minecraft\repos\Skill-Tree\src\main\java\com\jd_skill_tree\networking\SkillBufs.
-java:17: error: cannot find symbol
-          return new RegistryByteBuf(PacketByteBufs.create(), null);
-                                     ^
-    symbol:   variable PacketByteBufs
-    location: class SkillBufs
-  C:\Users\levip\Documents\Development\Minecraft\repos\Skill-Tree\src\main\java\com\jd_skill_tree\skills\conditions\Equ
-ippedItemCondition.java:36: error: cannot find symbol
-              net.minecraft.component.type.CustomData custom = 
-stack.get(net.minecraft.component.DataComponentTypes.CUSTOM_DATA);
-                                          ^
-    symbol:   class CustomData
-    location: package net.minecraft.component.type
-  C:\Users\levip\Documents\Development\Minecraft\repos\Skill-Tree\src\main\java\com\jd_skill_tree\skills\conditions\Han
-dItemCondition.java:46: error: cannot find symbol
-              net.minecraft.component.type.CustomData custom = 
-stack.get(net.minecraft.component.DataComponentTypes.CUSTOM_DATA);
-                                          ^
-    symbol:   class CustomData
-    location: package net.minecraft.component.type
-  C:\Users\levip\Documents\Development\Minecraft\repos\Skill-Tree\src\main\java\com\jd_skill_tree\skills\effects\Enchan
-tmentSkillEffect.java:49: error: cannot find symbol
-          return Registries.ENCHANTMENT.getEntry(id).orElse(null);
-                           ^
-    symbol:   variable ENCHANTMENT
-    location: class Registries
-  C:\Users\levip\Documents\Development\Minecraft\repos\Skill-Tree\src\main\java\com\jd_skill_tree\skills\effects\Enchan
-tmentSkillEffect.java:53: error: cannot find symbol
-          return entry.getKey().map(RegistryKey::getValue).orElse(null);
-                                    ^
-    symbol:   variable RegistryKey
-    location: class EnchantmentSkillEffect
-  C:\Users\levip\Documents\Development\Minecraft\repos\Skill-Tree\src\main\java\com\jd_skill_tree\skills\effects\Enchan
-tmentSkillEffect.java:61: error: cannot find symbol
-          CustomData custom = stack.get(DataComponentTypes.CUSTOM_DATA);
-          ^
-    symbol:   class CustomData
-    location: class EnchantmentSkillEffect
-  C:\Users\levip\Documents\Development\Minecraft\repos\Skill-Tree\src\main\java\com\jd_skill_tree\skills\effects\Enchan
-tmentSkillEffect.java:68: error: cannot find symbol
-          CustomData custom = stack.get(DataComponentTypes.CUSTOM_DATA);
-          ^
-    symbol:   class CustomData
-    location: class EnchantmentSkillEffect
-  C:\Users\levip\Documents\Development\Minecraft\repos\Skill-Tree\src\main\java\com\jd_skill_tree\skills\effects\Enchan
-tmentSkillEffect.java:71: error: cannot find symbol
-          stack.set(DataComponentTypes.CUSTOM_DATA, CustomData.of(nbt));
 
 Deprecated Gradle features were used in this build, making it incompatible with Gradle 10.
 
@@ -313,30 +94,18 @@ You can use '--warning-mode all' to show the individual deprecation warnings and
 
 For more on this, please refer to https://docs.gradle.org/9.1.0/userguide/command_line_interface.html#sec:command_line_warnings in the Gradle documentation.
 1 actionable task: 1 executed
-                                                    ^
-    symbol:   variable CustomData
-    location: class EnchantmentSkillEffect
-  C:\Users\levip\Documents\Development\Minecraft\repos\Skill-Tree\src\main\java\com\jd_skill_tree\skills\effects\Enchan
-tmentSkillEffect.java:75: error: cannot find symbol
-          CustomData custom = stack.get(DataComponentTypes.CUSTOM_DATA);
-          ^
-    symbol:   class CustomData
-    location: class EnchantmentSkillEffect
-  C:\Users\levip\Documents\Development\Minecraft\repos\Skill-Tree\src\main\java\com\jd_skill_tree\skills\effects\Enchan
-tmentSkillEffect.java:80: error: cannot find symbol
-          stack.set(DataComponentTypes.CUSTOM_DATA, CustomData.of(nbt));
-                                                    ^
-    symbol:   variable CustomData
-    location: class EnchantmentSkillEffect
-  C:\Users\levip\Documents\Development\Minecraft\repos\Skill-Tree\src\main\java\com\jd_skill_tree\skills\effects\Enchan
-tmentSkillEffect.java:149: error: cannot find symbol
-          CustomData custom = stack.get(DataComponentTypes.CUSTOM_DATA);
-          ^
-    symbol:   class CustomData
-    location: class EnchantmentSkillEffect
+                              ^
+    symbol:   class PacketByteBufs
+    location: package net.minecraft.network
+  C:\Users\levip\Documents\Development\Minecraft\repos\Skill-Tree\src\main\java\com\jd_skill_tree\networking\SkillBufs.
+java:17: error: cannot find symbol
+          return new RegistryByteBuf(PacketByteBufs.create(), null);
+                                     ^
+    symbol:   variable PacketByteBufs
+    location: class SkillBufs
   Note: Recompile with -Xlint:unchecked for details.
   C:\Users\levip\Documents\Development\Minecraft\repos\Skill-Tree\src\main\java\com\jd_skill_tree\blocks\SkillAltar.jav
-a:88: error: method does not override or implement a method from a supertype
+a:85: error: method does not override or implement a method from a supertype
       @Override
       ^
   C:\Users\levip\Documents\Development\Minecraft\repos\Skill-Tree\src\main\java\com\jd_skill_tree\skills\SkillLoader.ja
@@ -344,37 +113,10 @@ va:48: error: method does not override or implement a method from a supertype
       @Override
       ^
   Note: Some messages have been simplified; recompile with -Xdiags:verbose to get full output
-  
-C:\Users\levip\Documents\Development\Minecraft\repos\Skill-Tree\src\main\java\com\jd_skill_tree\skills\Skill.java:83: 
-error: cannot find symbol
-                                  CustomModelDataComponent.of(tag.getInt("custom_model_data")));
-                                                          ^
-    symbol:   method of(int)
-    location: class CustomModelDataComponent
-  C:\Users\levip\Documents\Development\Minecraft\repos\Skill-Tree\src\main\java\com\jd_skill_tree\blocks\SkillAltar.jav
-a:81: error: cannot find symbol
-              return checkType(type, ModBlockEntities.SKILL_ALTAR_ENTITY, (world1, pos, state1, be) -> 
-SkillAltarBlockEntity.tick(world1, pos, state1, (SkillAltarBlockEntity) be));
-                     ^
-    symbol:   method checkType(BlockEntityType<T>,BlockEntityType<SkillAltarBlockEntity>,(world1,po[...]y)be))
-    location: class SkillAltar
-    where T is a type-variable:
-      T extends BlockEntity declared in method <T>getTicker(World,BlockState,BlockEntityType<T>)
-  C:\Users\levip\Documents\Development\Minecraft\repos\Skill-Tree\src\main\java\com\jd_skill_tree\mixin\PlayerEntityMix
-in.java:118: error: cannot find symbol
-                      if (AttributeSkillEffect.MODIFIER_NAME.equals(modifier.name())) {
-                                                                            ^
-    symbol:   method name()
-    location: variable modifier of type EntityAttributeModifier
-  C:\Users\levip\Documents\Development\Minecraft\repos\Skill-Tree\src\main\java\com\jd_skill_tree\blocks\SkillAltar.jav
-a:43: error: method getOutlineShape(BlockState,BlockView,BlockPos,ShapeContext) is already defined in class SkillAltar
-      public VoxelShape getOutlineShape(BlockState state, BlockView world, BlockPos pos, 
-net.minecraft.block.ShapeContext context) {
-                        ^
-  27 errors
+  7 errors
 
 * Try:
 > Check your code and dependencies to fix the compilation error(s)
 > Run with --scan to generate a Build Scan (Powered by Develocity).
 
-BUILD FAILED in 3s
+BUILD FAILED in 2s

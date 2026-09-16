@@ -85,7 +85,9 @@ public class Jd_skill_tree_client implements ClientModInitializer {
 
     private void registerS2CPackets() {
         // 1. Existing: Sync Unlocked Status
-        ClientPlayNetworking.registerGlobalReceiver(SkillNetworking.SKILL_SYNC_PACKET_ID, (client, handler, buf, responseSender) -> {
+        ClientPlayNetworking.registerGlobalReceiver(new net.minecraft.network.packet.CustomPayload.Id<>(SkillNetworking.SKILL_SYNC_PACKET_ID), (payload, context) -> {
+            var buf = payload.data();
+            var client = context.client();
             int size = buf.readInt();
             Set<String> unlockedSkills = new HashSet<>();
             for (int i = 0; i < size; i++) {
@@ -94,14 +96,16 @@ public class Jd_skill_tree_client implements ClientModInitializer {
 
             client.execute(() -> {
                 ClientSkillData.setUnlockedSkills(unlockedSkills);
-                if (client.player != null) {
-                    ((IUnlockedSkillsData) client.player).setUnlockedSkills(unlockedSkills);
+                if (context.player() != null) {
+                    ((IUnlockedSkillsData) context.player()).setUnlockedSkills(unlockedSkills);
                 }
             });
         });
 
         // 2. NEW: Sync Registry (Definitions)
-        ClientPlayNetworking.registerGlobalReceiver(SkillNetworking.SKILL_REGISTRY_SYNC_PACKET_ID, (client, handler, buf, responseSender) -> {
+        ClientPlayNetworking.registerGlobalReceiver(new net.minecraft.network.packet.CustomPayload.Id<>(SkillNetworking.SKILL_REGISTRY_SYNC_PACKET_ID), (payload, context) -> {
+            var buf = payload.data();
+            var client = context.client();
             // We read the data into a temporary list first to avoid threading issues
             int count = buf.readInt();
 
@@ -135,13 +139,15 @@ public class Jd_skill_tree_client implements ClientModInitializer {
             });
         });
 
-        ClientPlayNetworking.registerGlobalReceiver(SkillNetworking.COOLDOWN_PACKET_ID, (client, handler, buf, responseSender) -> {
+        ClientPlayNetworking.registerGlobalReceiver(new net.minecraft.network.packet.CustomPayload.Id<>(SkillNetworking.COOLDOWN_PACKET_ID), (payload, context) -> {
+            var buf = payload.data();
+            var client = context.client();
             Identifier skillId = buf.readIdentifier();
             int ticks = buf.readInt();
 
             client.execute(() -> {
-                if (client.player != null) {
-                    ((IUnlockedSkillsData) client.player).setSkillCooldown(skillId, ticks);
+                if (context.player() != null) {
+                    ((IUnlockedSkillsData) context.player()).setSkillCooldown(skillId, ticks);
                 }
             });
         });
