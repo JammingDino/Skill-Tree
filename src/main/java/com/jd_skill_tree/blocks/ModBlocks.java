@@ -82,9 +82,18 @@ public class ModBlocks {
 
     // Helper method to register the block's item form.
     // 1.21.x note: Item id must be set on the Item Settings before construction.
+    // 1.21.2+ note: BlockItem no longer delegates its name to the block (the old
+    // BlockItem#getTranslationKey override is gone), so an item built without an
+    // explicit key defaults to the item-prefixed one ("item.jd_skill_tree.<name>")
+    // and the GUI shows that raw key. useBlockPrefixedTranslationKey() is what
+    // vanilla's own Items.register does for every block item, and it reuses the
+    // block.* keys already in our en_us.json.
     private static Item registerBlockItem(String name, Block block) {
-        return Registry.register(Registries.ITEM, Identifier.of(Jd_skill_tree.MOD_ID, name),
-                new BlockItem(block, new Item.Settings().registryKey(RegistryKey.of(RegistryKeys.ITEM, Identifier.of(Jd_skill_tree.MOD_ID, name)))));
+        Identifier id = Identifier.of(Jd_skill_tree.MOD_ID, name);
+        return Registry.register(Registries.ITEM, id,
+                new BlockItem(block, new Item.Settings()
+                        .registryKey(RegistryKey.of(RegistryKeys.ITEM, id))
+                        .useBlockPrefixedTranslationKey()));
     }
 
     // Call this method in your main mod initializer

@@ -378,7 +378,7 @@ public class AltarScreen extends Screen {
         this.drawWindow(context, x, y);
 
         context.enableScissor(x + 9, y + 17, x + WINDOW_WIDTH - 9, y + WINDOW_HEIGHT - 9);
-        this.renderBackground(context, mouseX, mouseY, delta);
+        this.drawPanelDarkening(context);
 
         context.getMatrices().push();
         context.getMatrices().translate(this.panX, this.panY, 0);
@@ -513,8 +513,13 @@ public class AltarScreen extends Screen {
 
     public void drawWindow(DrawContext context, int x, int y) {
         RenderSystem.enableBlend();
-        // 1.21.4: drawTexture requires a RenderLayer supplier per texture.
-        context.drawTexture(RenderLayer::getGuiTextured, WINDOW_TEXTURE, x, y, 0.0f, 0.0f, WINDOW_WIDTH, WINDOW_HEIGHT, WINDOW_WIDTH, WINDOW_HEIGHT);
+        // 1.21.4: drawTexture requires a RenderLayer supplier per texture, and needs the
+        // real texture dimensions as the last two args. The old 1.20 overload assumed
+        // 256x256; passing the window's on-screen size (252x140) here instead made the UVs
+        // span the whole 256x256 file, squashing the frame (title bar included) into the
+        // top ~55% of the quad while the scissor/darkening stayed at the unsquashed
+        // offsets. 256x256 is the real size of advancements/window.png.
+        context.drawTexture(RenderLayer::getGuiTextured, WINDOW_TEXTURE, x, y, 0.0f, 0.0f, WINDOW_WIDTH, WINDOW_HEIGHT, 256, 256);
         context.drawText(this.textRenderer, ALTAR_TEXT + tier, x + 8, y + 6, 4210752, false);
 
         if (this.client != null && this.client.player != null) {
@@ -527,16 +532,21 @@ public class AltarScreen extends Screen {
         }
     }
 
-    @Override
-    public void renderBackground(DrawContext context, int mouseX, int mouseY, float delta) {
-        assert this.client != null;
-        if (this.client.world != null) {
-            // 1.21.4: renderBackground carries mouse + delta and must delegate to super
-            // for the blurred behind-settings look; old code drew a plain gradient.
-            super.renderBackground(context, mouseX, mouseY, delta);
-        } else {
-            Screen.renderBackgroundTexture(context, Screen.MENU_BACKGROUND_TEXTURE, this.width, this.height, 0.0f, 0.0f, 32, 32);
-        }
+    /**
+     * Darkens the tree area only, so the widget icons and lines stay readable while the
+     * window's content region (which is transparent in advancements/window.png) shows the
+     * world behind it. This is the mod's pre-port 1.20 behaviour.
+     *
+     * 1.21.4 note: do NOT reach for Screen#renderBackground for this. In 1.21.4 that runs
+     * Screen#applyBlur(), i.e. GameRenderer.renderBlur() — a full-screen post-effect over
+     * pixels that are already drawn (our window frame included) — followed by a full-screen
+     * darkening. Calling it here, after the frame and inside the scissor, blurred the frame
+     * and painted a rectangle bounded by the scissor rather than the frame; that was the
+     * "blur quad misaligned with the window" artefact.
+     */
+    private void drawPanelDarkening(DrawContext context) {
+        // 0xC0101010 -> 0xD0101010, the same gradient vanilla uses for in-world screens.
+        context.fillGradient(0, 0, this.width, this.height, 0xC0101010, 0xD0101010);
     }
 
     @Override
