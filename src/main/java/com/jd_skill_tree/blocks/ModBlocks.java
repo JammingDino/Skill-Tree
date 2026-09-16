@@ -1,9 +1,7 @@
 package com.jd_skill_tree.blocks;
 
 import com.jd_skill_tree.Jd_skill_tree;
-import net.fabricmc.fabric.api.item.v1.FabricItemSettings;
 import net.fabricmc.fabric.api.itemgroup.v1.ItemGroupEvents;
-import net.fabricmc.fabric.api.object.builder.v1.block.FabricBlockSettings;
 import net.minecraft.block.Block;
 import net.minecraft.item.BlockItem;
 import net.minecraft.item.Item;
@@ -17,7 +15,7 @@ public class ModBlocks {
 
     // Define all skill altar tiers
     public static final Block SKILL_ALTAR = registerBlock("skill_altar",
-            new SkillAltar(FabricBlockSettings.create()
+            new SkillAltar(Block.Settings.create()
                     .strength(3.0f, 6.0f)
                     .sounds(BlockSoundGroup.STONE)
                     .requiresTool()
@@ -27,7 +25,7 @@ public class ModBlocks {
     );
 
     public static final Block IRON_SKILL_ALTAR = registerBlock("iron_skill_altar",
-            new SkillAltar(FabricBlockSettings.create()
+            new SkillAltar(Block.Settings.create()
                     .strength(4.0f, 8.0f)
                     .sounds(BlockSoundGroup.METAL)
                     .requiresTool()
@@ -37,7 +35,7 @@ public class ModBlocks {
     );
 
     public static final Block DIAMOND_SKILL_ALTAR = registerBlock("diamond_skill_altar",
-            new SkillAltar(FabricBlockSettings.create()
+            new SkillAltar(Block.Settings.create()
                     .strength(5.0f, 10.0f)
                     .sounds(BlockSoundGroup.METAL)
                     .requiresTool()
@@ -47,7 +45,7 @@ public class ModBlocks {
     );
 
     public static final Block EMERALD_SKILL_ALTAR = registerBlock("emerald_skill_altar",
-            new SkillAltar(FabricBlockSettings.create()
+            new SkillAltar(Block.Settings.create()
                     .strength(5.0f, 10.0f)
                     .sounds(BlockSoundGroup.METAL)
                     .requiresTool()
@@ -57,7 +55,7 @@ public class ModBlocks {
     );
 
     public static final Block OBSIDIAN_SKILL_ALTAR = registerBlock("obsidian_skill_altar",
-            new SkillAltar(FabricBlockSettings.create()
+            new SkillAltar(Block.Settings.create()
                     .strength(5.0f, 15.0f)
                     .sounds(BlockSoundGroup.METAL)
                     .requiresTool()
@@ -67,7 +65,7 @@ public class ModBlocks {
     );
 
     public static final Block DEVELOPER_SKILL_ALTAR = registerBlock("developer_skill_altar",
-            new SkillAltar(FabricBlockSettings.create()
+            new SkillAltar(Block.Settings.create()
                     .strength(-1.0f, 3600000.0f) // Unbreakable (like bedrock) or just very hard
                     .sounds(BlockSoundGroup.AMETHYST_BLOCK)
                     .requiresTool()
@@ -79,13 +77,13 @@ public class ModBlocks {
     // Helper method to register a block
     private static Block registerBlock(String name, Block block) {
         registerBlockItem(name, block);
-        return Registry.register(Registries.BLOCK, new Identifier(Jd_skill_tree.MOD_ID, name), block);
+        return Registry.register(Registries.BLOCK, Identifier.of(Jd_skill_tree.MOD_ID, name), block);
     }
 
     // Helper method to register the block's item form
     private static Item registerBlockItem(String name, Block block) {
-        return Registry.register(Registries.ITEM, new Identifier(Jd_skill_tree.MOD_ID, name),
-                new BlockItem(block, new FabricItemSettings()));
+        return Registry.register(Registries.ITEM, Identifier.of(Jd_skill_tree.MOD_ID, name),
+                new BlockItem(block, new Item.Settings()));
     }
 
     // Call this method in your main mod initializer

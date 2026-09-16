@@ -18,6 +18,7 @@ import net.minecraft.nbt.NbtCompound;
 import net.minecraft.nbt.NbtList;
 import net.minecraft.nbt.NbtString;
 import net.minecraft.registry.Registries;
+import net.minecraft.registry.entry.RegistryEntry;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.world.World;
@@ -82,7 +83,7 @@ public abstract class PlayerEntityMixin extends LivingEntity implements IUnlocke
         PlayerEntity player = (PlayerEntity) (Object) this;
 
         for (String skillIdString : skillData.getUnlockedSkills()) {
-            SkillManager.getSkill(new Identifier(skillIdString)).ifPresent(skill -> {
+            SkillManager.getSkill(Identifier.of(skillIdString)).ifPresent(skill -> {
 
                 // Iterate all effects and check INDIVIDUALLY
                 for (SkillEffect effect : skill.getEffects()) {
@@ -106,19 +107,20 @@ public abstract class PlayerEntityMixin extends LivingEntity implements IUnlocke
         // --- ATTRIBUTE MODIFIER HANDLING ---
 
         // 1. Clean Slate: Find and remove all modifiers that were added by our mod in previous ticks.
-        for (EntityAttribute attribute : SkillManager.getAffectedAttributes()) {
+        for (RegistryEntry<EntityAttribute> attribute : SkillManager.getAffectedAttributes()) {
             EntityAttributeInstance instance = player.getAttributeInstance(attribute);
             if (instance != null) {
                 // We must collect the modifiers to remove first to avoid modifying a list while iterating over it.
+                // 1.20.5+: modifiers are keyed by Identifier, not UUID. Our per-attribute modifier id is derived
+                // from the attribute id + operation name, the same way it is built below.
                 List<EntityAttributeModifier> modifiersToRemove = new ArrayList<>();
                 for (EntityAttributeModifier modifier : instance.getModifiers()) {
-                    // Identify our modifiers by the name we gave them when we created them.
-                    if (AttributeSkillEffect.MODIFIER_NAME.equals(modifier.getName())) {
+                    if (AttributeSkillEffect.MODIFIER_NAME.equals(modifier.name())) {
                         modifiersToRemove.add(modifier);
                     }
                 }
-                // Now, remove them by their actual UUIDs. This is the correct API usage.
-                modifiersToRemove.forEach(modifier -> instance.removeModifier(modifier.getId()));
+                // Now, remove them by their Identifiers. This is the correct API usage.
+                modifiersToRemove.forEach(modifier -> instance.removeModifier(modifier.id()));
             }
         }
 
@@ -140,10 +142,14 @@ public abstract class PlayerEntityMixin extends LivingEntity implements IUnlocke
             EntityAttributeInstance instance = player.getAttributeInstance(attribute);
             if (instance != null) {
                 operationMap.forEach((operation, value) -> {
-                    UUID modifierUuid = UUID.nameUUIDFromBytes((Registries.ATTRIBUTE.getId(attribute).toString() + operation.toString()).getBytes());
+                    // 1.20.5+: EntityAttributeModifier is a record(Identifier, double, Operation);
+                    // the UUID+name constructor was replaced by an Identifier-keyed one.
+                    Identifier modifierId = Identifier.of(
+                            "jd_skill_tree",
+                            Registries.ATTRIBUTE.getId(attribute).getPath() + "/" + operation.getId()
+                    );
                     instance.addPersistentModifier(new EntityAttributeModifier(
-                            modifierUuid,
-                            AttributeSkillEffect.MODIFIER_NAME, // Apply with our special name
+                            modifierId,
                             value,
                             operation
                     ));

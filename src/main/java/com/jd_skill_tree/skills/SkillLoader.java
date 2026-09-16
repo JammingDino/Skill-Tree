@@ -42,7 +42,7 @@ public class SkillLoader extends JsonDataLoader implements IdentifiableResourceR
 
     @Override
     public Identifier getFabricId() {
-        return new Identifier(Jd_skill_tree.MOD_ID, "skills");
+        return Identifier.of(Jd_skill_tree.MOD_ID, "skills");
     }
 
     @Override

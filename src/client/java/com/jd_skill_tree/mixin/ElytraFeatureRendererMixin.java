@@ -32,7 +32,7 @@ public class ElytraFeatureRendererMixin {
             // Check for the skill
             IUnlockedSkillsData skillData = (IUnlockedSkillsData) player;
             for (String skillId : skillData.getUnlockedSkills()) {
-                var skillOpt = SkillManager.getSkill(new Identifier(skillId));
+                var skillOpt = SkillManager.getSkill(Identifier.of(skillId));
                 if (skillOpt.isPresent()) {
                     for (SkillEffect effect : skillOpt.get().getEffects()) {
                         if (effect instanceof ElytraSkillEffect && effect.isActive(player)) {

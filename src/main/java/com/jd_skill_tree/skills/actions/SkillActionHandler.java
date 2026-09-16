@@ -44,7 +44,7 @@ public class SkillActionHandler {
         IUnlockedSkillsData skillData = (IUnlockedSkillsData) owner;
 
         for (String skillId : skillData.getUnlockedSkills()) {
-            SkillManager.getSkill(new Identifier(skillId)).ifPresent(skill -> {
+            SkillManager.getSkill(Identifier.of(skillId)).ifPresent(skill -> {
                 for (SkillAction action : skill.getActions()) {
                     if (action.getTrigger() == type) {
                         action.run(owner, target, world, pos);
@@ -60,7 +60,7 @@ public class SkillActionHandler {
         IUnlockedSkillsData skillData = (IUnlockedSkillsData) player;
 
         for (String skillId : skillData.getUnlockedSkills()) {
-            SkillManager.getSkill(new Identifier(skillId)).ifPresent(skill -> {
+            SkillManager.getSkill(Identifier.of(skillId)).ifPresent(skill -> {
                 for (SkillAction action : skill.getActions()) {
                     // Check Trigger Type
                     if (action.getTrigger() == TriggerType.TIMER) {

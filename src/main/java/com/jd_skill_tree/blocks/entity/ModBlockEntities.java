@@ -13,7 +13,7 @@ public class ModBlockEntities {
     public static final BlockEntityType<SkillAltarBlockEntity> SKILL_ALTAR_ENTITY =
             Registry.register(
                     Registries.BLOCK_ENTITY_TYPE,
-                    new Identifier(Jd_skill_tree.MOD_ID, "skill_altar_entity"),
+                    Identifier.of(Jd_skill_tree.MOD_ID, "skill_altar_entity"),
                     FabricBlockEntityTypeBuilder.create(
                             SkillAltarBlockEntity::new,
                             ModBlocks.SKILL_ALTAR,

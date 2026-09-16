@@ -37,13 +37,15 @@ public class HandItemCondition implements SkillCondition {
         // 2. Check Count
         if (stack.getCount() < this.minCount) return false;
 
-        // 3. Check NBT (if specified)
+        // 3. Check item data (if specified)
+        // 1.20.5+: item NBT became data components. Extra custom data lives in the
+        // custom_data component now; a plain component map check would need codec work,
+        // so we compare against custom_data only — vanilla-strict component predicates
+        // are NOT supported in this legacy-style condition (reported to Levi).
         if (this.nbt != null) {
-            if (!stack.hasNbt()) return false;
-            // 'true' means strict matching for list order? actually in NbtHelper.matches:
-            // The boolean is "ignoreExtra" for lists? No, NbtHelper.matches(required, current, ignoreExtra)
-            // usually you want to ensure the item has the required tags.
-            return NbtHelper.matches(this.nbt, stack.getNbt(), true);
+            net.minecraft.component.type.CustomData custom = stack.get(net.minecraft.component.DataComponentTypes.CUSTOM_DATA);
+            if (custom == null) return false;
+            return NbtHelper.matches(this.nbt, custom.copyNbt(), true);
         }
 
         return true;
@@ -55,7 +57,7 @@ public class HandItemCondition implements SkillCondition {
     public NbtCompound getNbt() { return nbt; }
 
     public static HandItemCondition fromJson(JsonObject json) {
-        Identifier itemId = new Identifier(JsonHelper.getString(json, "item"));
+        Identifier itemId = Identifier.of(JsonHelper.getString(json, "item"));
         Item item = Registries.ITEM.get(itemId);
         int count = JsonHelper.getInt(json, "count", 1);
         String slotStr = JsonHelper.getString(json, "slot", "mainhand").toUpperCase();

@@ -2,6 +2,7 @@ package com.jd_skill_tree.blocks;
 
 import com.jd_skill_tree.blocks.entity.ModBlockEntities;
 import com.jd_skill_tree.blocks.entity.SkillAltarBlockEntity;
+import com.mojang.serialization.MapCodec;
 import net.minecraft.block.BlockRenderType;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.BlockWithEntity;
@@ -25,9 +26,18 @@ public class SkillAltar extends BlockWithEntity {
 
     private final int tier;
 
+    // 1.21.4: BlockWithEntity requires getCodec(); a passthrough codec keeps old behaviour
+    // (the block's serialisation does not need to round-trip the tier).
+    public static final MapCodec<SkillAltar> CODEC = createCodec(settings -> new SkillAltar(settings, 1));
+
     private static final VoxelShape SHAPE = VoxelShapes.union(
             createCuboidShape(0, 0, 0, 16, 12, 16)  // Base pedestal
     );
+
+    @Override
+    public VoxelShape getOutlineShape(BlockState state, BlockView world, BlockPos pos, net.minecraft.block.ShapeContext context) {
+        return SHAPE;
+    }
 
     @Override
     public VoxelShape getOutlineShape(BlockState state, BlockView world, BlockPos pos, net.minecraft.block.ShapeContext context) {
@@ -41,6 +51,11 @@ public class SkillAltar extends BlockWithEntity {
 
     public int getTier() {
         return tier;
+    }
+
+    @Override
+    protected MapCodec<? extends BlockWithEntity> getCodec() {
+        return SkillAltar.CODEC;
     }
 
     // --- Required for the enchanted table hover effect ---

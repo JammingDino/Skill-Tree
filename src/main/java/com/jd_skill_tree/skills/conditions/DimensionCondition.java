@@ -18,7 +18,7 @@ public class DimensionCondition implements SkillCondition {
     }
 
     public static DimensionCondition fromJson(JsonObject json) {
-        return new DimensionCondition(new Identifier(JsonHelper.getString(json, "dimension")));
+        return new DimensionCondition(Identifier.of(JsonHelper.getString(json, "dimension")));
     }
 
     public Identifier getDimensionId() { return dimensionId; }

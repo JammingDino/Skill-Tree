@@ -22,7 +22,7 @@ public class SkillAltarBlockEntityRenderer implements BlockEntityRenderer<SkillA
 
     // Use a SpriteIdentifier for proper texture atlas handling, just like the vanilla renderer
     public static final SpriteIdentifier BOOK_TEXTURE = new SpriteIdentifier(
-            SpriteAtlasTexture.BLOCK_ATLAS_TEXTURE, new Identifier("entity/enchanting_table_book")
+            SpriteAtlasTexture.BLOCK_ATLAS_TEXTURE, Identifier.of("entity/enchanting_table_book")
     );
     private final BookModel bookModel;
 

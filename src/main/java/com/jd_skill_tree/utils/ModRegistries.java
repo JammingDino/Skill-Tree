@@ -44,7 +44,7 @@ public class ModRegistries {
                 IUnlockedSkillsData skillData = (IUnlockedSkillsData) player;
                 for (String skillId : skillData.getUnlockedSkills()) {
                     // We have to look up the skill to check effects/conditions
-                    var skillOpt = SkillManager.getSkill(new Identifier(skillId));
+                    var skillOpt = SkillManager.getSkill(Identifier.of(skillId));
                     if (skillOpt.isPresent()) {
                         for (var effect : skillOpt.get().getEffects()) {
                             if (effect instanceof ElytraSkillEffect && effect.isActive(player)) {

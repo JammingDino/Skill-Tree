@@ -29,7 +29,7 @@ public class SkillWidget {
         UNLOCKED
     }
 
-    private static final Identifier WIDGETS_TEXTURE = new Identifier("jd_skill_tree", "textures/gui/widgets.png");
+    private static final Identifier WIDGETS_TEXTURE = Identifier.of("jd_skill_tree", "textures/gui/widgets.png");
     private final Skill skill;
     private final int worldX;
     private final int worldY;

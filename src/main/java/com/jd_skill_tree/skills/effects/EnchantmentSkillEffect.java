@@ -5,18 +5,22 @@ import com.jd_skill_tree.api.IUnlockedSkillsData;
 import com.jd_skill_tree.skills.SkillManager;
 import com.jd_skill_tree.skills.conditions.SkillCondition;
 import com.jd_skill_tree.skills.conditions.SkillConditionType;
+import net.minecraft.component.DataComponentTypes;
+import net.minecraft.component.type.CustomData;
+import net.minecraft.component.type.ItemEnchantmentsComponent;
 import net.minecraft.enchantment.Enchantment;
-import net.minecraft.enchantment.EnchantmentHelper;
 import net.minecraft.entity.EquipmentSlot;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.*;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.registry.Registries;
+import net.minecraft.registry.entry.RegistryEntry;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.JsonHelper;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 public class EnchantmentSkillEffect implements SkillEffect {
 
@@ -39,6 +43,43 @@ public class EnchantmentSkillEffect implements SkillEffect {
         return this.condition;
     }
 
+    // --- HELPERS (1.20.5+ data-component port) ---
+
+    private static RegistryEntry<Enchantment> lookupEnchantment(Identifier id) {
+        return Registries.ENCHANTMENT.getEntry(id).orElse(null);
+    }
+
+    private static Identifier enchantmentId(RegistryEntry<Enchantment> entry) {
+        return entry.getKey().map(RegistryKey::getValue).orElse(null);
+    }
+
+    /**
+     * Appends a bonus record ("jd_skill_bonus") to the stack's custom_data component,
+     * replacing the 1.20 root-tag trick (which cannot exist under 1.20.5+ components).
+     */
+    private static NbtCompound getBonusTag(ItemStack stack) {
+        CustomData custom = stack.get(DataComponentTypes.CUSTOM_DATA);
+        if (custom == null) return new NbtCompound();
+        NbtCompound nbt = custom.copyNbt();
+        return nbt.getCompound("jd_skill_bonus");
+    }
+
+    private static void putBonusTag(ItemStack stack, NbtCompound bonusTag) {
+        CustomData custom = stack.get(DataComponentTypes.CUSTOM_DATA);
+        NbtCompound nbt = custom != null ? custom.copyNbt() : new NbtCompound();
+        nbt.put("jd_skill_bonus", bonusTag);
+        stack.set(DataComponentTypes.CUSTOM_DATA, CustomData.of(nbt));
+    }
+
+    private static void removeBonusTag(ItemStack stack) {
+        CustomData custom = stack.get(DataComponentTypes.CUSTOM_DATA);
+        if (custom == null) return;
+        NbtCompound nbt = custom.copyNbt();
+        if (!nbt.contains("jd_skill_bonus")) return;
+        nbt.remove("jd_skill_bonus");
+        stack.set(DataComponentTypes.CUSTOM_DATA, CustomData.of(nbt));
+    }
+
     // --- LOGIC HANDLER ---
     public static void updateEnchantments(PlayerEntity player) {
         if (player.age % 10 != 0) return;
@@ -58,8 +99,8 @@ public class EnchantmentSkillEffect implements SkillEffect {
             }
 
             // 3. Maps to store calculated data
-            Map<Enchantment, Integer> bonusesToApply = new HashMap<>();
-            Map<Enchantment, Boolean> allowRuleBreaking = new HashMap<>();
+            Map<RegistryEntry<Enchantment>, Integer> bonusesToApply = new HashMap<>();
+            Map<RegistryEntry<Enchantment>, Boolean> allowRuleBreaking = new HashMap<>();
 
             // 4. Aggregate bonuses
             SkillManager.getAllSkills().stream()
@@ -70,9 +111,9 @@ public class EnchantmentSkillEffect implements SkillEffect {
                     // Check slot match AND the specific Condition for this effect
                     .filter(effect -> effect.targetSlot == slot && effect.isActive(player))
                     .forEach(effect -> {
-                        Enchantment ench = Registries.ENCHANTMENT.get(effect.enchantmentId);
+                        RegistryEntry<Enchantment> ench = lookupEnchantment(effect.enchantmentId);
                         if (ench != null) {
-                            if (!effect.allowOverEnchanting && !ench.isAcceptableItem(stack)) {
+                            if (!effect.allowOverEnchanting && !ench.value().isAcceptableItem(stack)) {
                                 return;
                             }
                             bonusesToApply.merge(ench, effect.levelAdded, Integer::sum);
@@ -91,57 +132,64 @@ public class EnchantmentSkillEffect implements SkillEffect {
 
     private static boolean isValidGear(ItemStack stack) {
         Item item = stack.getItem();
-        if (item.getMaxDamage() > 0) return true;
-        if (item instanceof ToolItem || item instanceof ArmorItem) return true;
+        if (stack.getMaxDamage() > 0) return true;
+        if (item instanceof MiningToolItem || item instanceof ArmorItem) return true;
         if (item instanceof ShieldItem) return true;
         if (item instanceof BowItem || item instanceof CrossbowItem) return true;
         if (item instanceof TridentItem) return true;
         if (item instanceof FishingRodItem) return true;
         if (item instanceof ShearsItem) return true;
         if (item instanceof FlintAndSteelItem) return true;
-        if (item instanceof ElytraItem) return true;
+        // 1.21.2+: ElytraItem was removed; equippable-with-elytra items carry an EQUIPPABLE component.
+        if (stack.contains(DataComponentTypes.EQUIPPABLE) || item instanceof MaceItem) return true;
         return false;
     }
 
     private static void cleanStack(ItemStack stack) {
-        if (!stack.hasNbt() || !stack.getNbt().contains("jd_skill_bonus")) return;
-        NbtCompound bonusTag = stack.getNbt().getCompound("jd_skill_bonus");
-        Map<Enchantment, Integer> enchantments = EnchantmentHelper.get(stack);
+        CustomData custom = stack.get(DataComponentTypes.CUSTOM_DATA);
+        if (custom == null) return;
+        NbtCompound bonusTag = custom.copyNbt().getCompound("jd_skill_bonus");
+        if (bonusTag.getSize() == 0) return;
+
+        ItemEnchantmentsComponent current = stack.getOrDefault(DataComponentTypes.ENCHANTMENTS, ItemEnchantmentsComponent.DEFAULT);
+        ItemEnchantmentsComponent.Builder builder = new ItemEnchantmentsComponent.Builder(current);
 
         for (String key : bonusTag.getKeys()) {
-            Identifier enchId = new Identifier(key);
-            Enchantment ench = Registries.ENCHANTMENT.get(enchId);
-            if (ench != null && enchantments.containsKey(ench)) {
+            Identifier enchId = Identifier.of(key);
+            RegistryEntry<Enchantment> ench = lookupEnchantment(enchId);
+            if (ench != null) {
                 int bonusLevel = bonusTag.getInt(key);
-                int currentLevel = enchantments.get(ench);
-                int originalLevel = Math.max(0, currentLevel - bonusLevel);
+                int at = current.getLevel(ench);
+                int originalLevel = Math.max(0, at - bonusLevel);
 
                 if (originalLevel == 0) {
-                    enchantments.remove(ench);
+                    builder.set(ench, 0);
+                    builder.remove(e -> e.matches(ench));
                 } else {
-                    enchantments.put(ench, originalLevel);
+                    builder.set(ench, originalLevel);
                 }
             }
         }
-        EnchantmentHelper.set(enchantments, stack);
-        stack.getNbt().remove("jd_skill_bonus");
+        stack.set(DataComponentTypes.ENCHANTMENTS, builder.build());
+        removeBonusTag(stack);
     }
 
-    private static void applyBonuses(ItemStack stack, Map<Enchantment, Integer> bonuses, Map<Enchantment, Boolean> ruleBreakers) {
-        Map<Enchantment, Integer> enchantments = EnchantmentHelper.get(stack);
+    private static void applyBonuses(ItemStack stack, Map<RegistryEntry<Enchantment>, Integer> bonuses, Map<RegistryEntry<Enchantment>, Boolean> ruleBreakers) {
+        ItemEnchantmentsComponent current = stack.getOrDefault(DataComponentTypes.ENCHANTMENTS, ItemEnchantmentsComponent.DEFAULT);
+        ItemEnchantmentsComponent.Builder builder = new ItemEnchantmentsComponent.Builder(current);
         NbtCompound bonusTag = new NbtCompound();
         boolean changed = false;
 
-        for (Map.Entry<Enchantment, Integer> entry : bonuses.entrySet()) {
-            Enchantment ench = entry.getKey();
+        for (Map.Entry<RegistryEntry<Enchantment>, Integer> entry : bonuses.entrySet()) {
+            RegistryEntry<Enchantment> ench = entry.getKey();
             int bonus = entry.getValue();
             boolean unlimited = ruleBreakers.getOrDefault(ench, false);
 
-            int currentLevel = enchantments.getOrDefault(ench, 0);
+            int currentLevel = current.getLevel(ench);
             int newLevel = currentLevel + bonus;
 
             if (!unlimited) {
-                int max = ench.getMaxLevel();
+                int max = ench.value().getMaxLevel();
                 if (newLevel > max) {
                     newLevel = max;
                     bonus = newLevel - currentLevel;
@@ -149,15 +197,18 @@ public class EnchantmentSkillEffect implements SkillEffect {
             }
 
             if (bonus > 0) {
-                enchantments.put(ench, newLevel);
-                bonusTag.putInt(Registries.ENCHANTMENT.getId(ench).toString(), bonus);
-                changed = true;
+                builder.set(ench, newLevel);
+                Identifier id = enchantmentId(ench);
+                if (id != null) {
+                    bonusTag.putInt(id.toString(), bonus);
+                    changed = true;
+                }
             }
         }
 
         if (changed) {
-            EnchantmentHelper.set(enchantments, stack);
-            stack.getOrCreateNbt().put("jd_skill_bonus", bonusTag);
+            stack.set(DataComponentTypes.ENCHANTMENTS, builder.build());
+            putBonusTag(stack, bonusTag);
         }
     }
 
@@ -167,7 +218,7 @@ public class EnchantmentSkillEffect implements SkillEffect {
     public boolean isAllowOverEnchanting() { return allowOverEnchanting; }
 
     public static EnchantmentSkillEffect fromJson(JsonObject json) {
-        Identifier enchId = new Identifier(JsonHelper.getString(json, "enchantment"));
+        Identifier enchId = Identifier.of(JsonHelper.getString(json, "enchantment"));
         int level = JsonHelper.getInt(json, "level_added", 1);
         String slotName = JsonHelper.getString(json, "slot", "mainhand").toLowerCase();
         boolean over = JsonHelper.getBoolean(json, "over_enchant", false);

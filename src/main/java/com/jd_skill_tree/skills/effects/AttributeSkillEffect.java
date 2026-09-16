@@ -6,6 +6,7 @@ import com.jd_skill_tree.skills.conditions.SkillConditionType;
 import net.minecraft.entity.attribute.EntityAttribute;
 import net.minecraft.entity.attribute.EntityAttributeModifier;
 import net.minecraft.registry.Registries;
+import net.minecraft.registry.entry.RegistryEntry;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.JsonHelper;
 
@@ -31,11 +32,17 @@ public class AttributeSkillEffect implements SkillEffect {
     }
 
     public EntityAttribute getAttribute() { return this.attribute; }
+
+    // 1.20.5+: attribute consumers (attribute instances, modifier slots) want the
+    // RegistryEntry form; the raw value is kept for comparisons.
+    public RegistryEntry<EntityAttribute> getAttributeEntry() {
+        return Registries.ATTRIBUTE.getEntry(this.attribute);
+    }
     public EntityAttributeModifier.Operation getOperation() { return this.operation; }
     public double getValue() { return this.value; }
 
     public static AttributeSkillEffect fromJson(JsonObject json) {
-        Identifier attributeId = new Identifier(JsonHelper.getString(json, "attribute"));
+        Identifier attributeId = Identifier.of(JsonHelper.getString(json, "attribute"));
         EntityAttribute attribute = Registries.ATTRIBUTE.get(attributeId);
         if (attribute == null) {
             throw new IllegalArgumentException("Unknown attribute: " + attributeId);

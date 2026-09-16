@@ -39,7 +39,7 @@ public class ModSkills {
         if (id == null) {
             return Optional.empty();
         }
-        return SkillManager.getSkill(new Identifier(id));
+        return SkillManager.getSkill(Identifier.of(id));
     }
 
     /**

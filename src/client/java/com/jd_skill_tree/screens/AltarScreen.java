@@ -20,7 +20,7 @@ import java.util.*;
 
 public class AltarScreen extends Screen {
 
-    private static final Identifier WINDOW_TEXTURE = new Identifier("textures/gui/advancements/window.png");
+    private static final Identifier WINDOW_TEXTURE = Identifier.of("textures/gui/advancements/window.png");
     private static final String ALTAR_TEXT = "Skill Altar Tier ";
     public static final int WINDOW_WIDTH = 252;
     public static final int WINDOW_HEIGHT = 140;

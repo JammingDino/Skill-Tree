@@ -21,7 +21,7 @@ public class WalkingOnBlockCondition implements SkillCondition {
     }
 
     public static WalkingOnBlockCondition fromJson(JsonObject json) {
-        Identifier id = new Identifier(JsonHelper.getString(json, "block"));
+        Identifier id = Identifier.of(JsonHelper.getString(json, "block"));
         return new WalkingOnBlockCondition(Registries.BLOCK.get(id));
     }
 

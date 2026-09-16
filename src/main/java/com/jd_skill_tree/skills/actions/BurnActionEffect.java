@@ -20,13 +20,16 @@ public class BurnActionEffect implements SkillActionEffect {
         if (world.isClient) return;
         target.setOnFireFor(duration / 20);
 
-        if (ignoreArmor) {
-            // In 1.20, 'magic' is the standard damage source that bypasses armor.
-            // We use this for the 'ignoreArmor' toggle.
-            target.damage(world.getDamageSources().magic(), 1.0f);
-        } else {
-            // Standard fire damage (respects armor)
-            target.damage(world.getDamageSources().onFire(), 1.0f);
+        // 1.21.x: Entity.damage requires a ServerWorld first argument.
+        if (world instanceof net.minecraft.server.world.ServerWorld serverWorld) {
+            if (ignoreArmor) {
+                // 'magic' is the standard damage source that bypasses armor.
+                // We use this for the 'ignoreArmor' toggle.
+                target.damage(serverWorld, world.getDamageSources().magic(), 1.0f);
+            } else {
+                // Standard fire damage (respects armor)
+                target.damage(serverWorld, world.getDamageSources().onFire(), 1.0f);
+            }
         }
     }
 

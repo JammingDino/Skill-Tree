@@ -24,7 +24,7 @@ public record SkillEffectType<T extends SkillEffect>(Function<JsonObject, T> fac
      */
     public static SkillEffect create(JsonObject json) {
         // 1. Get the "type" field from the JSON
-        Identifier typeId = new Identifier(JsonHelper.getString(json, "type"));
+        Identifier typeId = Identifier.of(JsonHelper.getString(json, "type"));
 
         // 2. Look up the corresponding SkillEffectType in our registry
         SkillEffectType<?> type = REGISTRY.get(typeId);
@@ -55,16 +55,16 @@ public record SkillEffectType<T extends SkillEffect>(Function<JsonObject, T> fac
     public static void registerAll() {
         Jd_skill_tree.LOGGER.info("Registering skill effect types...");
 
-        register(new Identifier(Jd_skill_tree.MOD_ID, "attribute"), AttributeSkillEffect::fromJson);
-        register(new Identifier(Jd_skill_tree.MOD_ID, "mining_speed"), MiningSpeedSkillEffect::fromJson);
-        register(new Identifier(Jd_skill_tree.MOD_ID, "potion"), PotionSkillEffect::fromJson);
-        register(new Identifier(Jd_skill_tree.MOD_ID, "enchantment"), EnchantmentSkillEffect::fromJson);
-        register(new Identifier(Jd_skill_tree.MOD_ID, "attack_knockback"), AttackKnockbackSkillEffect::fromJson);
-        register(new Identifier(Jd_skill_tree.MOD_ID, "experience"), ExperienceSkillEffect::fromJson);
-        register(new Identifier(Jd_skill_tree.MOD_ID, "swim_speed"), SwimSpeedSkillEffect::fromJson);
-        register(new Identifier(Jd_skill_tree.MOD_ID, "lava_speed"), LavaSpeedSkillEffect::fromJson);
-        register(new Identifier(Jd_skill_tree.MOD_ID, "effect_immunity"), EffectImmunitySkillEffect::fromJson);
-        register(new Identifier(Jd_skill_tree.MOD_ID, "creative_flight"), CreativeFlightSkillEffect::fromJson);
-        register(new Identifier(Jd_skill_tree.MOD_ID, "elytra"), ElytraSkillEffect::fromJson);
+        register(Identifier.of(Jd_skill_tree.MOD_ID, "attribute"), AttributeSkillEffect::fromJson);
+        register(Identifier.of(Jd_skill_tree.MOD_ID, "mining_speed"), MiningSpeedSkillEffect::fromJson);
+        register(Identifier.of(Jd_skill_tree.MOD_ID, "potion"), PotionSkillEffect::fromJson);
+        register(Identifier.of(Jd_skill_tree.MOD_ID, "enchantment"), EnchantmentSkillEffect::fromJson);
+        register(Identifier.of(Jd_skill_tree.MOD_ID, "attack_knockback"), AttackKnockbackSkillEffect::fromJson);
+        register(Identifier.of(Jd_skill_tree.MOD_ID, "experience"), ExperienceSkillEffect::fromJson);
+        register(Identifier.of(Jd_skill_tree.MOD_ID, "swim_speed"), SwimSpeedSkillEffect::fromJson);
+        register(Identifier.of(Jd_skill_tree.MOD_ID, "lava_speed"), LavaSpeedSkillEffect::fromJson);
+        register(Identifier.of(Jd_skill_tree.MOD_ID, "effect_immunity"), EffectImmunitySkillEffect::fromJson);
+        register(Identifier.of(Jd_skill_tree.MOD_ID, "creative_flight"), CreativeFlightSkillEffect::fromJson);
+        register(Identifier.of(Jd_skill_tree.MOD_ID, "elytra"), ElytraSkillEffect::fromJson);
     }
 }

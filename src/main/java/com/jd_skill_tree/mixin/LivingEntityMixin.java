@@ -26,7 +26,7 @@ public abstract class LivingEntityMixin {
         IUnlockedSkillsData skillData = (IUnlockedSkillsData) player;
 
         for (String skillIdString : skillData.getUnlockedSkills()) {
-            SkillManager.getSkill(new Identifier(skillIdString)).ifPresent(skill -> {
+            SkillManager.getSkill(Identifier.of(skillIdString)).ifPresent(skill -> {
                 // FIXED: Iterate effects individually and check their specific conditions
                 for (SkillEffect effect : skill.getEffects()) {
                     if (effect.isActive(player)) {

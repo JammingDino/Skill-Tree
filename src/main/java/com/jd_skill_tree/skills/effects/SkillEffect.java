@@ -83,8 +83,9 @@ public interface SkillEffect {
 
     /**
      * Checks if this skill effect prevents a specific status effect from being applied.
+     * 1.20.5+: effects are carried as RegistryEntry&lt;StatusEffect&gt;.
      */
-    default boolean preventsEffect(net.minecraft.entity.effect.StatusEffect effect) {
+    default boolean preventsEffect(net.minecraft.registry.entry.RegistryEntry<net.minecraft.entity.effect.StatusEffect> effect) {
         return false;
     }
 

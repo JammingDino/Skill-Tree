@@ -25,7 +25,7 @@ public class Jd_skill_tree_client implements ClientModInitializer {
     private static net.minecraft.client.option.KeyBinding activateKey;
 
     public static final EntityModelLayer BOOK_LAYER = new EntityModelLayer(
-            new Identifier(Jd_skill_tree.MOD_ID, "skill_altar_book"), "main"
+            Identifier.of(Jd_skill_tree.MOD_ID, "skill_altar_book"), "main"
     );
 
     @Override

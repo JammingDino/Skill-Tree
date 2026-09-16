@@ -30,9 +30,12 @@ public class EquippedItemCondition implements SkillCondition {
 
         if (!stack.isOf(this.targetItem)) return false;
 
+        // 1.20.5+: item NBT became data components. Extra custom data lives in the
+        // custom_data component now; see the note in HandItemCondition.test().
         if (this.nbt != null) {
-            if (!stack.hasNbt()) return false;
-            return NbtHelper.matches(this.nbt, stack.getNbt(), true);
+            net.minecraft.component.type.CustomData custom = stack.get(net.minecraft.component.DataComponentTypes.CUSTOM_DATA);
+            if (custom == null) return false;
+            return NbtHelper.matches(this.nbt, custom.copyNbt(), true);
         }
 
         return true;
@@ -43,7 +46,7 @@ public class EquippedItemCondition implements SkillCondition {
     public NbtCompound getNbt() { return nbt; }
 
     public static EquippedItemCondition fromJson(JsonObject json) {
-        Identifier itemId = new Identifier(JsonHelper.getString(json, "item"));
+        Identifier itemId = Identifier.of(JsonHelper.getString(json, "item"));
         Item item = Registries.ITEM.get(itemId);
 
         String slotStr = JsonHelper.getString(json, "slot", "head").toLowerCase();

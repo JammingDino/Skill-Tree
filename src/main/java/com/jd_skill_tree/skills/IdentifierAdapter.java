@@ -30,6 +30,6 @@ public class IdentifierAdapter extends TypeAdapter<Identifier> {
             in.nextNull();
             return null;
         }
-        return new Identifier(in.nextString());
+        return Identifier.of(in.nextString());
     }
 }

@@ -4,6 +4,8 @@ import com.google.gson.annotations.SerializedName;
 import com.jd_skill_tree.skills.actions.SkillAction;
 import com.jd_skill_tree.skills.conditions.SkillCondition;
 import com.jd_skill_tree.skills.effects.SkillEffect;
+import net.minecraft.component.DataComponentTypes;
+import net.minecraft.component.type.CustomModelDataComponent;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
@@ -61,16 +63,30 @@ public class Skill {
      */
     public ItemStack getIcon() {
         if (this.iconStackCache == null) {
-            Optional<Item> item = Registries.ITEM.getOrEmpty(this.icon);
+            Optional<Item> item = Registries.ITEM.getOptionalValue(this.icon);
             this.iconStackCache = new ItemStack(item.orElse(net.minecraft.item.Items.BARRIER));
 
-            // Apply NBT if present
+            // Apply stored icon data if present.
+            // 1.20.5 moved item NBT to data components; legacy "icon_nbt" strings that carry
+            // vanilla component payload keys (custom_data, custom_model_data, ...) are mapped
+            // to the matching components; anything else ends up in custom_data so the raw
+            // JSON is never lost.
             if (this.iconNbt != null && !this.iconNbt.isEmpty()) {
                 try {
-                    NbtCompound tag = StringNbtReader.parse(this.iconNbt);
-                    this.iconStackCache.setNbt(tag);
+                    net.minecraft.nbt.NbtCompound tag = StringNbtReader.parse(this.iconNbt);
+                    java.util.List<String> keys = new ArrayList<>(tag.getKeys());
+                    if (keys.size() == 1 && keys.get(0).equals("custom_data")) {
+                        this.iconStackCache.set(DataComponentTypes.CUSTOM_DATA,
+                                net.minecraft.component.type.CustomData.of(tag.getCompound("custom_data")));
+                    } else if (keys.size() == 1 && keys.get(0).equals("custom_model_data")) {
+                        this.iconStackCache.set(DataComponentTypes.CUSTOM_MODEL_DATA,
+                                CustomModelDataComponent.of(tag.getInt("custom_model_data")));
+                    } else {
+                        this.iconStackCache.set(DataComponentTypes.CUSTOM_DATA,
+                                net.minecraft.component.type.CustomData.of(tag));
+                    }
                 } catch (Exception e) {
-                    System.err.println("Failed to parse NBT for skill icon: " + this.iconNbt);
+                    System.err.println("Failed to parse icon data for skill: " + this.iconNbt);
                 }
             }
         }

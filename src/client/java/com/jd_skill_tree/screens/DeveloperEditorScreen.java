@@ -1763,7 +1763,7 @@ public class DeveloperEditorScreen extends BaseOwoScreen<StackLayout> {
 
         try {
             this.previewSkill = GSON.fromJson(json, Skill.class);
-            this.previewSkill.setId(new Identifier("preview", "live"));
+            this.previewSkill.setId(Identifier.of("preview", "live"));
 
             // OPTIONAL: Manually force the NBT if GSON didn't catch it for some reason,
             // but GSON.fromJson should handle it if 'icon_nbt' is in the JSON string.

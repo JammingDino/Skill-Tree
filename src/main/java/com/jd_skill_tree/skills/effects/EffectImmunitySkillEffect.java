@@ -5,6 +5,7 @@ import com.jd_skill_tree.skills.conditions.SkillCondition;
 import com.jd_skill_tree.skills.conditions.SkillConditionType;
 import net.minecraft.entity.effect.StatusEffect;
 import net.minecraft.registry.Registries;
+import net.minecraft.registry.entry.RegistryEntry;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.JsonHelper;
 
@@ -23,9 +24,16 @@ public class EffectImmunitySkillEffect implements SkillEffect {
         return this.condition;
     }
 
+    // 1.20.5+: status effects are RegistryEntry<StatusEffect> in status effect instances.
     @Override
-    public boolean preventsEffect(StatusEffect effect) {
-        Identifier targetId = Registries.STATUS_EFFECT.getId(effect);
+    public boolean preventsEffect(RegistryEntry<StatusEffect> effect) {
+        Identifier targetId = effect.getKey().map(RegistryEntry.Reference::registryKey)
+                .map(net.minecraft.registry.RegistryKey::getValue)
+                .orElse(null);
+        if (targetId == null) {
+            // Directly-held value (dynamic entry): fall back to registry lookup
+            targetId = Registries.STATUS_EFFECT.getId(effect.value());
+        }
         return targetId != null && targetId.equals(this.effectId);
     }
 
@@ -34,7 +42,7 @@ public class EffectImmunitySkillEffect implements SkillEffect {
     }
 
     public static EffectImmunitySkillEffect fromJson(JsonObject json) {
-        Identifier id = new Identifier(JsonHelper.getString(json, "effect"));
+        Identifier id = Identifier.of(JsonHelper.getString(json, "effect"));
 
         SkillCondition cond = null;
         if (json.has("condition")) {

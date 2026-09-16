@@ -7,6 +7,7 @@ import net.minecraft.entity.effect.StatusEffect;
 import net.minecraft.entity.effect.StatusEffectInstance;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.registry.Registries;
+import net.minecraft.registry.entry.RegistryEntry;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.JsonHelper;
 
@@ -36,7 +37,7 @@ public class PotionSkillEffect implements SkillEffect {
         // Vital: We must manually check the condition here because this method is called directly
         if (!isActive(player)) return;
 
-        StatusEffect statusEffect = Registries.STATUS_EFFECT.get(this.effectId);
+        RegistryEntry<StatusEffect> statusEffect = Registries.STATUS_EFFECT.getEntry(this.effectId).orElse(null);
         if (statusEffect == null) return;
 
         if (!player.hasStatusEffect(statusEffect) || player.getStatusEffect(statusEffect).getDuration() < 100) {
@@ -50,7 +51,7 @@ public class PotionSkillEffect implements SkillEffect {
     public boolean shouldHideParticles() { return hideParticles; }
 
     public static PotionSkillEffect fromJson(JsonObject json) {
-        Identifier id = new Identifier(JsonHelper.getString(json, "effect"));
+        Identifier id = Identifier.of(JsonHelper.getString(json, "effect"));
         int amp = JsonHelper.getInt(json, "amplifier", 0);
         boolean hide = JsonHelper.getBoolean(json, "hide_particles", false);
 

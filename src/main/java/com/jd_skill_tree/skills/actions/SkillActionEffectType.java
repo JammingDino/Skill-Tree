@@ -12,7 +12,7 @@ public record SkillActionEffectType<T extends SkillActionEffect>(Function<JsonOb
     private static final Map<Identifier, SkillActionEffectType<?>> REGISTRY = new HashMap<>();
 
     public static SkillActionEffect create(JsonObject json) {
-        Identifier typeId = new Identifier(JsonHelper.getString(json, "type"));
+        Identifier typeId = Identifier.of(JsonHelper.getString(json, "type"));
         SkillActionEffectType<?> type = REGISTRY.get(typeId);
         if (type == null) throw new IllegalArgumentException("Unknown action effect: " + typeId);
         return type.factory().apply(json);
@@ -23,11 +23,11 @@ public record SkillActionEffectType<T extends SkillActionEffect>(Function<JsonOb
     }
 
     public static void registerAll() {
-        register(new Identifier(Jd_skill_tree.MOD_ID, "command"), CommandActionEffect::fromJson);
-        register(new Identifier(Jd_skill_tree.MOD_ID, "burn"), BurnActionEffect::fromJson);
-        register(new Identifier(Jd_skill_tree.MOD_ID, "delayed"), DelayedActionEffect::fromJson);
-        register(new Identifier(Jd_skill_tree.MOD_ID, "heal"), HealActionEffect::fromJson);
-        register(new Identifier(Jd_skill_tree.MOD_ID, "launch"), LaunchActionEffect::fromJson);
-        register(new Identifier(Jd_skill_tree.MOD_ID, "raycast"), RaycastActionEffect::fromJson);
+        register(Identifier.of(Jd_skill_tree.MOD_ID, "command"), CommandActionEffect::fromJson);
+        register(Identifier.of(Jd_skill_tree.MOD_ID, "burn"), BurnActionEffect::fromJson);
+        register(Identifier.of(Jd_skill_tree.MOD_ID, "delayed"), DelayedActionEffect::fromJson);
+        register(Identifier.of(Jd_skill_tree.MOD_ID, "heal"), HealActionEffect::fromJson);
+        register(Identifier.of(Jd_skill_tree.MOD_ID, "launch"), LaunchActionEffect::fromJson);
+        register(Identifier.of(Jd_skill_tree.MOD_ID, "raycast"), RaycastActionEffect::fromJson);
     }
 }
